@@ -15,7 +15,7 @@ interface Data {
 
 export default {
   data(): Data {
-    return { token: '', result: '' };
+    return { token: useApiConfig().getAccessToken(), result: '' };
   },
   methods: {
     setToken() {
