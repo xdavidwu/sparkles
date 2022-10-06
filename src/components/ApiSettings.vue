@@ -17,7 +17,7 @@
 
 <script lang="ts">
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
-import { AuthorizationV1Api } from '@/kubernetes-api/src';
+import { checkPermission } from '@/utils/permission';
 
 interface Data {
   token: string,
@@ -45,19 +45,7 @@ export default {
       apiConfig.setAccessToken(this.token);
     },
     async testConnection() {
-      const apiConfig = useApiConfig();
-      const response = await (new AuthorizationV1Api(await apiConfig.getConfig())).createSelfSubjectAccessReview({
-        body: {
-          spec: {
-            resourceAttributes: {
-              resource: "namespace",
-              verb: "list",
-            },
-          },
-        },
-      });
-      const mayListNamespaces = response.status.allowed ? "Yes" : response.status.denied ? "No" : "Unknown";
-      this.result = `May list namespaces: ${mayListNamespaces}`;
+      this.result = `May list namespaces: ${await checkPermission('namespace', 'list')}`;
     },
   },
 };
