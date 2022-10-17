@@ -22,6 +22,11 @@ const router = createRouter({
       name: 'oidc_callback',
       component: () => import('../views/OIDCCallback.vue'),
     },
+    {
+      path: '/explore',
+      name: 'explore',
+      component: () => import('../views/ResourceExplorer.vue'),
+    },
   ]
 })
 
