@@ -10,6 +10,15 @@
         {{ resource.name }}
       </option>
     </select>
+    <table>
+      <tr>
+        <th v-for="column in listing.columnDefinitions" :key="column.name"
+          :title="column.description">{{ column.name }}</th>
+      </tr>
+      <tr v-for="row in listing.rows" :key="row.object.metadata.name">
+        <td v-for="cell in row.cells" :key="cell">{{ cell }}</td>
+      </tr>
+    </table>
   </div>
 </template>
 
@@ -23,15 +32,26 @@ interface Data {
   targetAPIIndex: number;
   resources: [];
   targetResource: string;
+  listing: Object;
 }
 
 export default {
   async created() {
     this.getAPIs();
     this.$watch('targetAPIIndex', this.getResources);
+    this.$watch('targetResource', this.listResources);
   },
   data(): Data {
-    return { apis: [], targetAPIIndex: -1, resources: [], targetResource: null };
+    return {
+      apis: [],
+      targetAPIIndex: -1,
+      resources: [],
+      targetResource: null,
+      listing: {
+        columnDefinitions: [],
+        rows: [],
+      },
+    };
   },
   methods: {
     async getAPIs() {
@@ -51,6 +71,13 @@ export default {
         (v) => (!v.name.includes('/') && v.verbs.includes('list')));
       console.log(this.resources);
       this.targetResource = this.resources[0].name;
+    },
+    async listResources() {
+      const apiSpec = this.apis[this.targetAPIIndex];
+      const apiConfig = await useApiConfig().getConfig();
+      const api = new AnyApi(apiConfig, apiSpec.group, apiSpec.version);
+
+      this.listing = await api.listResourcesAsTable(this.targetResource);
     },
   },
 };

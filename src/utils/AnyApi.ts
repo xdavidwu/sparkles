@@ -37,4 +37,21 @@ export class AnyApi extends BaseAPI {
       (v) => V1APIResourceListFromJSON(v)
     )).value();
   }
+
+  // TODO: type this
+  async listResourcesAsTable(kind: string): Promise<Object> {
+    const headers: HTTPHeaders = {
+      accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
+    };
+
+    if (this.configuration && this.configuration.apiKey) {
+      headers['authorization'] = this.configuration.apiKey('authorization');
+    }
+
+    return (await this.request({
+      path: this.path + kind,
+      method: 'GET',
+      headers
+    })).json();
+  }
 }
