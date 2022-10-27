@@ -1,24 +1,31 @@
+<script setup lang="ts">
+import { VSelect, VRow, VCol, VTable } from 'vuetify/components';
+</script>
+
 <template>
   <div>
-    <select v-model="targetAPIIndex">
-      <option v-for="(api, index) in apis" :key="api.group + api.version" :value="index">
-        {{ (api.group ?? 'core') + '/' + api.version }}
-      </option>
-    </select>
-    <select v-model="targetResource">
-      <option v-for="resource in resources" :key="resource.name" :value="resource.name">
-        {{ resource.name }}
-      </option>
-    </select>
-    <table>
-      <tr>
-        <th v-for="column in listing.columnDefinitions" :key="column.name"
-          :title="column.description">{{ column.name }}</th>
-      </tr>
-      <tr v-for="row in listing.rows" :key="row.object.metadata.name">
-        <td v-for="cell in row.cells" :key="cell">{{ cell }}</td>
-      </tr>
-    </table>
+    <VRow>
+      <VCol>
+        <VSelect v-model="targetAPI" :items="apis" return-object
+          :item-title="(api) => (api.group ?? 'core') + '/' + api.version" />
+      </VCol>
+      <VCol>
+        <VSelect v-model="targetResource" :items="resources" />
+      </VCol>
+    </VRow>
+    <VTable>
+      <thead>
+        <tr>
+          <th v-for="column in listing.columnDefinitions" :key="column.name"
+            :title="column.description">{{ column.name }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in listing.rows" :key="row.object.metadata.name">
+          <td v-for="cell in row.cells" :key="cell">{{ cell }}</td>
+        </tr>
+      </tbody>
+    </VTable>
   </div>
 </template>
 
@@ -29,7 +36,7 @@ import { AnyApi } from '@/utils/AnyApi';
 
 interface Data {
   apis: []; //TODO type these
-  targetAPIIndex: number;
+  targetAPI: Object;
   resources: [];
   targetResource: string;
   listing: Object;
@@ -38,13 +45,13 @@ interface Data {
 export default {
   async created() {
     this.getAPIs();
-    this.$watch('targetAPIIndex', this.getResources);
+    this.$watch('targetAPI', this.getResources);
     this.$watch('targetResource', this.listResources);
   },
   data(): Data {
     return {
       apis: [],
-      targetAPIIndex: -1,
+      targetAPI: {},
       resources: [],
       targetResource: null,
       listing: {
@@ -58,24 +65,23 @@ export default {
       const apiConfig = await useApiConfig().getConfig();
       const response = await (new ApiregistrationV1Api(apiConfig)).listAPIService({});
       this.apis = response.items.map((i) => (i.spec));
-      this.targetAPIIndex = 0;
+      this.targetAPI = this.apis[0];
     },
     async getResources() {
-      const apiSpec = this.apis[this.targetAPIIndex];
       const apiConfig = await useApiConfig().getConfig();
-      const api = new AnyApi(apiConfig, apiSpec.group, apiSpec.version);
+      const api = new AnyApi(apiConfig, this.targetAPI.group, this.targetAPI.version);
       const response = await api.getAPIResources();
 
       // filter out subresources, unlistables
       this.resources = response.resources.filter(
-        (v) => (!v.name.includes('/') && v.verbs.includes('list')));
+        (v) => (!v.name.includes('/') && v.verbs.includes('list'))
+      ).map((v) => v.name);
       console.log(this.resources);
-      this.targetResource = this.resources[0].name;
+      this.targetResource = this.resources[0];
     },
     async listResources() {
-      const apiSpec = this.apis[this.targetAPIIndex];
       const apiConfig = await useApiConfig().getConfig();
-      const api = new AnyApi(apiConfig, apiSpec.group, apiSpec.version);
+      const api = new AnyApi(apiConfig, this.targetAPI.group, this.targetAPI.version);
 
       this.listing = await api.listResourcesAsTable(this.targetResource);
     },
