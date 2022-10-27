@@ -1,17 +1,12 @@
+<script setup lang="ts">
+import { VSelect, VTextField, VBtn } from 'vuetify/components';
+</script>
+
 <template>
-  <div>
-    <label for="scheme">Authentication method:</label>
-    <select id="scheme" v-model="scheme" @change="storeScheme">
-      <option v-for="scheme in schemes" :key="scheme" :value="scheme[1]">
-        {{ scheme[0] }}
-      </option>
-    </select>
-  </div>
-  <div>
-    <label for="token">Bearer token:</label>
-    <input type="text" id="token" v-model="token" @input="storeToken">
-  </div>
-  <button @click="testConnection">Test connection</button>
+  <VSelect label="Authentication method" v-model="scheme" @update:modelValue="storeScheme"
+    :items="schemes" item-value="1" item-title="0" />
+  <VTextField label="Bearer token" v-model="token" @update:modelValue="storeToken" />
+  <VBtn @click="testConnection">Test connection</VBtn>
   <div>{{ result }}</div>
 </template>
 
