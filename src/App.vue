@@ -26,7 +26,7 @@ import {
         <VListItem :to="{ name: 'explore' }">Resource Explorer</VListItem>
       </VList>
     </VNavigationDrawer>
-    <VMain>
+    <VMain style="width: 95vw; /* XXX */">
       <VContainer fluid>
         <RouterView />
       </VContainer>
