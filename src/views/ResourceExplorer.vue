@@ -46,8 +46,10 @@ export default {
       const api = new AnyApi(apiConfig, apiSpec.group, apiSpec.version);
       const response = await api.getAPIResources();
 
-      // filter out subresources
-      this.resources = response.resources.filter((v) => (!v.name.includes('/')));
+      // filter out subresources, unlistables
+      this.resources = response.resources.filter(
+        (v) => (!v.name.includes('/') && v.verbs.includes('list')));
+      console.log(this.resources);
       this.targetResource = this.resources[0].name;
     },
   },
