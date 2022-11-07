@@ -22,7 +22,8 @@ import { VAutocomplete, VRow, VCol, VTable } from 'vuetify/components';
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in listing.rows" :key="row.object.metadata.name">
+        <tr v-for="row in listing.rows"
+          :key="`${row.object.metadata.namespace}/${row.object.metadata.name}`">
           <td v-for="cell in row.cells" :key="cell">{{ cell }}</td>
         </tr>
       </tbody>
