@@ -11,7 +11,12 @@ import { VAutocomplete, VRow, VCol, VTable } from 'vuetify/components';
           :item-title="(api) => (api.group ?? 'core') + '/' + api.version" />
       </VCol>
       <VCol>
-        <VAutocomplete label="Kind" v-model="targetResource" :items="resources" />
+        <VAutocomplete label="Kind" v-model="targetResource" :items="resources"
+          return-object item-title="name" />
+      </VCol>
+      <VCol>
+        <VAutocomplete label="Namespace" v-model="targetNamespace"
+          :items="namespaceOptions" :disabled="!targetResource.namespaced" />
       </VCol>
     </VRow>
     <VTable>
@@ -33,36 +38,56 @@ import { VAutocomplete, VRow, VCol, VTable } from 'vuetify/components';
 
 <script lang="ts">
 import { useApiConfig } from '@/stores/apiConfig';
-import { ApiregistrationV1Api } from '@/kubernetes-api/src';
+import { ApiregistrationV1Api, CoreV1Api } from '@/kubernetes-api/src';
 import { AnyApi } from '@/utils/AnyApi';
 
 interface Data {
   apis: []; //TODO type these
   targetAPI: Object;
   resources: [];
-  targetResource: string;
+  targetResource: Object;
+  namespaces: string[];
+  targetNamespace: string;
   listing: Object;
 }
 
+const NS_ALL_NAMESPACES = '(all)';
+const NS_UNNAMESPACED = '(global)';
+
 export default {
   async created() {
+    await this.getNamespaces();
     this.getAPIs();
     this.$watch('targetAPI', this.getResources);
-    this.$watch('targetResource', this.listResources);
+    this.$watch('targetResource', this.selectResource);
+    this.$watch('targetNamespace', this.listResources);
   },
   data(): Data {
     return {
       apis: [],
       targetAPI: {},
       resources: [],
-      targetResource: null,
+      targetResource: { name: '(loading)', namespaced: false },
+      namespaces: [],
+      targetNamespace: NS_UNNAMESPACED,
       listing: {
         columnDefinitions: [],
         rows: [],
       },
     };
   },
+  computed: {
+    namespaceOptions() {
+      return this.targetResource.namespaced ?
+        [NS_ALL_NAMESPACES, ...this.namespaces] : [NS_UNNAMESPACED];
+    }
+  },
   methods: {
+    async getNamespaces() {
+      const apiConfig = await useApiConfig().getConfig();
+      const response = await (new CoreV1Api(apiConfig)).listNamespace({});
+      this.namespaces = response.items.map((i) => (i.metadata.name));
+    },
     async getAPIs() {
       const apiConfig = await useApiConfig().getConfig();
       const response = await (new ApiregistrationV1Api(apiConfig)).listAPIService({});
@@ -77,15 +102,22 @@ export default {
       // filter out subresources, unlistables
       this.resources = response.resources.filter(
         (v) => (!v.name.includes('/') && v.verbs.includes('list'))
-      ).map((v) => v.name);
-      console.log(this.resources);
+      );
       this.targetResource = this.resources[0];
+    },
+    async selectResource() {
+      this.targetNamespace = this.targetResource.namespaced ? NS_ALL_NAMESPACES
+        : NS_UNNAMESPACED;
+      this.listResources();
     },
     async listResources() {
       const apiConfig = await useApiConfig().getConfig();
       const api = new AnyApi(apiConfig, this.targetAPI.group, this.targetAPI.version);
 
-      this.listing = await api.listResourcesAsTable(this.targetResource);
+      const namespace = (this.targetNamespace === NS_ALL_NAMESPACES ||
+        this.targetNamespace === NS_UNNAMESPACED) ? '' : this.targetNamespace;
+      this.listing = await api.listResourcesAsTable(this.targetResource.name,
+        namespace);
     },
   },
 };

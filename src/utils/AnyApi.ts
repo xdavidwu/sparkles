@@ -39,7 +39,8 @@ export class AnyApi extends BaseAPI {
   }
 
   // TODO: type this
-  async listResourcesAsTable(kind: string): Promise<Object> {
+  async listResourcesAsTable(kind: string, namespace: string = ''):
+      Promise<Object> {
     const headers: HTTPHeaders = {
       accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
     };
@@ -48,8 +49,13 @@ export class AnyApi extends BaseAPI {
       headers['authorization'] = this.configuration.apiKey('authorization');
     }
 
+    let path = this.path + kind;
+    if (namespace) {
+      path = `${this.path}namespaces/${namespace}/${kind}`;
+    }
+
     return (await this.request({
-      path: this.path + kind,
+      path,
       method: 'GET',
       headers
     })).json();
