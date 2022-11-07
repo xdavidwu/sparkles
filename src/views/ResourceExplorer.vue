@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { VSelect, VRow, VCol, VTable } from 'vuetify/components';
+import { VAutocomplete, VRow, VCol, VTable } from 'vuetify/components';
 </script>
 
 <template>
   <div>
     <VRow>
       <VCol>
-        <VSelect v-model="targetAPI" :items="apis" return-object
+        <VAutocomplete label="API group" v-model="targetAPI" :items="apis"
+          return-object
           :item-title="(api) => (api.group ?? 'core') + '/' + api.version" />
       </VCol>
       <VCol>
-        <VSelect v-model="targetResource" :items="resources" />
+        <VAutocomplete label="Kind" v-model="targetResource" :items="resources" />
       </VCol>
     </VRow>
     <VTable>
