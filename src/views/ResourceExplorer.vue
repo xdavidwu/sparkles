@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { VAutocomplete, VRow, VCol, VTable } from 'vuetify/components';
+import { VAutocomplete, VSelect, VRow, VCol, VTable } from 'vuetify/components';
 </script>
 
 <template>
@@ -15,8 +15,9 @@ import { VAutocomplete, VRow, VCol, VTable } from 'vuetify/components';
           return-object item-title="name" />
       </VCol>
       <VCol>
-        <VAutocomplete label="Namespace" v-model="targetNamespace"
-          :items="namespaceOptions" :disabled="!targetResource.namespaced" />
+        <VAutocomplete v-if="targetResource.namespaced" label="Namespace"
+          v-model="targetNamespace" :items="namespaceOptions" />
+        <VSelect v-else label="Namespace" model-value="(global)" disabled />
       </VCol>
     </VRow>
     <VTable>
@@ -52,14 +53,13 @@ interface Data {
 }
 
 const NS_ALL_NAMESPACES = '(all)';
-const NS_UNNAMESPACED = '(global)';
 
 export default {
   async created() {
     await this.getNamespaces();
     this.getAPIs();
     this.$watch('targetAPI', this.getResources);
-    this.$watch('targetResource', this.selectResource);
+    this.$watch('targetResource', this.listResources);
     this.$watch('targetNamespace', this.listResources);
   },
   data(): Data {
@@ -69,7 +69,7 @@ export default {
       resources: [],
       targetResource: { name: '(loading)', namespaced: false },
       namespaces: [],
-      targetNamespace: NS_UNNAMESPACED,
+      targetNamespace: NS_ALL_NAMESPACES,
       listing: {
         columnDefinitions: [],
         rows: [],
@@ -78,8 +78,7 @@ export default {
   },
   computed: {
     namespaceOptions() {
-      return this.targetResource.namespaced ?
-        [NS_ALL_NAMESPACES, ...this.namespaces] : [NS_UNNAMESPACED];
+      return [NS_ALL_NAMESPACES, ...this.namespaces];
     }
   },
   methods: {
@@ -105,17 +104,12 @@ export default {
       );
       this.targetResource = this.resources[0];
     },
-    async selectResource() {
-      this.targetNamespace = this.targetResource.namespaced ? NS_ALL_NAMESPACES
-        : NS_UNNAMESPACED;
-      this.listResources();
-    },
     async listResources() {
       const apiConfig = await useApiConfig().getConfig();
       const api = new AnyApi(apiConfig, this.targetAPI.group, this.targetAPI.version);
 
-      const namespace = (this.targetNamespace === NS_ALL_NAMESPACES ||
-        this.targetNamespace === NS_UNNAMESPACED) ? '' : this.targetNamespace;
+      const namespace = (!this.targetResource.namespaced ||
+        this.targetNamespace === NS_ALL_NAMESPACES) ? '' : this.targetNamespace;
       this.listing = await api.listResourcesAsTable(this.targetResource.name,
         namespace);
     },
