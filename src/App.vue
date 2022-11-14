@@ -4,7 +4,12 @@ import {
   VApp,
   VAppBar,
   VAppBarNavIcon,
+  VBtn,
+  VCard,
+  VCardActions,
+  VCardText,
   VContainer,
+  VDialog,
   VList,
   VListItem,
   VMain,
@@ -21,11 +26,27 @@ import {
     </VAppBar>
     <VNavigationDrawer v-model="drawer">
       <VList>
-        <VListItem :to="{ name: 'home' }">Home</VListItem>
+        <VListItem :to="{ name: 'settings' }">Settings</VListItem>
         <VListItem :to="{ name: 'about' }">About</VListItem>
         <VListItem :to="{ name: 'explore' }">Resource Explorer</VListItem>
       </VList>
     </VNavigationDrawer>
+    <VDialog v-model="showsDialog">
+      <VCard title="Request failed">
+        <VCardText>
+          <div>{{ failedResponse.url }}</div>
+          <div>{{ failedResponse.status }} {{ failedResponse.statusText }}</div>
+          <pre>{{ failedResponseText }}</pre>
+        </VCardText>
+        <VCardActions>
+          <VBtn color="primary"
+            @click="showsDialog = false; $router.push({ name: 'settings' })">
+            Go to settings
+          </VBtn>
+          <VBtn @click="showsDialog = false">Close</VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
     <VMain style="width: 95vw; /* XXX */">
       <VContainer fluid>
         <RouterView />
@@ -42,7 +63,15 @@ export default {
       default: import.meta.env.VITE_APP_BRANDING ?? 'Kubernetes SPA Client',
     },
   },
-  data: () => ({ drawer: null }),
+  data: () => ({ drawer: null, showsDialog: false, failedResponse: new Response(), failedResponseText: '' }),
+  errorCaptured(err) {
+    if (err instanceof Response) {
+      this.failedResponse = err;
+      err.text().then(t => this.failedResponseText = t);
+      this.showsDialog = true;
+      return false;
+    }
+  },
 }
 </script>
 
