@@ -11,6 +11,8 @@ import {
   VWindow,
   VWindowItem,
 } from 'vuetify/components';
+
+import YAMLViewer from '@/components/YAMLViewer.vue';
 </script>
 
 <template>
@@ -64,7 +66,7 @@ import {
     <VWindowItem v-for="(obj, idx) in inspectedObjects"
       :key="uniqueKeyForInspectedObject(obj)"
       :value="uniqueKeyForInspectedObject(obj)">
-      {{ obj }}
+      <YAMLViewer :data="obj" />
       <VBtn @click="closeTab(idx)">Close</VBtn>
     </VWindowItem>
   </VWindow>
