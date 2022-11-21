@@ -60,4 +60,26 @@ export class AnyApi extends BaseAPI {
       headers
     })).json();
   }
+
+  async getResource(kind: string, name: string, namespace: string = ''):
+      Promise<Object> {
+    const headers: HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.apiKey) {
+      headers['authorization'] = this.configuration.apiKey('authorization');
+    }
+
+    let path;
+    if (namespace) {
+      path = `${this.path}namespaces/${namespace}/${kind}/${name}`;
+    } else {
+      path = `${this.path}${kind}/${name}`;
+    }
+
+    return (await this.request({
+      path,
+      method: 'GET',
+      headers
+    })).json();
+  }
 }
