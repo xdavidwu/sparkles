@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   VAutocomplete,
+  VBtn,
   VCol,
   VRow,
   VSelect,
@@ -60,10 +61,11 @@ import {
         </tbody>
       </VTable>
     </VWindowItem>
-    <VWindowItem v-for="obj in inspectedObjects"
+    <VWindowItem v-for="(obj, idx) in inspectedObjects"
       :key="uniqueKeyForInspectedObject(obj)"
       :value="uniqueKeyForInspectedObject(obj)">
       {{ obj }}
+      <VBtn @click="closeTab(idx)">Close</VBtn>
     </VWindowItem>
   </VWindow>
 </template>
@@ -175,6 +177,10 @@ export default {
 
       this.inspectedObjects.push(object);
       this.tab = this.uniqueKeyForInspectedObject(object);
+    },
+    closeTab(idx: number) {
+      this.tab = 'explore';
+      this.inspectedObjects.splice(idx, 1);
     },
   },
 };
