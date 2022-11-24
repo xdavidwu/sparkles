@@ -34,8 +34,10 @@ import {
     <VDialog v-model="showsDialog">
       <VCard title="Request failed">
         <VCardText>
-          <div>{{ failedResponse.url }}</div>
-          <div>{{ failedResponse.status }} {{ failedResponse.statusText }}</div>
+          <template v-if="failedResponse">
+            <div>{{ failedResponse.url }}</div>
+            <div>{{ failedResponse.status }} {{ failedResponse.statusText }}</div>
+          </template>
           <pre>{{ failedResponseText }}</pre>
         </VCardText>
         <VCardActions>
@@ -56,7 +58,7 @@ import {
 </template>
 
 <script lang="ts">
-import { ResponseError } from '@/kubernetes-api/src';
+import { ResponseError, FetchError } from '@/kubernetes-api/src';
 
 export default {
   props: {
@@ -65,11 +67,16 @@ export default {
       default: import.meta.env.VITE_APP_BRANDING ?? 'Kubernetes SPA Client',
     },
   },
-  data: () => ({ drawer: null, showsDialog: false, failedResponse: new Response(), failedResponseText: '' }),
+  data: () => ({ drawer: null, showsDialog: false, failedResponse: null, failedResponseText: '' }),
   errorCaptured(err) {
     if (err instanceof ResponseError) {
       this.failedResponse = err.response;
       err.response.text().then(t => this.failedResponseText = t);
+      this.showsDialog = true;
+      return false;
+    } else if (err instanceof FetchError) {
+      this.failedResponse = null;
+      this.failedResponseText = err.cause;
       this.showsDialog = true;
       return false;
     }
