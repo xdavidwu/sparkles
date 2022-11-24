@@ -1,5 +1,14 @@
+<script lang="ts" setup>
+import { Codemirror } from 'vue-codemirror';
+import { yaml } from '@codemirror/legacy-modes/mode/yaml';
+import { StreamLanguage } from '@codemirror/language';
+import { oneDark } from '@codemirror/theme-one-dark';
+
+const extensions = [ oneDark, StreamLanguage.define(yaml) ];
+</script>
+
 <template>
-  <pre>{{ yaml }}</pre>
+  <Codemirror v-model="dataAsYAML" :extensions="extensions" disabled />
 </template>
 
 <script lang="ts">
@@ -10,7 +19,7 @@ export default {
     data: Object,
   },
   computed: {
-    yaml() {
+    dataAsYAML() {
       return stringify(this.data);
     },
   },
