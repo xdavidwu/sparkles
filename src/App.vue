@@ -56,6 +56,8 @@ import {
 </template>
 
 <script lang="ts">
+import { ResponseError } from '@/kubernetes-api/src';
+
 export default {
   props: {
     title: {
@@ -65,9 +67,9 @@ export default {
   },
   data: () => ({ drawer: null, showsDialog: false, failedResponse: new Response(), failedResponseText: '' }),
   errorCaptured(err) {
-    if (err instanceof Response) {
-      this.failedResponse = err;
-      err.text().then(t => this.failedResponseText = t);
+    if (err instanceof ResponseError) {
+      this.failedResponse = err.response;
+      err.response.text().then(t => this.failedResponseText = t);
       this.showsDialog = true;
       return false;
     }
