@@ -60,6 +60,13 @@ import {
 <script lang="ts">
 import { ResponseError, FetchError } from '@/kubernetes-api/src';
 
+interface Data {
+  drawer: boolean | null,
+  showsDialog: boolean,
+  failedResponse: Response | null,
+  failedResponseText: string,
+}
+
 export default {
   props: {
     title: {
@@ -67,7 +74,7 @@ export default {
       default: import.meta.env.VITE_APP_BRANDING ?? 'Kubernetes SPA Client',
     },
   },
-  data: () => ({ drawer: null, showsDialog: false, failedResponse: null, failedResponseText: '' }),
+  data: (): Data => ({ drawer: null, showsDialog: false, failedResponse: null, failedResponseText: '' }),
   errorCaptured(err) {
     if (err instanceof ResponseError) {
       this.failedResponse = err.response;
@@ -76,7 +83,7 @@ export default {
       return false;
     } else if (err instanceof FetchError) {
       this.failedResponse = null;
-      this.failedResponseText = err.cause;
+      this.failedResponseText = err.cause.message;
       this.showsDialog = true;
       return false;
     }

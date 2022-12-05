@@ -5,7 +5,6 @@ import { createPinia } from 'pinia';
 import { createVuetify } from 'vuetify';
 
 import App from './App.vue';
-import colors from 'vuetify/lib/util/colors';
 import router from './router';
 
 import './assets/main.css'
@@ -16,11 +15,6 @@ app.use(createPinia());
 app.use(createVuetify({
   theme: {
     defaultTheme: 'dark',
-    themes: {
-      dark: {
-        overlayMultiplier: 1,
-      },
-    },
   },
 }));
 app.use(router);

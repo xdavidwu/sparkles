@@ -19,7 +19,7 @@ const indentFold = foldService.of(
       if (indentBlock === undefined) {
         if (indent <= indentStart) {
           // not a start of block
-          return;
+          return null;
         }
         indentBlock = indent;
       }
@@ -30,6 +30,7 @@ const indentFold = foldService.of(
         return {from: lineEnd, to: state.doc.line(i).to};
       }
     }
+    return null;
   }
 );
 

@@ -107,7 +107,7 @@ export default {
   data(): Data {
     return {
       apis: [],
-      targetAPI: {},
+      targetAPI: { groupPriorityMinimum: 0, versionPriority: 0 },
       resources: [],
       targetResource: { kind: '(loading)', name: '(loading)', namespaced: false, singularName: '(loading)', verbs: [] },
       namespaces: [],
@@ -147,18 +147,18 @@ export default {
     async getNamespaces() {
       const apiConfig = await useApiConfig().getConfig();
       const response = await (new CoreV1Api(apiConfig)).listNamespace({});
-      this.namespaces = response.items.map((i) => (i.metadata.name));
+      this.namespaces = response.items.map((i) => (i.metadata!.name!));
     },
     async getAPIs() {
       const apiConfig = await useApiConfig().getConfig();
       const response = await (new ApiregistrationV1Api(apiConfig)).listAPIService({});
-      this.apis = response.items.map((i) => (i.spec));
+      this.apis = response.items.map((i) => (i.spec!));
       this.targetAPI = this.apis[0];
     },
     async getResources() {
       const apiConfig = await useApiConfig().getConfig();
       const api = new AnyApi(apiConfig);
-      const response = await api.getAPIResources({ group: this.targetAPI.group, version: this.targetAPI.version });
+      const response = await api.getAPIResources({ group: this.targetAPI.group!, version: this.targetAPI.version! });
 
       // filter out subresources, unlistables
       this.resources = response.resources.filter(
