@@ -10,7 +10,7 @@ import {
 export class AnyApi extends BaseAPI {
   private path: string;
 
-  constructor(config: Configuration, apiGroup: string, apiVersion: string) {
+  constructor(config: Configuration, apiGroup: string | undefined, apiVersion: string) {
     super(config);
     if (apiGroup) {
       this.path = `/apis/${apiGroup}/${apiVersion}/`;

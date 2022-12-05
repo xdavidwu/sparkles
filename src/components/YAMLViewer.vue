@@ -2,7 +2,7 @@
 import { Codemirror } from 'vue-codemirror';
 import { yaml } from '@codemirror/legacy-modes/mode/yaml';
 import { StreamLanguage, foldService, IndentContext } from '@codemirror/language';
-import { EditorState } from '@codemirror/state';
+import type { EditorState } from '@codemirror/state';
 import { oneDark } from '@codemirror/theme-one-dark';
 
 // TODO handle empty lines

@@ -74,12 +74,12 @@ import YAMLViewer from '@/components/YAMLViewer.vue';
 
 <script lang="ts">
 import { useApiConfig } from '@/stores/apiConfig';
-import { ApiregistrationV1Api, CoreV1Api } from '@/kubernetes-api/src';
+import { ApiregistrationV1Api, CoreV1Api, type V1APIServiceSpec } from '@/kubernetes-api/src';
 import { AnyApi } from '@/utils/AnyApi';
 
 interface Data {
-  apis: []; //TODO type these
-  targetAPI: Object;
+  apis: V1APIServiceSpec[];
+  targetAPI: V1APIServiceSpec;
   resources: [];
   targetResource: Object;
   namespaces: string[];
@@ -152,7 +152,7 @@ export default {
     },
     async getResources() {
       const apiConfig = await useApiConfig().getConfig();
-      const api = new AnyApi(apiConfig, this.targetAPI.group, this.targetAPI.version);
+      const api = new AnyApi(apiConfig, this.targetAPI.group, this.targetAPI.version!);
       const response = await api.getAPIResources();
 
       // filter out subresources, unlistables
@@ -163,7 +163,7 @@ export default {
     },
     async listResources() {
       const apiConfig = await useApiConfig().getConfig();
-      const api = new AnyApi(apiConfig, this.targetAPI.group, this.targetAPI.version);
+      const api = new AnyApi(apiConfig, this.targetAPI.group, this.targetAPI.version!);
 
       const namespace = (!this.targetResource.namespaced ||
         this.targetNamespace === NS_ALL_NAMESPACES) ? '' : this.targetNamespace;
@@ -172,7 +172,7 @@ export default {
     },
     async inspectObject(obj: Object) {
       const apiConfig = await useApiConfig().getConfig();
-      const api = new AnyApi(apiConfig, this.targetAPI.group, this.targetAPI.version);
+      const api = new AnyApi(apiConfig, this.targetAPI.group, this.targetAPI.version!);
       const object = await api.getResource(
         this.targetResource.name, obj.metadata.name, obj.metadata.namespace
       );
