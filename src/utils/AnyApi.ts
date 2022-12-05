@@ -1,85 +1,109 @@
 import {
-  BaseAPI,
-  Configuration,
+  CoreV1Api,
+  CustomObjectsApi,
+  type CustomObjectsApiGetAPIResourcesRequest,
+  type CustomObjectsApiGetClusterCustomObjectRequest,
+  type CustomObjectsApiGetNamespacedCustomObjectRequest,
+  type CustomObjectsApiListClusterCustomObjectRequest,
+  type CustomObjectsApiListNamespacedCustomObjectRequest,
   type V1APIResourceList,
-  V1APIResourceListFromJSON,
-  type HTTPHeaders,
-  JSONApiResponse
+  type Middleware,
 } from '@/kubernetes-api/src';
 
-export class AnyApi extends BaseAPI {
-  private path: string;
+export interface AnyApiGetAPIResourcesRequest
+      extends Omit<CustomObjectsApiGetAPIResourcesRequest, 'group'> {
+    group?: string;
+}
 
-  constructor(config: Configuration, apiGroup: string | undefined, apiVersion: string) {
-    super(config);
-    if (apiGroup) {
-      this.path = `/apis/${apiGroup}/${apiVersion}/`;
+export interface AnyApiGetClusterCustomObjectRequest
+      extends Omit<CustomObjectsApiGetClusterCustomObjectRequest, 'group'> {
+    group?: string;
+}
+
+export interface AnyApiGetNamespacedCustomObjectRequest
+      extends Omit<CustomObjectsApiGetNamespacedCustomObjectRequest, 'group'> {
+    group?: string;
+}
+
+export interface AnyApiListClusterCustomObjectRequest
+      extends Omit<CustomObjectsApiListClusterCustomObjectRequest, 'group'> {
+    group?: string;
+}
+
+export interface AnyApiListNamespacedCustomObjectRequest
+      extends Omit<CustomObjectsApiListNamespacedCustomObjectRequest, 'group'> {
+    group?: string;
+}
+
+const toCore: Middleware['pre'] = async (context) => ({
+  ...context,
+  url: context.url.replace('apis/core', 'api'),
+});
+
+export class AnyApi extends CustomObjectsApi {
+
+  async getAPIResources(requestParameters: AnyApiGetAPIResourcesRequest): Promise<V1APIResourceList> {
+    if (requestParameters.group) {
+      return super.getAPIResources({ group: requestParameters.group!, version: requestParameters.version });
     } else {
-      this.path = `/api/${apiVersion}/`;
+      return new CoreV1Api(this.configuration).getAPIResources();
     }
-  }
-
-  async getAPIResources(): Promise<V1APIResourceList> {
-    const headers: HTTPHeaders = {};
-
-    if (this.configuration && this.configuration.apiKey) {
-      headers['authorization'] = this.configuration.apiKey('authorization');
-    }
-
-    const response = await this.request({
-      path: this.path,
-      method: 'GET',
-      headers
-    });
-
-    return await (new JSONApiResponse(
-      response,
-      (v) => V1APIResourceListFromJSON(v)
-    )).value();
   }
 
   // TODO: type this
-  async listResourcesAsTable(kind: string, namespace: string = ''):
-      Promise<Object> {
-    const headers: HTTPHeaders = {
-      accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
+  async listClusterCustomObjectAsTable(requestParameters: AnyApiListClusterCustomObjectRequest):
+      Promise<object> {
+    const asTable: Middleware['pre'] = async (context) => {
+      context.init.headers = {
+        ...context.init.headers,
+        accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
+      };
+      return context;
     };
-
-    if (this.configuration && this.configuration.apiKey) {
-      headers['authorization'] = this.configuration.apiKey('authorization');
+    if (requestParameters.group) {
+      return super.withPreMiddleware(asTable)
+        .listClusterCustomObject({ ...requestParameters, group: requestParameters.group! });
+    } else {
+      return super.withPreMiddleware(toCore, asTable)
+        .listClusterCustomObject({ ...requestParameters, group: 'core' });
     }
-
-    let path = this.path + kind;
-    if (namespace) {
-      path = `${this.path}namespaces/${namespace}/${kind}`;
-    }
-
-    return (await this.request({
-      path,
-      method: 'GET',
-      headers
-    })).json();
   }
 
-  async getResource(kind: string, name: string, namespace: string = ''):
-      Promise<Object> {
-    const headers: HTTPHeaders = {};
-
-    if (this.configuration && this.configuration.apiKey) {
-      headers['authorization'] = this.configuration.apiKey('authorization');
-    }
-
-    let path;
-    if (namespace) {
-      path = `${this.path}namespaces/${namespace}/${kind}/${name}`;
+  async listNamespacedCustomObjectAsTable(requestParameters: AnyApiListNamespacedCustomObjectRequest):
+      Promise<object> {
+    const asTable: Middleware['pre'] = async (context) => {
+      context.init.headers = {
+        ...context.init.headers,
+        accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
+      };
+      return context;
+    };
+    if (requestParameters.group) {
+      return super.withPreMiddleware(asTable)
+        .listNamespacedCustomObject({ ...requestParameters, group: requestParameters.group! });
     } else {
-      path = `${this.path}${kind}/${name}`;
+      return super.withPreMiddleware(toCore, asTable)
+        .listNamespacedCustomObject({ ...requestParameters, group: 'core' });
     }
+  }
 
-    return (await this.request({
-      path,
-      method: 'GET',
-      headers
-    })).json();
+  async getClusterCustomObject(requestParameters: AnyApiGetClusterCustomObjectRequest):
+      Promise<object> {
+    if (requestParameters.group) {
+      return super.getClusterCustomObject({ ...requestParameters, group: requestParameters.group! });
+    } else {
+      return super.withPreMiddleware(toCore)
+        .getClusterCustomObject({ ...requestParameters, group: 'core' });
+    }
+  }
+
+  async getNamespacedCustomObject(requestParameters: AnyApiGetNamespacedCustomObjectRequest):
+      Promise<object> {
+    if (requestParameters.group) {
+      return super.getNamespacedCustomObject({ ...requestParameters, group: requestParameters.group! });
+    } else {
+      return super.withPreMiddleware(toCore)
+        .getNamespacedCustomObject({ ...requestParameters, group: 'core' });
+    }
   }
 }

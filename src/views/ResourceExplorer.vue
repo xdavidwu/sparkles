@@ -74,14 +74,19 @@ import YAMLViewer from '@/components/YAMLViewer.vue';
 
 <script lang="ts">
 import { useApiConfig } from '@/stores/apiConfig';
-import { ApiregistrationV1Api, CoreV1Api, type V1APIServiceSpec } from '@/kubernetes-api/src';
+import {
+  ApiregistrationV1Api,
+  CoreV1Api,
+  type V1APIResource,
+  type V1APIServiceSpec,
+} from '@/kubernetes-api/src';
 import { AnyApi } from '@/utils/AnyApi';
 
 interface Data {
   apis: V1APIServiceSpec[];
   targetAPI: V1APIServiceSpec;
-  resources: [];
-  targetResource: Object;
+  resources: V1APIResource[];
+  targetResource: V1APIResource;
   namespaces: string[];
   targetNamespace: string;
   listing: Object;
@@ -104,7 +109,7 @@ export default {
       apis: [],
       targetAPI: {},
       resources: [],
-      targetResource: { name: '(loading)', namespaced: false },
+      targetResource: { kind: '(loading)', name: '(loading)', namespaced: false, singularName: '(loading)', verbs: [] },
       namespaces: [],
       targetNamespace: NS_ALL_NAMESPACES,
       listing: {
@@ -152,8 +157,8 @@ export default {
     },
     async getResources() {
       const apiConfig = await useApiConfig().getConfig();
-      const api = new AnyApi(apiConfig, this.targetAPI.group, this.targetAPI.version!);
-      const response = await api.getAPIResources();
+      const api = new AnyApi(apiConfig);
+      const response = await api.getAPIResources({ group: this.targetAPI.group, version: this.targetAPI.version });
 
       // filter out subresources, unlistables
       this.resources = response.resources.filter(
@@ -163,19 +168,44 @@ export default {
     },
     async listResources() {
       const apiConfig = await useApiConfig().getConfig();
-      const api = new AnyApi(apiConfig, this.targetAPI.group, this.targetAPI.version!);
+      const api = new AnyApi(apiConfig);
 
-      const namespace = (!this.targetResource.namespaced ||
-        this.targetNamespace === NS_ALL_NAMESPACES) ? '' : this.targetNamespace;
-      this.listing = await api.listResourcesAsTable(this.targetResource.name,
-        namespace);
+      if (this.targetResource.namespaced && this.targetNamespace !== NS_ALL_NAMESPACES) {
+        this.listing = await api.listNamespacedCustomObjectAsTable({
+          group: this.targetAPI.group!,
+          version: this.targetAPI.version!,
+          plural: this.targetResource.name,
+          namespace: this.targetNamespace,
+        });
+      } else {
+        this.listing = await api.listClusterCustomObjectAsTable({
+          group: this.targetAPI.group!,
+          version: this.targetAPI.version!,
+          plural: this.targetResource.name,
+        });
+      }
     },
-    async inspectObject(obj: Object) {
+    async inspectObject(obj: object) {
       const apiConfig = await useApiConfig().getConfig();
-      const api = new AnyApi(apiConfig, this.targetAPI.group, this.targetAPI.version!);
-      const object = await api.getResource(
-        this.targetResource.name, obj.metadata.name, obj.metadata.namespace
-      );
+      const api = new AnyApi(apiConfig);
+
+      let object;
+      if (obj.metadata.namespace) {
+        object = await api.getNamespacedCustomObject({
+          group: this.targetAPI.group!,
+          version: this.targetAPI.version!,
+          plural: this.targetResource.name,
+          namespace: obj.metadata.namespace,
+          name: obj.metadata.name,
+        });
+      } else {
+        object = await api.getClusterCustomObject({
+          group: this.targetAPI.group!,
+          version: this.targetAPI.version!,
+          plural: this.targetResource.name,
+          name: obj.metadata.name,
+        });
+      }
 
       this.inspectedObjects.push(object);
       this.tab = this.uniqueKeyForInspectedObject(object);
