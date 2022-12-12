@@ -17,7 +17,7 @@ import { checkPermission } from '@/utils/permission';
 
 interface Data {
   token: string,
-  schemes: string[][],
+  schemes: Array<[string, string | AuthScheme]>,
   scheme: AuthScheme,
   result: string,
 }
