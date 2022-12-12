@@ -8,6 +8,7 @@ import {
   type CustomObjectsApiListNamespacedCustomObjectRequest,
   type V1APIResourceList,
   type V1ListMeta,
+  type V1ObjectMeta,
   type Middleware,
 } from '@/kubernetes-api/src';
 
@@ -49,6 +50,36 @@ const asTable: Middleware['pre'] = async (context) => {
   return context;
 };
 
+// https://github.com/kubernetes/apimachinery/blob/master/pkg/apis/meta/v1/types.go
+
+export interface V1TableColumnDefinition {
+  name: string;
+  type: string;
+  format: string;
+  description: string;
+  priority: number;
+}
+
+export interface V1PartialObjectMetadata {
+  apiVersion?: string;
+  kind?: string;
+  metadata?: V1ObjectMeta;
+}
+
+export interface V1TableRow {
+  cells: Array<object>;
+  conditions?: object;
+  object?: V1PartialObjectMetadata | object;
+}
+
+export interface V1Table {
+  apiVersion?: string;
+  kind?: string;
+  metadata?: V1ListMeta;
+  columnDefinitions: Array<V1TableColumnDefinition>;
+  rows: Array<V1TableRow>;
+}
+
 export class AnyApi extends CustomObjectsApi {
 
   async getAPIResources(requestParameters: AnyApiGetAPIResourcesRequest): Promise<V1APIResourceList> {
@@ -81,13 +112,13 @@ export class AnyApi extends CustomObjectsApi {
   }
 
   async listClusterCustomObjectAsTable(requestParameters: AnyApiListClusterCustomObjectRequest):
-      Promise<object> {
-    return this.withPreMiddleware(asTable).listClusterCustomObject(requestParameters);
+      Promise<V1Table> {
+    return <V1Table> await this.withPreMiddleware(asTable).listClusterCustomObject(requestParameters);
   }
 
   async listNamespacedCustomObjectAsTable(requestParameters: AnyApiListNamespacedCustomObjectRequest):
-      Promise<object> {
-    return this.withPreMiddleware(asTable).listNamespacedCustomObject(requestParameters);
+      Promise<V1Table> {
+    return <V1Table> await this.withPreMiddleware(asTable).listNamespacedCustomObject(requestParameters);
   }
 
   async getClusterCustomObject(requestParameters: AnyApiGetClusterCustomObjectRequest):

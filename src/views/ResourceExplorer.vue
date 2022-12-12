@@ -56,9 +56,9 @@ import YAMLViewer from '@/components/YAMLViewer.vue';
         </thead>
         <tbody>
           <tr v-for="row in listing.rows"
-            :key="uniqueKeyForTable(row.object)"
-            @click="inspectObject(row.object)">
-            <td v-for="cell in row.cells" :key="cell">{{ cell }}</td>
+            :key="uniqueKeyForTable(row.object as V1PartialObjectMetadata)"
+            @click="inspectObject(row.object as V1PartialObjectMetadata)">
+            <td v-for="cell in row.cells" :key="String(cell)">{{ cell }}</td>
           </tr>
         </tbody>
       </VTable>
@@ -80,18 +80,18 @@ import {
   type V1APIResource,
   type V1APIServiceSpec,
 } from '@/kubernetes-api/src';
-import { AnyApi } from '@/utils/AnyApi';
+import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
 
 interface Data {
   apis: V1APIServiceSpec[];
   targetAPI: V1APIServiceSpec;
   resources: V1APIResource[];
   targetResource: V1APIResource;
-  namespaces: string[];
+  namespaces: Array<string>;
   targetNamespace: string;
-  listing: Object;
-  tab: Object;
-  inspectedObjects: Object[];
+  listing: V1Table;
+  tab: string;
+  inspectedObjects: Array<any>;
 }
 
 const NS_ALL_NAMESPACES = '(all)';
@@ -116,7 +116,7 @@ export default {
         columnDefinitions: [],
         rows: [],
       },
-      tab: null,
+      tab: 'explore',
       inspectedObjects: [],
     };
   },
@@ -126,16 +126,16 @@ export default {
     }
   },
   methods: {
-    uniqueKeyForTable(obj: Object) {
-      if (obj.metadata.uid) {
-        return obj.metadata.uid;
+    uniqueKeyForTable(obj: V1PartialObjectMetadata) {
+      if (obj.metadata!.uid) {
+        return obj.metadata!.uid;
       }
-      if (obj.metadata.namespace) {
-        return `${obj.metadata.namespace}/${obj.metadata.name}`;
+      if (obj.metadata!.namespace) {
+        return `${obj.metadata!.namespace}/${obj.metadata!.name}`;
       }
-      return obj.metadata.name;
+      return obj.metadata!.name;
     },
-    uniqueKeyForInspectedObject(obj: Object) {
+    uniqueKeyForInspectedObject(obj: any) {
       if (obj.metadata.uid) {
         return obj.metadata.uid;
       }
@@ -185,25 +185,25 @@ export default {
         });
       }
     },
-    async inspectObject(obj: object) {
+    async inspectObject(obj: V1PartialObjectMetadata) {
       const apiConfig = await useApiConfig().getConfig();
       const api = new AnyApi(apiConfig);
 
       let object;
-      if (obj.metadata.namespace) {
+      if (obj.metadata!.namespace) {
         object = await api.getNamespacedCustomObject({
           group: this.targetAPI.group!,
           version: this.targetAPI.version!,
           plural: this.targetResource.name,
-          namespace: obj.metadata.namespace,
-          name: obj.metadata.name,
+          namespace: obj.metadata!.namespace!,
+          name: obj.metadata!.name!,
         });
       } else {
         object = await api.getClusterCustomObject({
           group: this.targetAPI.group!,
           version: this.targetAPI.version!,
           plural: this.targetResource.name,
-          name: obj.metadata.name,
+          name: obj.metadata!.name!,
         });
       }
 
