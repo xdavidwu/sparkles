@@ -1,5 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import AboutView from '../views/AboutView.vue'
+import { createRouter, createWebHistory } from 'vue-router';
+import AboutView from '../views/AboutView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -7,27 +7,33 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: AboutView
+      component: AboutView,
+      meta: { name: 'Home' },
     },
     {
       path: '/settings',
       name: 'settings',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/APISettings.vue')
+      component: () => import('../views/APISettings.vue'),
+      meta: { name: 'Settings' },
     },
     {
       path: '/oidc/callback',
       name: 'oidc_callback',
       component: () => import('../views/OIDCCallback.vue'),
+      meta: { name: 'OIDC Auth' },
     },
     {
       path: '/explore',
       name: 'explore',
       component: () => import('../views/ResourceExplorer.vue'),
+      meta: { name: 'Resource Explorer' },
     },
   ]
-})
+});
 
-export default router
+router.beforeEach((to, from, next) => {
+  document.title = `${to.meta.name} - ${import.meta.env.VITE_APP_BRANDING ?? 'Kubernetes SPA Client'}`;
+  next();
+});
+
+export default router;
