@@ -7,6 +7,7 @@ import {
   type CustomObjectsApiListClusterCustomObjectRequest,
   type CustomObjectsApiListNamespacedCustomObjectRequest,
   type V1APIResourceList,
+  type V1ListMeta,
   type Middleware,
 } from '@/kubernetes-api/src';
 
@@ -40,6 +41,14 @@ const toCore: Middleware['pre'] = async (context) => ({
   url: context.url.replace('apis/core', 'api'),
 });
 
+const asTable: Middleware['pre'] = async (context) => {
+  context.init.headers = {
+    ...context.init.headers,
+    accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
+  };
+  return context;
+};
+
 export class AnyApi extends CustomObjectsApi {
 
   async getAPIResources(requestParameters: AnyApiGetAPIResourcesRequest): Promise<V1APIResourceList> {
@@ -51,40 +60,34 @@ export class AnyApi extends CustomObjectsApi {
   }
 
   // TODO: type this
-  async listClusterCustomObjectAsTable(requestParameters: AnyApiListClusterCustomObjectRequest):
+  async listClusterCustomObject(requestParameters: AnyApiListClusterCustomObjectRequest):
       Promise<object> {
-    const asTable: Middleware['pre'] = async (context) => {
-      context.init.headers = {
-        ...context.init.headers,
-        accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
-      };
-      return context;
-    };
     if (requestParameters.group) {
-      return super.withPreMiddleware(asTable)
-        .listClusterCustomObject({ ...requestParameters, group: requestParameters.group! });
+      return super.listClusterCustomObject({ ...requestParameters, group: requestParameters.group! });
     } else {
-      return super.withPreMiddleware(toCore, asTable)
+      return super.withPreMiddleware(toCore)
         .listClusterCustomObject({ ...requestParameters, group: 'core' });
     }
   }
 
-  async listNamespacedCustomObjectAsTable(requestParameters: AnyApiListNamespacedCustomObjectRequest):
+  async listNamespacedCustomObject(requestParameters: AnyApiListNamespacedCustomObjectRequest):
       Promise<object> {
-    const asTable: Middleware['pre'] = async (context) => {
-      context.init.headers = {
-        ...context.init.headers,
-        accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
-      };
-      return context;
-    };
     if (requestParameters.group) {
-      return super.withPreMiddleware(asTable)
-        .listNamespacedCustomObject({ ...requestParameters, group: requestParameters.group! });
+      return super.listNamespacedCustomObject({ ...requestParameters, group: requestParameters.group! });
     } else {
-      return super.withPreMiddleware(toCore, asTable)
+      return super.withPreMiddleware(toCore)
         .listNamespacedCustomObject({ ...requestParameters, group: 'core' });
     }
+  }
+
+  async listClusterCustomObjectAsTable(requestParameters: AnyApiListClusterCustomObjectRequest):
+      Promise<object> {
+    return this.withPreMiddleware(asTable).listClusterCustomObject(requestParameters);
+  }
+
+  async listNamespacedCustomObjectAsTable(requestParameters: AnyApiListNamespacedCustomObjectRequest):
+      Promise<object> {
+    return this.withPreMiddleware(asTable).listNamespacedCustomObject(requestParameters);
   }
 
   async getClusterCustomObject(requestParameters: AnyApiGetClusterCustomObjectRequest):
