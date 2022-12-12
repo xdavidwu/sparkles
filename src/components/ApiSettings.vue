@@ -11,6 +11,7 @@ import { VSelect, VTextField, VBtn } from 'vuetify/components';
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
 import { checkPermission } from '@/utils/permission';
 
@@ -21,7 +22,7 @@ interface Data {
   result: string,
 }
 
-export default {
+export default defineComponent({
   data(): Data {
     return {
       token: useApiConfig().getAccessToken(),
@@ -43,5 +44,5 @@ export default {
       this.result = `May list namespaces: ${await checkPermission('namespace', 'list')}`;
     },
   },
-};
+});
 </script>

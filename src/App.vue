@@ -58,6 +58,7 @@ import {
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { ResponseError, FetchError } from '@/kubernetes-api/src';
 
 interface Data {
@@ -67,7 +68,7 @@ interface Data {
   failedResponseText: string,
 }
 
-export default {
+export default defineComponent({
   props: {
     title: {
       type: String,
@@ -88,7 +89,7 @@ export default {
       return false;
     }
   },
-}
+});
 </script>
 
 <style>

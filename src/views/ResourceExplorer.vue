@@ -74,6 +74,7 @@ import YAMLViewer from '@/components/YAMLViewer.vue';
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
 import {
   ApiregistrationV1Api,
@@ -97,7 +98,7 @@ interface Data {
 
 const NS_ALL_NAMESPACES = '(all)';
 
-export default {
+export default defineComponent({
   async created() {
     await this.getNamespaces();
     this.getAPIs();
@@ -216,5 +217,5 @@ export default {
       this.inspectedObjects.splice(idx, 1);
     },
   },
-};
+});
 </script>

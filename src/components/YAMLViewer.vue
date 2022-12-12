@@ -42,9 +42,10 @@ const extensions = [ oneDark, StreamLanguage.define(yaml), indentFold ];
 </template>
 
 <script lang="ts">
+import { defineComponent } from 'vue';
 import { stringify } from 'yaml';
 
-export default {
+export default defineComponent({
   props: {
     data: Object,
   },
@@ -53,5 +54,5 @@ export default {
       return stringify(this.data);
     },
   },
-};
+});
 </script>
