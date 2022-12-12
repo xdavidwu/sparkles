@@ -57,7 +57,8 @@ import YAMLViewer from '@/components/YAMLViewer.vue';
         <tbody>
           <tr v-for="row in listing.rows"
             :key="uniqueKeyForTable(row.object as V1PartialObjectMetadata)"
-            @click="inspectObject(row.object as V1PartialObjectMetadata)">
+            @click="inspectObject(row.object as V1PartialObjectMetadata)"
+            style="cursor: pointer">
             <td v-for="cell in row.cells" :key="String(cell)">{{ cell }}</td>
           </tr>
         </tbody>
