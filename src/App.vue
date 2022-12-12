@@ -26,8 +26,8 @@ import {
     </VAppBar>
     <VNavigationDrawer v-model="drawer">
       <VList>
+        <VListItem :to="{ name: 'home' }">Home</VListItem>
         <VListItem :to="{ name: 'settings' }">Settings</VListItem>
-        <VListItem :to="{ name: 'about' }">About</VListItem>
         <VListItem :to="{ name: 'explore' }">Resource Explorer</VListItem>
       </VList>
     </VNavigationDrawer>

@@ -1,7 +1,5 @@
 <template>
-  <div class="about">
-    <h1>Handling OIDC auth...</h1>
-  </div>
+  <h1>Handling OIDC auth...</h1>
 </template>
 
 <script lang="ts">
@@ -15,13 +13,3 @@ export default defineComponent({
   }
 });
 </script>
-
-<style>
-@media (min-width: 1024px) {
-  .about {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-  }
-}
-</style>
