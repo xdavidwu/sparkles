@@ -104,10 +104,10 @@ const apiRegistrationApi = new ApiregistrationV1Api(apiConfig);
 export default defineComponent({
   async created() {
     this.namespaces = await useNamespaces().getNamespaces();
-    this.getAPIs();
     this.$watch('targetAPI', this.getResources);
     this.$watch('targetResource', this.listResources);
     this.$watch('targetNamespace', this.listResources);
+    await this.getAPIs();
   },
   data(): Data {
     return {
