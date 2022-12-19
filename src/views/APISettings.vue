@@ -5,9 +5,9 @@ import { VSelect, VTextField, VBtn } from 'vuetify/components';
 <template>
   <VSelect label="Authentication method" v-model="scheme" :items="schemes"
     item-value="1" item-title="0" />
-  <VTextField label="Bearer token" v-model="token" />
+  <VTextField v-if="scheme === AuthScheme.AccessToken" label="Bearer token"
+    v-model="token" />
   <VBtn @click="apply">Apply</VBtn>
-  <div>{{ result }}</div>
 </template>
 
 <script lang="ts">
@@ -18,7 +18,6 @@ interface Data {
   token: string,
   schemes: Array<[string, string | AuthScheme]>,
   scheme: AuthScheme,
-  result: string,
 }
 
 const configStore = useApiConfig();
@@ -26,16 +25,17 @@ const configStore = useApiConfig();
 export default defineComponent({
   data(): Data {
     return {
-      token: configStore.getAccessToken(),
+      token: configStore.accessToken,
       schemes: Object.entries(AuthScheme).filter((i) => isNaN(Number(i[0]))),
-      scheme: configStore.getAuthScheme(),
-      result: '',
+      scheme: configStore.authScheme,
     };
   },
   methods: {
     apply() {
-      configStore.setAuthScheme(this.scheme);
-      configStore.setAccessToken(this.token);
+      configStore.$patch({
+        authScheme: this.scheme,
+        accessToken: this.token,
+      });
       window.location.reload();
     },
   },
