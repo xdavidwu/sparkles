@@ -97,6 +97,10 @@ interface Data {
 }
 
 const NS_ALL_NAMESPACES = '(all)';
+const apiConfig = await useApiConfig().getConfig();
+const anyApi = new AnyApi(apiConfig);
+const coreApi = new CoreV1Api(apiConfig);
+const apiRegistrationApi = new ApiregistrationV1Api(apiConfig);
 
 export default defineComponent({
   async created() {
@@ -147,20 +151,19 @@ export default defineComponent({
       return `${obj.apiVersion}/${obj.kind}/${obj.metadata.name}`;
     },
     async getNamespaces() {
-      const apiConfig = await useApiConfig().getConfig();
-      const response = await (new CoreV1Api(apiConfig)).listNamespace({});
+      const response = await coreApi.listNamespace({});
       this.namespaces = response.items.map((i) => (i.metadata!.name!));
     },
     async getAPIs() {
-      const apiConfig = await useApiConfig().getConfig();
-      const response = await (new ApiregistrationV1Api(apiConfig)).listAPIService({});
+      const response = await apiRegistrationApi.listAPIService({});
       this.apis = response.items.map((i) => (i.spec!));
       this.targetAPI = this.apis[0];
     },
     async getResources() {
-      const apiConfig = await useApiConfig().getConfig();
-      const api = new AnyApi(apiConfig);
-      const response = await api.getAPIResources({ group: this.targetAPI.group!, version: this.targetAPI.version! });
+      const response = await anyApi.getAPIResources({
+        group: this.targetAPI.group!,
+        version: this.targetAPI.version!,
+      });
 
       // filter out subresources, unlistables
       this.resources = response.resources.filter(
@@ -169,18 +172,15 @@ export default defineComponent({
       this.targetResource = this.resources[0];
     },
     async listResources() {
-      const apiConfig = await useApiConfig().getConfig();
-      const api = new AnyApi(apiConfig);
-
       if (this.targetResource.namespaced && this.targetNamespace !== NS_ALL_NAMESPACES) {
-        this.listing = await api.listNamespacedCustomObjectAsTable({
+        this.listing = await anyApi.listNamespacedCustomObjectAsTable({
           group: this.targetAPI.group!,
           version: this.targetAPI.version!,
           plural: this.targetResource.name,
           namespace: this.targetNamespace,
         });
       } else {
-        this.listing = await api.listClusterCustomObjectAsTable({
+        this.listing = await anyApi.listClusterCustomObjectAsTable({
           group: this.targetAPI.group!,
           version: this.targetAPI.version!,
           plural: this.targetResource.name,
@@ -188,12 +188,9 @@ export default defineComponent({
       }
     },
     async inspectObject(obj: V1PartialObjectMetadata) {
-      const apiConfig = await useApiConfig().getConfig();
-      const api = new AnyApi(apiConfig);
-
       let object;
       if (obj.metadata!.namespace) {
-        object = await api.getNamespacedCustomObject({
+        object = await anyApi.getNamespacedCustomObject({
           group: this.targetAPI.group!,
           version: this.targetAPI.version!,
           plural: this.targetResource.name,
@@ -201,7 +198,7 @@ export default defineComponent({
           name: obj.metadata!.name!,
         });
       } else {
-        object = await api.getClusterCustomObject({
+        object = await anyApi.getClusterCustomObject({
           group: this.targetAPI.group!,
           version: this.targetAPI.version!,
           plural: this.targetResource.name,

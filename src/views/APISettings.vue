@@ -3,17 +3,16 @@ import { VSelect, VTextField, VBtn } from 'vuetify/components';
 </script>
 
 <template>
-  <VSelect label="Authentication method" v-model="scheme" @update:modelValue="storeScheme"
-    :items="schemes" item-value="1" item-title="0" />
-  <VTextField label="Bearer token" v-model="token" @update:modelValue="storeToken" />
-  <VBtn @click="testConnection">Test connection</VBtn>
+  <VSelect label="Authentication method" v-model="scheme" :items="schemes"
+    item-value="1" item-title="0" />
+  <VTextField label="Bearer token" v-model="token" />
+  <VBtn @click="apply">Apply</VBtn>
   <div>{{ result }}</div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
-import { checkPermission } from '@/utils/permission';
 
 interface Data {
   token: string,
@@ -22,26 +21,22 @@ interface Data {
   result: string,
 }
 
+const configStore = useApiConfig();
+
 export default defineComponent({
   data(): Data {
     return {
-      token: useApiConfig().getAccessToken(),
+      token: configStore.getAccessToken(),
       schemes: Object.entries(AuthScheme).filter((i) => isNaN(Number(i[0]))),
-      scheme: useApiConfig().getAuthScheme(),
+      scheme: configStore.getAuthScheme(),
       result: '',
     };
   },
   methods: {
-    storeScheme() {
-      const apiConfig = useApiConfig();
-      apiConfig.setAuthScheme(this.scheme);
-    },
-    storeToken() {
-      const apiConfig = useApiConfig();
-      apiConfig.setAccessToken(this.token);
-    },
-    async testConnection() {
-      this.result = `May list namespaces: ${await checkPermission('namespace', 'list')}`;
+    apply() {
+      configStore.setAuthScheme(this.scheme);
+      configStore.setAccessToken(this.token);
+      window.location.reload();
     },
   },
 });
