@@ -11,9 +11,18 @@ export enum AuthScheme {
   None,
 }
 
+// XXX: fetch and openapi-generator/typescript-fetch does not seems to support
+// headers with same name but different values, and kubernetes does not support
+// comma-seperated list yet (82468)
+interface ImpersonationConfig {
+  asUser: string,
+  asGroup: string,
+}
+
 interface State {
   authScheme: RemovableRef<AuthScheme>,
   accessToken: RemovableRef<string>,
+  impersonation: RemovableRef<ImpersonationConfig>,
   userManager: UserManager,
 }
 
@@ -21,6 +30,7 @@ export const useApiConfig = defineStore('api-config', {
   state: (): State => ({
     authScheme: useLocalStorage<AuthScheme>('auth-scheme', AuthScheme.None),
     accessToken: useLocalStorage('access-token', ''),
+    impersonation: useLocalStorage('impersonation', { asUser: '', asGroup: '' }),
     userManager: new UserManager({
       authority: import.meta.env.VITE_OIDC_PROVIDER,
       client_id: import.meta.env.VITE_OIDC_CLIENT_ID,
@@ -30,20 +40,9 @@ export const useApiConfig = defineStore('api-config', {
     }),
   }),
   actions: {
-    setAccessToken(token: string) {
-      this.accessToken = token;
-    },
-    getAccessToken() {
-      return this.accessToken;
-    },
-    setAuthScheme(scheme: AuthScheme) {
-      this.authScheme = scheme;
-    },
-    getAuthScheme() {
-      return this.authScheme;
-    },
     async getConfig() {
       const headers: HTTPHeaders = {};
+
       let user;
       switch (this.authScheme) {
         case AuthScheme.AccessToken:
@@ -58,6 +57,14 @@ export const useApiConfig = defineStore('api-config', {
             headers['Authorization'] = `Bearer ${user.id_token}`;
           }
       }
+
+      if (this.impersonation.asUser) {
+        headers['Impersonate-User'] = this.impersonation.asUser;
+        if (this.impersonation.asGroup) {
+          headers['Impersonate-Group'] = this.impersonation.asGroup;
+        }
+      }
+
       return new Configuration({ basePath: import.meta.env.VITE_KUBERNETES_API, headers });
     },
   },
