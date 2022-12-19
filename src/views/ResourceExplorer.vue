@@ -76,9 +76,9 @@ import YAMLViewer from '@/components/YAMLViewer.vue';
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
+import { useNamespaces } from '@/stores/namespaces';
 import {
   ApiregistrationV1Api,
-  CoreV1Api,
   type V1APIResource,
   type V1APIServiceSpec,
 } from '@/kubernetes-api/src';
@@ -99,12 +99,11 @@ interface Data {
 const NS_ALL_NAMESPACES = '(all)';
 const apiConfig = await useApiConfig().getConfig();
 const anyApi = new AnyApi(apiConfig);
-const coreApi = new CoreV1Api(apiConfig);
 const apiRegistrationApi = new ApiregistrationV1Api(apiConfig);
 
 export default defineComponent({
   async created() {
-    await this.getNamespaces();
+    this.namespaces = await useNamespaces().getNamespaces();
     this.getAPIs();
     this.$watch('targetAPI', this.getResources);
     this.$watch('targetResource', this.listResources);
@@ -149,10 +148,6 @@ export default defineComponent({
         return `${obj.apiVersion}/${obj.kind}/${obj.metadata.namespace}/${obj.metadata.name}`;
       }
       return `${obj.apiVersion}/${obj.kind}/${obj.metadata.name}`;
-    },
-    async getNamespaces() {
-      const response = await coreApi.listNamespace({});
-      this.namespaces = response.items.map((i) => (i.metadata!.name!));
     },
     async getAPIs() {
       const response = await apiRegistrationApi.listAPIService({});
