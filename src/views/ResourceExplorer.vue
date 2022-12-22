@@ -35,7 +35,7 @@ import YAMLViewer from '@/components/YAMLViewer.vue';
         <VCol>
           <VAutocomplete label="API group" v-model="targetAPI" :items="apis"
             return-object
-            :item-title="(api) => (api.group ?? 'core') + '/' + api.version" />
+            :item-title="(api) => (api.preferredVersion!.groupVersion)" />
         </VCol>
         <VCol>
           <VAutocomplete label="Kind" v-model="targetResource" :items="resources"
@@ -78,16 +78,17 @@ import { defineComponent } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
 import {
-  ApiregistrationV1Api,
+  ApisApi,
+  CoreApi,
+  type V1APIGroup,
   type V1APIResource,
-  type V1APIServiceSpec,
 } from '@/kubernetes-api/src';
 import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
 
 interface Data {
-  apis: V1APIServiceSpec[];
-  targetAPI: V1APIServiceSpec;
-  resources: V1APIResource[];
+  apis: Array<V1APIGroup>;
+  targetAPI: V1APIGroup;
+  resources: Array<V1APIResource>;
   targetResource: V1APIResource;
   namespaces: Array<string>;
   targetNamespace: string;
@@ -99,7 +100,8 @@ interface Data {
 const NS_ALL_NAMESPACES = '(all)';
 const apiConfig = await useApiConfig().getConfig();
 const anyApi = new AnyApi(apiConfig);
-const apiRegistrationApi = new ApiregistrationV1Api(apiConfig);
+const apisApi = new ApisApi(apiConfig);
+const coreApi = new CoreApi(apiConfig);
 
 export default defineComponent({
   async created() {
@@ -112,7 +114,7 @@ export default defineComponent({
   data(): Data {
     return {
       apis: [],
-      targetAPI: { groupPriorityMinimum: 0, versionPriority: 0 },
+      targetAPI: { name: '', versions: [], preferredVersion: { groupVersion: '(loading)', version: '' } },
       resources: [],
       targetResource: { kind: '(loading)', name: '(loading)', namespaced: false, singularName: '(loading)', verbs: [] },
       namespaces: [],
@@ -150,14 +152,28 @@ export default defineComponent({
       return `${obj.apiVersion}/${obj.kind}/${obj.metadata.name}`;
     },
     async getAPIs() {
-      const response = await apiRegistrationApi.listAPIService({});
-      this.apis = response.items.map((i) => (i.spec!));
+      const core = await coreApi.getAPIVersions({});
+      const response = await apisApi.getAPIVersions({});
+      this.apis =  [
+        {
+          name: '',
+          versions: core.versions.map((i) => ({
+            groupVersion: `core/${i}`,
+            version: i,
+          })),
+          preferredVersion: {
+            groupVersion: `core/${core.versions[core.versions.length - 1]}`,
+            version: core.versions[core.versions.length - 1],
+          }
+        },
+        ...this.apis.concat(response.groups)
+      ];
       this.targetAPI = this.apis[0];
     },
     async getResources() {
       const response = await anyApi.getAPIResources({
-        group: this.targetAPI.group!,
-        version: this.targetAPI.version!,
+        group: this.targetAPI.name,
+        version: this.targetAPI.preferredVersion!.version,
       });
 
       // filter out subresources, unlistables
@@ -169,15 +185,15 @@ export default defineComponent({
     async listResources() {
       if (this.targetResource.namespaced && this.targetNamespace !== NS_ALL_NAMESPACES) {
         this.listing = await anyApi.listNamespacedCustomObjectAsTable({
-          group: this.targetAPI.group!,
-          version: this.targetAPI.version!,
+          group: this.targetAPI.name,
+          version: this.targetAPI.preferredVersion!.version,
           plural: this.targetResource.name,
           namespace: this.targetNamespace,
         });
       } else {
         this.listing = await anyApi.listClusterCustomObjectAsTable({
-          group: this.targetAPI.group!,
-          version: this.targetAPI.version!,
+          group: this.targetAPI.name,
+          version: this.targetAPI.preferredVersion!.version,
           plural: this.targetResource.name,
         });
       }
@@ -186,16 +202,16 @@ export default defineComponent({
       let object;
       if (obj.metadata!.namespace) {
         object = await anyApi.getNamespacedCustomObject({
-          group: this.targetAPI.group!,
-          version: this.targetAPI.version!,
+          group: this.targetAPI.name,
+          version: this.targetAPI.preferredVersion!.version,
           plural: this.targetResource.name,
           namespace: obj.metadata!.namespace!,
           name: obj.metadata!.name!,
         });
       } else {
         object = await anyApi.getClusterCustomObject({
-          group: this.targetAPI.group!,
-          version: this.targetAPI.version!,
+          group: this.targetAPI.name,
+          version: this.targetAPI.preferredVersion!.version,
           plural: this.targetResource.name,
           name: obj.metadata!.name!,
         });
