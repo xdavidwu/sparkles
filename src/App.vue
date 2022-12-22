@@ -49,7 +49,7 @@ import {
         </VCardActions>
       </VCard>
     </VDialog>
-    <VMain style="width: 95vw; /* XXX */">
+    <VMain>
       <VContainer fluid>
         <RouterView />
       </VContainer>
