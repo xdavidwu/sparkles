@@ -10,12 +10,21 @@ import {
   VCardText,
   VContainer,
   VDialog,
+  VDivider,
   VList,
   VListItem,
+  VListSubheader,
   VMain,
   VNavigationDrawer,
+  VSelect,
   VToolbarTitle,
 } from 'vuetify/components';
+import { useNamespaces } from '@/stores/namespaces';
+import { storeToRefs } from 'pinia';
+
+const namespaceStore = useNamespaces();
+const { namespaces, selectedNamespace } = storeToRefs(namespaceStore);
+namespaceStore.getNamespaces();
 </script>
 
 <template>
@@ -25,7 +34,15 @@ import {
       <VToolbarTitle>{{ title }}</VToolbarTitle>
     </VAppBar>
     <VNavigationDrawer v-model="drawer">
+      <VSelect label="Namespace" variant="solo" :items="namespaces"
+        v-model="selectedNamespace"/>
+      <VDivider />
       <VList>
+        <VListSubheader>Namespaced</VListSubheader>
+      </VList>
+      <VDivider />
+      <VList>
+        <VListSubheader>Global</VListSubheader>
         <VListItem :to="{ name: 'home' }">Home</VListItem>
         <VListItem :to="{ name: 'settings' }">Settings</VListItem>
         <VListItem :to="{ name: 'explore' }">Resource Explorer</VListItem>
