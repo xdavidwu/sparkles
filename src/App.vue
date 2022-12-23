@@ -108,10 +108,3 @@ export default defineComponent({
   },
 });
 </script>
-
-<style>
-/* XXX: is absent of this bug in VListItem? */
-:root {
-  --v-theme-overlay-multiplier: 1;
-}
-</style>
