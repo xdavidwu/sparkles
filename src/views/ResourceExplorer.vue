@@ -47,7 +47,7 @@ import YAMLViewer from '@/components/YAMLViewer.vue';
           <VSelect v-else label="Namespace" model-value="(global)" disabled />
         </VCol>
       </VRow>
-      <VTable>
+      <VTable hover>
         <thead>
           <tr>
             <th v-for="column in listing.columnDefinitions" :key="column.name"
