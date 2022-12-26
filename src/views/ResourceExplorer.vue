@@ -11,8 +11,13 @@ import {
   VWindow,
   VWindowItem,
 } from 'vuetify/components';
-
 import YAMLViewer from '@/components/YAMLViewer.vue';
+import { computed } from 'vue';
+import { useNamespaces } from '@/stores/namespaces';
+import { storeToRefs } from 'pinia';
+
+const { namespaces } = storeToRefs(useNamespaces());
+const namespaceOptions = computed(() => [ '(all)', ...namespaces.value ]);
 </script>
 
 <template>
@@ -76,7 +81,6 @@ import YAMLViewer from '@/components/YAMLViewer.vue';
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
-import { useNamespaces } from '@/stores/namespaces';
 import {
   ApisApi,
   CoreApi,
@@ -90,22 +94,20 @@ interface Data {
   targetAPI: V1APIGroup;
   resources: Array<V1APIResource>;
   targetResource: V1APIResource;
-  namespaces: Array<string>;
   targetNamespace: string;
   listing: V1Table;
   tab: string;
   inspectedObjects: Array<any>;
 }
 
-const NS_ALL_NAMESPACES = '(all)';
 const apiConfig = await useApiConfig().getConfig();
 const anyApi = new AnyApi(apiConfig);
 const apisApi = new ApisApi(apiConfig);
 const coreApi = new CoreApi(apiConfig);
+const NS_ALL_NAMESPACES = '(all)';
 
 export default defineComponent({
   async created() {
-    this.namespaces = await useNamespaces().getNamespaces();
     this.$watch('targetAPI', this.getResources);
     this.$watch('targetResource', this.listResources);
     this.$watch('targetNamespace', this.listResources);
@@ -117,7 +119,6 @@ export default defineComponent({
       targetAPI: { name: '', versions: [], preferredVersion: { groupVersion: '(loading)', version: '' } },
       resources: [],
       targetResource: { kind: '(loading)', name: '(loading)', namespaced: false, singularName: '(loading)', verbs: [] },
-      namespaces: [],
       targetNamespace: NS_ALL_NAMESPACES,
       listing: {
         columnDefinitions: [],
@@ -126,11 +127,6 @@ export default defineComponent({
       tab: 'explore',
       inspectedObjects: [],
     };
-  },
-  computed: {
-    namespaceOptions() {
-      return [NS_ALL_NAMESPACES, ...this.namespaces];
-    }
   },
   methods: {
     uniqueKeyForTable(obj: V1PartialObjectMetadata) {

@@ -3,26 +3,25 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api } from '@/kubernetes-api/src';
 
 interface State {
-  namespaces: Array<string>,
-  selectedNamespace: string | null,
-  api: CoreV1Api | null,
+  _namespaces: Array<string>,
+  _updatePromise: Promise<void> | null,
+  selectedNamespace: string,
 }
 
 export const useNamespaces = defineStore('namespace', {
   state: (): State => {
-    return { namespaces: [], selectedNamespace: null, api: null };
+    return { _namespaces: [], _updatePromise: null, selectedNamespace: '' };
   },
-  actions: {
-    async getNamespaces(reload = false) {
-      if (this.namespaces.length === 0 || reload) {
-        if (!this.api) {
-          const apiConfig = await useApiConfig().getConfig();
-          this.api = new CoreV1Api(apiConfig);
-        }
-        this.namespaces = (await this.api.listNamespace()).items.map((i) => (i.metadata!.name!));
-        this.selectedNamespace = this.namespaces[0];
+  getters: {
+    namespaces: (state) => {
+      if (!state._updatePromise) {
+        state._updatePromise = (async function() {
+          const api = new CoreV1Api(await useApiConfig().getConfig());
+          state._namespaces = (await api.listNamespace()).items.map((i) => (i.metadata!.name!));
+          state.selectedNamespace = state._namespaces[0];
+        })();
       }
-      return this.namespaces;
+      return state._namespaces;
     },
   },
 });

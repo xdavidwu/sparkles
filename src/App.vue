@@ -24,7 +24,6 @@ import { storeToRefs } from 'pinia';
 
 const namespaceStore = useNamespaces();
 const { namespaces, selectedNamespace } = storeToRefs(namespaceStore);
-namespaceStore.getNamespaces();
 </script>
 
 <template>
