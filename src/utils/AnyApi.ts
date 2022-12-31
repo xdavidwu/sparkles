@@ -9,8 +9,10 @@ import {
   type V1APIResourceList,
   type V1ListMeta,
   type V1ObjectMeta,
+  type HTTPHeaders,
   type Middleware,
 } from '@/kubernetes-api/src';
+import type { OpenAPIV3 } from 'openapi-types';
 
 export interface AnyApiGetAPIResourcesRequest
       extends Omit<CustomObjectsApiGetAPIResourcesRequest, 'group'> {
@@ -35,6 +37,11 @@ export interface AnyApiListClusterCustomObjectRequest
 export interface AnyApiListNamespacedCustomObjectRequest
       extends Omit<CustomObjectsApiListNamespacedCustomObjectRequest, 'group'> {
     group?: string;
+}
+
+export interface AnyApiGetOpenAPISchemaRequest {
+  group?: string;
+  version: string;
 }
 
 const toCore: Middleware['pre'] = async (context) => ({
@@ -139,5 +146,26 @@ export class AnyApi extends CustomObjectsApi {
       return super.withPreMiddleware(toCore)
         .getNamespacedCustomObject({ ...requestParameters, group: 'core' });
     }
+  }
+
+  async getOpenAPISchema(requestParameters: AnyApiGetOpenAPISchemaRequest):
+      Promise<OpenAPIV3.Document> {
+    const url = requestParameters.group ?
+      `/openapi/v3/apis/${requestParameters.group}/${requestParameters.version}`:
+      `/openapi/v3/api/${requestParameters.version}`;
+
+    const headerParameters: HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.apiKey) {
+        headerParameters["authorization"] = this.configuration.apiKey("authorization"); // BearerToken authentication
+    }
+
+    const response = await this.request({
+      path: url,
+      method: 'GET',
+      headers: headerParameters,
+    });
+
+    return response.json();
   }
 }

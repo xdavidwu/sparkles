@@ -24,13 +24,13 @@ const namespaceOptions = computed(() => [ '(all)', ...namespaces.value ]);
   <VTabs v-model="tab">
     <VTab value="explore">Explore</VTab>
     <VTab v-for="obj in inspectedObjects"
-      :key="uniqueKeyForInspectedObject(obj)"
-      :value="uniqueKeyForInspectedObject(obj)">
-      <template v-if="obj.metadata.namespace">
-        {{ obj.metadata.namespace }}/{{ obj.metadata.name }}
+      :key="uniqueKeyForInspectedObject(obj.object)"
+      :value="uniqueKeyForInspectedObject(obj.object)">
+      <template v-if="obj.object.metadata.namespace">
+        {{ obj.object.metadata.namespace }}/{{ obj.object.metadata.name }}
       </template>
       <template v-else>
-        {{ obj.metadata.name }}
+        {{ obj.object.metadata.name }}
       </template>
     </VTab>
   </VTabs>
@@ -70,9 +70,9 @@ const namespaceOptions = computed(() => [ '(all)', ...namespaces.value ]);
       </VTable>
     </VWindowItem>
     <VWindowItem v-for="(obj, idx) in inspectedObjects"
-      :key="uniqueKeyForInspectedObject(obj)"
-      :value="uniqueKeyForInspectedObject(obj)">
-      <YAMLViewer :data="obj" />
+      :key="uniqueKeyForInspectedObject(obj.object)"
+      :value="uniqueKeyForInspectedObject(obj.object)">
+      <YAMLViewer :data="obj.object" :schema="obj.schema" />
       <VBtn @click="closeTab(idx)">Close</VBtn>
     </VWindowItem>
   </VWindow>
@@ -88,6 +88,8 @@ import {
   type V1APIResource,
 } from '@/kubernetes-api/src';
 import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
+import SwaggerParser from "@apidevtools/swagger-parser";
+import type { OpenAPIV3 } from 'openapi-types';
 
 interface Data {
   apis: Array<V1APIGroup>;
@@ -97,7 +99,7 @@ interface Data {
   targetNamespace: string;
   listing: V1Table;
   tab: string;
-  inspectedObjects: Array<any>;
+  inspectedObjects: Array<{ schema?: any, object: any}>;
 }
 
 const apiConfig = await useApiConfig().getConfig();
@@ -213,7 +215,32 @@ export default defineComponent({
         });
       }
 
-      this.inspectedObjects.push(object);
+      let schema = null;
+      try {
+        // XXX: schema is heavy, better make it async after moving to store
+        const rawSchema = await anyApi.getOpenAPISchema({
+          group: this.targetAPI.name,
+          version: this.targetAPI.preferredVersion!.version,
+        });
+        const wholeSchema = await SwaggerParser.dereference(rawSchema) as OpenAPIV3.Document;
+
+        // XXX: is there a better place to place this?
+        const apiBase = this.targetAPI.name ?
+          `/apis/${this.targetAPI.name}/${this.targetAPI.preferredVersion!.version}` :
+          `/api/${this.targetAPI.preferredVersion!.version}`;
+        const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${this.targetResource.name}/{name}`;
+        schema = (wholeSchema.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject)
+          .content?.['application/json']?.schema;
+
+        if (!schema) {
+          console.log('Schema discoverd, but no response definition for: ', path);
+        }
+      } catch (e) {
+        //shrug
+        console.log('Schema discovery failed: ', e);
+      }
+
+      this.inspectedObjects.push({ schema, object });
       this.tab = this.uniqueKeyForInspectedObject(object);
     },
     closeTab(idx: number) {

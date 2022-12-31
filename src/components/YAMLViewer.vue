@@ -1,19 +1,67 @@
 <script lang="ts" setup>
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { yaml } from '@codemirror/legacy-modes/mode/yaml';
 import { StreamLanguage } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { indentFold } from '@/utils/CodeMirror';
-import { stringify } from 'yaml';
+import { indentFold, createTextTooltip, type Tooltips } from '@/utils/CodeMirror';
+import { stringify, parseDocument, visit, Pair, YAMLMap, YAMLSeq, Scalar, type Node } from 'yaml';
 
 const props = defineProps({
   data: Object,
+  schema: Object,
 });
 
-const extensions = [ oneDark, StreamLanguage.define(yaml), indentFold ];
-
 const dataAsYAML = computed(() => stringify(props.data));
+
+function descriptionFromPath(schema: any, path: Array<any>): string | null | undefined {
+  if (path.length === 0) {
+    return schema.description as string | undefined;
+  }
+  if (path[0] instanceof Pair) {
+    const key = path[0].key.value;
+    if (schema.properties?.[key]) {
+      schema = schema.properties?.[key];
+    } else {
+      return null
+    }
+  } else if (path[0] instanceof YAMLMap) {
+    // XXX: why kubernetes uses allOf everywhere?
+    // take this chance to hack out allOf
+    if (schema.allOf) {
+      schema = schema.allOf[0];
+    }
+  } else if (path[0] instanceof YAMLSeq) {
+    if (schema.items) {
+      schema = schema.items;
+    } else {
+      return null;
+    }
+  }
+
+  return descriptionFromPath(schema, path.slice(1));
+}
+
+const tooltips: Tooltips = [];
+
+if (props.schema) {
+  watch(dataAsYAML, (data) => {
+    const doc = parseDocument(data);
+    // TODO: avoid traverse from root on getting description?
+    visit(doc, {
+      Pair: (key, node, path) => {
+        const description = descriptionFromPath(props.schema, [ ...path, node ]);
+        if (description) {
+          let end = node.value instanceof Scalar ?
+            node.value.range![1] : (node.key as Node).range![1];
+          tooltips.push({ range: [(node.key as Node).range![0], end], text: description });
+        }
+      },
+    });
+  }, { immediate: true });
+}
+
+const extensions = [ oneDark, StreamLanguage.define(yaml), indentFold, createTextTooltip(tooltips) ];
 </script>
 
 <template>

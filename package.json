@@ -10,9 +10,12 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
   },
   "dependencies": {
+    "@apidevtools/swagger-parser": "^10.1.0",
     "@codemirror/language": "^6.3.1",
     "@codemirror/legacy-modes": "^6.3.0",
     "@codemirror/theme-one-dark": "^6.1.0",
+    "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
+    "@esbuild-plugins/node-modules-polyfill": "^0.1.4",
     "@mdi/font": "^7.0.96",
     "@vueuse/core": "^9.2.0",
     "oidc-client-ts": "^2.0.6",

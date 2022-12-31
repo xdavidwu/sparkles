@@ -1,5 +1,6 @@
 import { foldService, IndentContext } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
+import { hoverTooltip } from "@codemirror/view"
 
 // TODO handle empty lines
 export const indentFold = foldService.of(
@@ -29,3 +30,24 @@ export const indentFold = foldService.of(
     return null;
   }
 );
+
+type Range = [number, number];
+type Tooltip = { range: Range, text: string };
+export type Tooltips = Array<Tooltip>;
+
+export const createTextTooltip = (tooltips: Tooltips) => hoverTooltip((view, pos) => {
+  for (const tooltip of tooltips) {
+    if (pos >= tooltip.range[0] && pos <= tooltip.range[1]) {
+      return {
+        pos: tooltip.range[0],
+        end: tooltip.range[1],
+        create: () => {
+          const div = document.createElement('div');
+          div.textContent = tooltip.text;
+          return { dom: div };
+        },
+      };
+    }
+  }
+  return null;
+});
