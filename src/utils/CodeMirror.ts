@@ -44,6 +44,19 @@ export const createTextTooltip = (tooltips: Tooltips) => hoverTooltip((view, pos
         create: () => {
           const div = document.createElement('div');
           div.textContent = tooltip.text;
+          div.innerHTML = div.innerHTML.replace(/((http:|https:)[^\s]+[\w])/g, (match) => {
+            let url;
+            try {
+              url = new URL(match);
+            } catch (e) {
+              return match;
+            }
+            const a = document.createElement('a');
+            a.target = '_blank';
+            a.href = url.href;
+            a.textContent = match;
+            return a.outerHTML;
+          });
           return { dom: div };
         },
       };
