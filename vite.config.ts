@@ -1,5 +1,4 @@
 import { fileURLToPath, URL } from 'node:url';
-import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 
@@ -13,22 +12,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      // fills for swagger-parser
-      util: 'rollup-plugin-node-polyfills/polyfills/util',
-      url: 'rollup-plugin-node-polyfills/polyfills/url',
     },
   },
   build: {
     target: 'es2022',
-  },
-  optimizeDeps: {
-    // fills for swagger-parser
-    esbuildOptions: {
-      define: {
-        global: 'globalThis',
-      },
-      plugins: [NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),],
-    },
   },
   server: {
     proxy: {

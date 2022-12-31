@@ -6,18 +6,32 @@ import { StreamLanguage } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { indentFold, createTextTooltip, type Tooltips } from '@/utils/CodeMirror';
 import { stringify, parseDocument, visit, Pair, YAMLMap, YAMLSeq, Scalar, type Node } from 'yaml';
+import pointer from 'json-pointer';
+import type { OpenAPIV3 } from 'openapi-types';
 
-const props = defineProps({
+const props = defineProps<{
   data: Object,
-  schema: Object,
-});
+  schema?: {
+    root: OpenAPIV3.Document,
+    object: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject,
+  },
+}>();
 
 const dataAsYAML = computed(() => stringify(props.data));
 
 function descriptionFromPath(schema: any, path: Array<any>): string | null | undefined {
+  if (schema.$ref) {
+    if (schema.$ref[0] === '#') {
+      schema = pointer(props.schema!.root, schema.$ref.substring(1));
+    } else {
+      console.log('Unsupported non-local reference: ', schema.$ref);
+    }
+  }
+
   if (path.length === 0) {
     return schema.description as string | undefined;
   }
+
   if (path[0] instanceof Pair) {
     const key = path[0].key.value;
     if (schema.properties?.[key]) {
@@ -47,10 +61,9 @@ const tooltips: Tooltips = [];
 if (props.schema) {
   watch(dataAsYAML, (data) => {
     const doc = parseDocument(data);
-    // TODO: avoid traverse from root on getting description?
     visit(doc, {
       Pair: (key, node, path) => {
-        const description = descriptionFromPath(props.schema, [ ...path, node ]);
+        const description = descriptionFromPath(props.schema!.object, [ ...path, node ]);
         if (description) {
           let end = node.value instanceof Scalar ?
             node.value.range![1] : (node.key as Node).range![1];

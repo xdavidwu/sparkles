@@ -10,15 +10,14 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
   },
   "dependencies": {
-    "@apidevtools/swagger-parser": "^10.1.0",
     "@codemirror/language": "^6.3.1",
     "@codemirror/legacy-modes": "^6.3.0",
     "@codemirror/theme-one-dark": "^6.1.0",
-    "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
-    "@esbuild-plugins/node-modules-polyfill": "^0.1.4",
     "@mdi/font": "^7.0.96",
     "@vueuse/core": "^9.2.0",
+    "json-pointer": "^0.6.2",
     "oidc-client-ts": "^2.0.6",
+    "openapi-types": "^12.1.0",
     "pinia": "^2.0.21",
     "vue": "^3.2.38",
     "vue-codemirror": "^6.1.1",
@@ -28,6 +27,7 @@
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.1.4",
+    "@types/json-pointer": "^1.0.31",
     "@types/node": "^16.11.56",
     "@vitejs/plugin-vue": "^3.0.3",
     "@vue/eslint-config-typescript": "^11.0.0",

@@ -88,8 +88,17 @@ import {
   type V1APIResource,
 } from '@/kubernetes-api/src';
 import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
-import SwaggerParser from "@apidevtools/swagger-parser";
 import type { OpenAPIV3 } from 'openapi-types';
+
+type ResponseSchema = {
+  root: OpenAPIV3.Document,
+  object: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject,
+};
+
+type ObjectRecord = {
+  schema?: ResponseSchema,
+  object: any,
+};
 
 interface Data {
   apis: Array<V1APIGroup>;
@@ -99,7 +108,7 @@ interface Data {
   targetNamespace: string;
   listing: V1Table;
   tab: string;
-  inspectedObjects: Array<{ schema?: any, object: any}>;
+  inspectedObjects: Array<ObjectRecord>;
 }
 
 const apiConfig = await useApiConfig().getConfig();
@@ -215,32 +224,34 @@ export default defineComponent({
         });
       }
 
-      let schema = null;
+      const objectRecord: ObjectRecord = { object };
+
       try {
         // XXX: schema is heavy, better make it async after moving to store
-        const rawSchema = await anyApi.getOpenAPISchema({
+        const root = await anyApi.getOpenAPISchema({
           group: this.targetAPI.name,
           version: this.targetAPI.preferredVersion!.version,
         });
-        const wholeSchema = await SwaggerParser.dereference(rawSchema) as OpenAPIV3.Document;
 
         // XXX: is there a better place to place this?
         const apiBase = this.targetAPI.name ?
           `/apis/${this.targetAPI.name}/${this.targetAPI.preferredVersion!.version}` :
           `/api/${this.targetAPI.preferredVersion!.version}`;
         const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${this.targetResource.name}/{name}`;
-        schema = (wholeSchema.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject)
+        const object = (root.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject)
           .content?.['application/json']?.schema;
 
-        if (!schema) {
+        if (!object) {
           console.log('Schema discoverd, but no response definition for: ', path);
+        } else {
+          objectRecord.schema = { root, object };
         }
       } catch (e) {
         //shrug
         console.log('Schema discovery failed: ', e);
       }
 
-      this.inspectedObjects.push({ schema, object });
+      this.inspectedObjects.push(objectRecord);
       this.tab = this.uniqueKeyForInspectedObject(object);
     },
     closeTab(idx: number) {
