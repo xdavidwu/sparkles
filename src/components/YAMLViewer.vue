@@ -1,9 +1,15 @@
 <script lang="ts" setup>
+import { computed } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { yaml } from '@codemirror/legacy-modes/mode/yaml';
 import { StreamLanguage, foldService, IndentContext } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { stringify } from 'yaml';
+
+const props = defineProps({
+  data: Object,
+});
 
 // TODO handle empty lines
 const indentFold = foldService.of(
@@ -35,24 +41,10 @@ const indentFold = foldService.of(
 );
 
 const extensions = [ oneDark, StreamLanguage.define(yaml), indentFold ];
+
+const dataAsYAML = computed(() => stringify(props.data));
 </script>
 
 <template>
   <Codemirror v-model="dataAsYAML" :extensions="extensions" disabled />
 </template>
-
-<script lang="ts">
-import { defineComponent } from 'vue';
-import { stringify } from 'yaml';
-
-export default defineComponent({
-  props: {
-    data: Object,
-  },
-  computed: {
-    dataAsYAML() {
-      return stringify(this.data);
-    },
-  },
-});
-</script>
