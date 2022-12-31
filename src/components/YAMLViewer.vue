@@ -70,6 +70,14 @@ if (props.schema) {
           tooltips.push({ range: [(node.key as Node).range![0], end], text: description });
         }
       },
+      Seq: (key, node, path) => {
+        const description = descriptionFromPath(props.schema!.object, [ ...path, node ]);
+        if (description) {
+          // the first - list mark
+          // TODO: locate other - list marks?
+          tooltips.push({ range: [node.range![0], node.range![0] + 1], text: description });
+        }
+      },
     });
   }, { immediate: true });
 }
