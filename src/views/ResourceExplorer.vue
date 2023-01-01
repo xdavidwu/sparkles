@@ -92,6 +92,7 @@ watch(groups, (groups) => {
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
+import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import type { V1APIResource } from '@/kubernetes-api/src';
 import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
 import type { OpenAPIV3 } from 'openapi-types';
@@ -209,8 +210,7 @@ export default defineComponent({
       const objectRecord: ObjectRecord = { object };
 
       try {
-        // XXX: schema is heavy, better make it async after moving to store
-        const root = await anyApi.getOpenAPISchema({
+        const root = await useOpenAPISchemaDiscovery().getSchema({
           group: this.targetAPI.name,
           version: this.targetAPI.preferredVersion!.version,
         });
