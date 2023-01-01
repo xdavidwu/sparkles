@@ -12,12 +12,23 @@ import {
   VWindowItem,
 } from 'vuetify/components';
 import YAMLViewer from '@/components/YAMLViewer.vue';
-import { computed } from 'vue';
+import { computed, watch, ref } from 'vue';
 import { useNamespaces } from '@/stores/namespaces';
+import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { storeToRefs } from 'pinia';
+import type { V1APIGroup } from '@/kubernetes-api/src';
 
 const { namespaces } = storeToRefs(useNamespaces());
 const namespaceOptions = computed(() => [ '(all)', ...namespaces.value ]);
+
+const { groups } = storeToRefs(useApisDiscovery());
+const targetAPI = ref<V1APIGroup>({ name: '', versions: [], preferredVersion: { groupVersion: '(loading)', version: '' } });
+
+watch(groups, (groups) => {
+  if (groups.length) {
+    targetAPI.value = groups[0];
+  }
+}, { immediate: true });
 </script>
 
 <template>
@@ -38,7 +49,7 @@ const namespaceOptions = computed(() => [ '(all)', ...namespaces.value ]);
     <VWindowItem value="explore">
       <VRow>
         <VCol>
-          <VAutocomplete label="API group" v-model="targetAPI" :items="apis"
+          <VAutocomplete label="API group" v-model="targetAPI" :items="groups"
             return-object
             :item-title="(api) => (api.preferredVersion!.groupVersion)" />
         </VCol>
@@ -81,12 +92,7 @@ const namespaceOptions = computed(() => [ '(all)', ...namespaces.value ]);
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
-import {
-  ApisApi,
-  CoreApi,
-  type V1APIGroup,
-  type V1APIResource,
-} from '@/kubernetes-api/src';
+import type { V1APIResource } from '@/kubernetes-api/src';
 import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
 import type { OpenAPIV3 } from 'openapi-types';
 
@@ -101,8 +107,7 @@ type ObjectRecord = {
 };
 
 interface Data {
-  apis: Array<V1APIGroup>;
-  targetAPI: V1APIGroup;
+  targetAPI: V1APIGroup,
   resources: Array<V1APIResource>;
   targetResource: V1APIResource;
   targetNamespace: string;
@@ -113,8 +118,6 @@ interface Data {
 
 const apiConfig = await useApiConfig().getConfig();
 const anyApi = new AnyApi(apiConfig);
-const apisApi = new ApisApi(apiConfig);
-const coreApi = new CoreApi(apiConfig);
 const NS_ALL_NAMESPACES = '(all)';
 
 export default defineComponent({
@@ -122,11 +125,9 @@ export default defineComponent({
     this.$watch('targetAPI', this.getResources);
     this.$watch('targetResource', this.listResources);
     this.$watch('targetNamespace', this.listResources);
-    await this.getAPIs();
   },
   data(): Data {
     return {
-      apis: [],
       targetAPI: { name: '', versions: [], preferredVersion: { groupVersion: '(loading)', version: '' } },
       resources: [],
       targetResource: { kind: '(loading)', name: '(loading)', namespaced: false, singularName: '(loading)', verbs: [] },
@@ -157,25 +158,6 @@ export default defineComponent({
         return `${obj.apiVersion}/${obj.kind}/${obj.metadata.namespace}/${obj.metadata.name}`;
       }
       return `${obj.apiVersion}/${obj.kind}/${obj.metadata.name}`;
-    },
-    async getAPIs() {
-      const core = await coreApi.getAPIVersions({});
-      const response = await apisApi.getAPIVersions({});
-      this.apis =  [
-        {
-          name: '',
-          versions: core.versions.map((i) => ({
-            groupVersion: `core/${i}`,
-            version: i,
-          })),
-          preferredVersion: {
-            groupVersion: `core/${core.versions[core.versions.length - 1]}`,
-            version: core.versions[core.versions.length - 1],
-          }
-        },
-        ...this.apis.concat(response.groups)
-      ];
-      this.targetAPI = this.apis[0];
     },
     async getResources() {
       const response = await anyApi.getAPIResources({
