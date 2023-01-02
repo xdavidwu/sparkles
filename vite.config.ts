@@ -20,7 +20,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/openapi': KUBECTL_PROXY,
-      '/api': KUBECTL_PROXY,
+      '/api': {
+        target: KUBECTL_PROXY,
+        ws: true,
+      },
       '/apis': KUBECTL_PROXY,
     },
   },

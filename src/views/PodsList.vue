@@ -7,6 +7,7 @@ import {
   VWindow,
   VWindowItem
 } from 'vuetify/components';
+import ExecTerminal from '@/components/ExecTerminal.vue';
 import { ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
@@ -83,6 +84,8 @@ const createExecTab = (pod: string, container: string) => {
     <VWindowItem v-for="(execTab, index) in execTabs"
       :key="`${execTab.pod}/${execTab.container}`"
       :value="`terminal-${execTab.pod}/${execTab.container}`">
+      <ExecTerminal
+        :container-spec="{ namespace: selectedNamespace, ...execTab}" />
       <VBtn @click="closeTab(index)">Close</VBtn>
     </VWindowItem>
   </VWindow>
