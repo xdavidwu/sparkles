@@ -44,6 +44,7 @@ onMounted(async () => {
   // TODO auth
   // https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/cri/streaming/remotecommand/websocket.go
   const socket = new WebSocket(fullUrl, 'v4.channel.k8s.io');
+  socket.binaryType = 'arraybuffer';
   const CSI = '\x1b[';
   socket.onopen = () => {
     socket.send(`\x04{Width:${terminal.cols},Height:${terminal.rows}}`);
@@ -54,10 +55,9 @@ onMounted(async () => {
       socket.send(`\x00${data}`);
     });
   };
-  socket.onmessage = async (event) => {
-    const data = new Uint8Array(await event.data.arrayBuffer());
+  socket.onmessage = (event) => {
+    const data = new Uint8Array(event.data);
     const stream = data[0];
-    console.log('data on stream ', stream, data);
     if (stream === 1 || stream === 2) {
       terminal.write(data.subarray(1));
     } else if (stream === 3) {
@@ -75,7 +75,6 @@ onMounted(async () => {
         terminal.write(status.message ?? status.reason!);
       }
       terminal.write(`${CSI}?25l`); // unset mode: cursor visible
-      console.log(status);
 
       socket.close();
     }
