@@ -23,7 +23,7 @@ const fitAddon = new FitAddon();
 terminal.loadAddon(fitAddon);
 
 onMounted(async () => {
-  terminal.open(document.getElementById(uuid));
+  terminal.open(document.getElementById(uuid)!);
   fitAddon.fit();
   terminal.write('Connecting...');
   const config = await useApiConfig().getConfig();
@@ -60,7 +60,7 @@ onMounted(async () => {
         terminal.write(`${CSI}32mcommand terminated normally`);
       } else {
         terminal.write(`${CSI}31m`); // SGR: fg: red
-        terminal.write(status.message ?? status.reason);
+        terminal.write(status.message ?? status.reason!);
       }
       terminal.write(`${CSI}?25l`); // unset mode: cursor visible
       console.log(status);

@@ -63,18 +63,18 @@ const createExecTab = (pod: string, container: string) => {
         </thead>
         <tbody>
           <template v-for="pod in pods" :key="uniqueKeyForObject(pod)">
-            <tr v-for="(container, index) in pod.spec.containers"
+            <tr v-for="(container, index) in pod.spec!.containers"
               :key="container.name">
-              <td v-if="index === 0" :rowspan="pod.spec.containers.length">
+              <td v-if="index === 0" :rowspan="pod.spec!.containers.length">
                 {{ pod.metadata!.name }}
               </td>
               <td>{{ container.name }}</td>
               <td>{{ container.image }}</td>
-              <td>{{ pod.status.containerStatuses[index].ready }}</td>
+              <td>{{ pod.status!.containerStatuses![index].ready }}</td>
               <td>
                 <VBtn size="x-small" icon="mdi-console-line" color="info"
                   title="Terminal"
-                  @click="createExecTab(pod.metadata!.name, container.name)" />
+                  @click="createExecTab(pod.metadata!.name!, container.name)" />
               </td>
             </tr>
           </template>
