@@ -32,7 +32,8 @@ terminal.onTitleChange((title) => emit('titleChanged', title));
 terminal.onBell(() => emit('bell'));
 
 onMounted(async () => {
-  terminal.open(document.getElementById(uuid)!);
+  const div = document.getElementById(uuid)!;
+  terminal.open(div);
   fitAddon.fit();
   terminal.write('Connecting...');
   const config = await useApiConfig().getConfig();
@@ -47,6 +48,8 @@ onMounted(async () => {
   socket.onopen = () => {
     socket.send(`\x04{Width:${terminal.cols},Height:${terminal.rows}}`);
     terminal.write(`${CSI}2J${CSI}H`); // clear all, reset cursor
+    fitAddon.fit();
+    new ResizeObserver(() => fitAddon.fit()).observe(div);
     terminal.onData((data) => {
       socket.send(`\x00${data}`);
     });
