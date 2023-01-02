@@ -20,10 +20,18 @@ interface ContainerSpec {
   container: string,
 }
 
+interface ExecTab {
+  id: string,
+  spec: ContainerSpec,
+  title?: string,
+  alerting: boolean,
+  bellTimeoutID?: number,
+}
+
 const { selectedNamespace } = storeToRefs(useNamespaces());
 
 const tab = ref('table');
-const execTabs = ref<Array<{ spec: ContainerSpec, title?: string }>>([]);
+const execTabs = ref<Array<ExecTab>>([]);
 const pods = ref<Array<V1Pod>>([]);
 
 watch(selectedNamespace, async (namespace) => {
@@ -41,17 +49,32 @@ const closeTab = (index: number) => {
 };
 
 const createExecTab = (pod: string, container: string) => {
-  execTabs.value.push({ spec: { pod, container } });
-  tab.value = `terminal-${pod}/${container}`;
+  const id = `terminal-${pod}/${container}`;
+  execTabs.value.push({ id, spec: { pod, container }, alerting: false });
+  tab.value = id;
+};
+
+const bell = (index: number) => {
+  const bellingTab = execTabs.value[index];
+  if (bellingTab.bellTimeoutID) {
+    clearTimeout(bellingTab.bellTimeoutID);
+  }
+  bellingTab.alerting = true;
+  bellingTab.bellTimeoutID = setTimeout(() => {
+    bellingTab.bellTimeoutID = undefined;
+    if (tab.value === bellingTab.id) {
+      bellingTab.alerting = false;
+    }
+  }, 1000);
 };
 </script>
 
 <template>
   <VTabs v-model="tab">
     <VTab value="table">Pods</VTab>
-    <VTab v-for="execTab in execTabs"
-      :key="`${execTab.spec.pod}/${execTab.spec.container}`"
-      :value="`terminal-${execTab.spec.pod}/${execTab.spec.container}`">
+    <VTab v-for="execTab in execTabs" :key="execTab.id" :value="execTab.id"
+      :prepend-icon="execTab.alerting ? 'mdi-alert-circle' : ''"
+      @click="() => execTab.alerting = false">
       {{ execTab.title ?? `Terminal: ${execTab.spec.pod}/${execTab.spec.container}` }}
     </VTab>
   </VTabs>
@@ -87,10 +110,10 @@ const createExecTab = (pod: string, container: string) => {
         </tbody>
       </VTable>
     </VWindowItem>
-    <VWindowItem v-for="(execTab, index) in execTabs"
-      :key="`${execTab.spec.pod}/${execTab.spec.container}`"
-      :value="`terminal-${execTab.spec.pod}/${execTab.spec.container}`">
+    <VWindowItem v-for="(execTab, index) in execTabs" :key="execTab.id"
+      :value="execTab.id">
       <ExecTerminal @title-changed="(title) => execTab.title = title"
+        @bell="() => bell(index)"
         :container-spec="{ namespace: selectedNamespace, ...execTab.spec}" />
       <VBtn @click="closeTab(index)">Close</VBtn>
     </VWindowItem>
