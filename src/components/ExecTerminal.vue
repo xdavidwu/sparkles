@@ -3,6 +3,7 @@ import 'xterm/css/xterm.css';
 import { onMounted } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 import { Terminal } from 'xterm';
+import { FitAddon } from 'xterm-addon-fit';
 import { useApiConfig } from '@/stores/apiConfig';
 import { V1StatusFromJSON } from '@/kubernetes-api/src';
 
@@ -18,9 +19,12 @@ const props = defineProps<{
 const uuid = uuidv4();
 const terminal = new Terminal();
 const url = `/api/v1/namespaces/${props.containerSpec.namespace}/pods/${props.containerSpec.pod}/exec?container=${encodeURIComponent(props.containerSpec.container)}&stdout=true&stdin=true&tty=true`;
+const fitAddon = new FitAddon();
+terminal.loadAddon(fitAddon);
 
 onMounted(async () => {
   terminal.open(document.getElementById(uuid));
+  fitAddon.fit();
   terminal.write('Connecting...');
   const config = await useApiConfig().getConfig();
   const socketBase = config.basePath.replace(/^https:\/\//, 'wss://')
@@ -32,6 +36,7 @@ onMounted(async () => {
   const socket = new WebSocket(fullUrl, 'v4.channel.k8s.io');
   const CSI = '\x1b[';
   socket.onopen = () => {
+    socket.send(`\x04{Width:${terminal.cols},Height:${terminal.rows}}`);
     terminal.write(`${CSI}2J${CSI}H`); // clear all, reset cursor
     terminal.onData((data) => {
       socket.send(`\x00${data}`);
