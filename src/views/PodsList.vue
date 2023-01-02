@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {
   VBtn,
+  VIcon,
   VTab,
   VTable,
   VTabs,
@@ -86,7 +87,7 @@ const bell = (index: number) => {
             <th>Pod name</th>
             <th>Container name</th>
             <th>Container image</th>
-            <th>Readiness</th>
+            <th>Ready</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -99,7 +100,11 @@ const bell = (index: number) => {
               </td>
               <td>{{ container.name }}</td>
               <td>{{ container.image }}</td>
-              <td>{{ pod.status!.containerStatuses![index].ready }}</td>
+              <td>
+                <VIcon
+                  :icon="pod.status!.containerStatuses![index].ready ? 'mdi-check' : 'mdi-close'"
+                  :color="pod.status!.containerStatuses![index].ready ? '' : 'red'" />
+              </td>
               <td>
                 <VBtn size="x-small" icon="mdi-console-line" color="info"
                   title="Terminal"
