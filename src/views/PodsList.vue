@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {
+  VBadge,
   VBtn,
   VIcon,
   VTab,
@@ -74,9 +75,10 @@ const bell = (index: number) => {
   <VTabs v-model="tab">
     <VTab value="table">Pods</VTab>
     <VTab v-for="execTab in execTabs" :key="execTab.id" :value="execTab.id"
-      :prepend-icon="execTab.alerting ? 'mdi-alert-circle' : ''"
       @click="() => execTab.alerting = false">
-      {{ execTab.title ?? `Terminal: ${execTab.spec.pod}/${execTab.spec.container}` }}
+      <VBadge dot color="red" v-model="execTab.alerting">
+        {{ execTab.title ?? `Terminal: ${execTab.spec.pod}/${execTab.spec.container}` }}
+      </VBadge>
     </VTab>
   </VTabs>
   <VWindow v-model="tab">
