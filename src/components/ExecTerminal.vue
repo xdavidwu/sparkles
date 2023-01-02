@@ -16,11 +16,17 @@ const props = defineProps<{
   command?: string,
 }>();
 
+const emit = defineEmits<{
+  // eslint-disable-next-line no-unused-vars
+  (e: 'titleChanged', title: string): void,
+}>();
+
 const uuid = uuidv4();
 const terminal = new Terminal();
 const url = `/api/v1/namespaces/${props.containerSpec.namespace}/pods/${props.containerSpec.pod}/exec?container=${encodeURIComponent(props.containerSpec.container)}&stdout=true&stdin=true&tty=true`;
 const fitAddon = new FitAddon();
 terminal.loadAddon(fitAddon);
+terminal.onTitleChange((title) => emit('titleChanged', title));
 
 onMounted(async () => {
   terminal.open(document.getElementById(uuid)!);

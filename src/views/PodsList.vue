@@ -15,10 +15,15 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api, type V1Pod } from '@/kubernetes-api/src';
 import { uniqueKeyForObject } from '@/utils/keys';
 
+interface ContainerSpec {
+  pod: string,
+  container: string,
+}
+
 const { selectedNamespace } = storeToRefs(useNamespaces());
 
 const tab = ref('table');
-const execTabs = ref<Array<{ pod: string, container: string }>>([]);
+const execTabs = ref<Array<{ spec: ContainerSpec, title?: string }>>([]);
 const pods = ref<Array<V1Pod>>([]);
 
 watch(selectedNamespace, async (namespace) => {
@@ -35,7 +40,7 @@ const closeTab = (index: number) => {
 };
 
 const createExecTab = (pod: string, container: string) => {
-  execTabs.value.push({ pod, container });
+  execTabs.value.push({ spec: { pod, container } });
   tab.value = `terminal-${pod}/${container}`;
 };
 </script>
@@ -44,9 +49,9 @@ const createExecTab = (pod: string, container: string) => {
   <VTabs v-model="tab">
     <VTab value="table">Pods</VTab>
     <VTab v-for="execTab in execTabs"
-      :key="`${execTab.pod}/${execTab.container}`"
-      :value="`terminal-${execTab.pod}/${execTab.container}`">
-      Terminal: {{ `${execTab.pod}/${execTab.container}` }}
+      :key="`${execTab.spec.pod}/${execTab.spec.container}`"
+      :value="`terminal-${execTab.spec.pod}/${execTab.spec.container}`">
+      {{ execTab.title ?? `Terminal: ${execTab.spec.pod}/${execTab.spec.container}` }}
     </VTab>
   </VTabs>
   <VWindow v-model="tab">
@@ -82,10 +87,10 @@ const createExecTab = (pod: string, container: string) => {
       </VTable>
     </VWindowItem>
     <VWindowItem v-for="(execTab, index) in execTabs"
-      :key="`${execTab.pod}/${execTab.container}`"
-      :value="`terminal-${execTab.pod}/${execTab.container}`">
-      <ExecTerminal
-        :container-spec="{ namespace: selectedNamespace, ...execTab}" />
+      :key="`${execTab.spec.pod}/${execTab.spec.container}`"
+      :value="`terminal-${execTab.spec.pod}/${execTab.spec.container}`">
+      <ExecTerminal @title-changed="(title) => execTab.title = title"
+        :container-spec="{ namespace: selectedNamespace, ...execTab.spec}" />
       <VBtn @click="closeTab(index)">Close</VBtn>
     </VWindowItem>
   </VWindow>
