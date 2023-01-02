@@ -21,6 +21,9 @@ const execTabs = ref<Array<{ pod: string, container: string }>>([]);
 const pods = ref<Array<V1Pod>>([]);
 
 watch(selectedNamespace, async (namespace) => {
+  if (!namespace || namespace.length === 0) {
+    pods.value = [];
+  }
   const api = new CoreV1Api(await useApiConfig().getConfig());
   pods.value = (await api.listNamespacedPod({ namespace })).items;
 }, { immediate: true });
