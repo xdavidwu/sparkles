@@ -95,6 +95,7 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import type { V1APIResource } from '@/kubernetes-api/src';
 import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
+import { uniqueKeyForObject } from '@/utils/keys';
 import type { OpenAPIV3 } from 'openapi-types';
 
 type ResponseSchema = {
@@ -151,15 +152,7 @@ export default defineComponent({
       }
       return obj.metadata!.name;
     },
-    uniqueKeyForInspectedObject(obj: any) {
-      if (obj.metadata.uid) {
-        return obj.metadata.uid;
-      }
-      if (obj.metadata.namespace) {
-        return `${obj.apiVersion}/${obj.kind}/${obj.metadata.namespace}/${obj.metadata.name}`;
-      }
-      return `${obj.apiVersion}/${obj.kind}/${obj.metadata.name}`;
-    },
+    uniqueKeyForInspectedObject: uniqueKeyForObject,
     async getResources() {
       const response = await anyApi.getAPIResources({
         group: this.targetAPI.name,

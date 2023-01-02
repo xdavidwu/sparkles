@@ -38,6 +38,7 @@ const { namespaces, selectedNamespace } = storeToRefs(namespaceStore);
       <VDivider />
       <VList>
         <VListSubheader>Namespaced</VListSubheader>
+        <VListItem :to="{ name: 'pods' }">Pods</VListItem>
       </VList>
       <VDivider />
       <VList>

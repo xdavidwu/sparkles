@@ -28,6 +28,12 @@ const router = createRouter({
       component: () => import('../views/ResourceExplorer.vue'),
       meta: { name: 'Resource Explorer' },
     },
+    {
+      path: '/pods',
+      name: 'pods',
+      component: () => import('../views/PodsList.vue'),
+      meta: { name: 'Pods' },
+    },
   ]
 });
 
