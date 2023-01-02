@@ -10,6 +10,7 @@ import {
   VWindowItem
 } from 'vuetify/components';
 import ExecTerminal from '@/components/ExecTerminal.vue';
+import KeyValueBadge from '@/components/KeyValueBadge.vue';
 import { ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
@@ -86,7 +87,11 @@ const bell = (index: number) => {
       <VTable hover>
         <thead>
           <tr>
-            <th>Pod name</th>
+            <th>
+              Pod
+              <KeyValueBadge k="annotation" v="value" />
+              <KeyValueBadge k="label" v="value" pill />
+            </th>
             <th>Container name</th>
             <th>Container image</th>
             <th>Ready</th>
@@ -99,6 +104,12 @@ const bell = (index: number) => {
               :key="container.name">
               <td v-if="index === 0" :rowspan="pod.spec!.containers.length">
                 {{ pod.metadata!.name }}
+                <br />
+                <KeyValueBadge v-for="(value, key) in pod.metadata!.annotations"
+                  :key="key" :k="key" :v="value" />
+                <br />
+                <KeyValueBadge v-for="(value, key) in pod.metadata!.labels"
+                  :key="key" :k="key" :v="value" pill />
               </td>
               <td>{{ container.name }}</td>
               <td>{{ container.image }}</td>
