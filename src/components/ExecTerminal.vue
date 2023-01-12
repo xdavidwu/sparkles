@@ -31,19 +31,24 @@ terminal.loadAddon(fitAddon);
 terminal.onTitleChange((title) => emit('titleChanged', title));
 terminal.onBell(() => emit('bell'));
 
+const base64url = (s: string) => btoa(s).replace(/=+$/g, '').replace(/\+/g, '-').replace(/\\/g, '_');
+
 onMounted(async () => {
   const div = document.getElementById(uuid)!;
   terminal.open(div);
   fitAddon.fit();
   terminal.write('Connecting...');
   const config = await useApiConfig().getConfig();
+  const token = await useApiConfig().getBearerToken();
   const socketBase = config.basePath.replace(/^https:\/\//, 'wss://')
     .replace(/^http:\/\//, 'ws://');
   const fullUrl = `${socketBase}${url}&command=${encodeURIComponent(props.command ?? '/bin/sh')}`;
 
-  // TODO auth
   // https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/cri/streaming/remotecommand/websocket.go
-  const socket = new WebSocket(fullUrl, 'v4.channel.k8s.io');
+  const socket = new WebSocket(fullUrl, token ? [
+    // https://github.com/kubernetes/kubernetes/pull/47740
+    'v4.channel.k8s.io', `base64url.bearer.authorization.k8s.io.${base64url(token)}`
+  ] : 'v4.channel.k8s.io');
   socket.binaryType = 'arraybuffer';
   const CSI = '\x1b[';
   socket.onopen = () => {

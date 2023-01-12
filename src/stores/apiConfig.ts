@@ -40,22 +40,28 @@ export const useApiConfig = defineStore('api-config', {
     }),
   }),
   actions: {
-    async getConfig() {
-      const headers: HTTPHeaders = {};
-
+    async getBearerToken() {
       let user;
       switch (this.authScheme) {
         case AuthScheme.AccessToken:
-          headers['Authorization'] = `Bearer ${this.accessToken}`;
-          break;
+          return this.accessToken;
         case AuthScheme.OIDC:
           user = await this.userManager.getUser();
           if (user === null) {
             await this.userManager.signinRedirect({ state: window.location.pathname });
-            console.log('redirect failed');
+            throw new Error('OIDC redirect failed');
           } else {
-            headers['Authorization'] = `Bearer ${user.id_token}`;
+            return user.id_token;
           }
+      }
+      return null;
+    },
+    async getConfig() {
+      const headers: HTTPHeaders = {};
+
+      const token = await this.getBearerToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       if (this.impersonation.asUser) {
