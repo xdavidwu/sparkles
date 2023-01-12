@@ -76,7 +76,7 @@ const { namespaces, selectedNamespace } = storeToRefs(namespaceStore);
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { ResponseError, FetchError } from '@/kubernetes-api/src';
+import { ResponseError, FetchError, V1StatusFromJSON } from '@/kubernetes-api/src';
 
 interface Data {
   drawer: boolean | null,
@@ -96,7 +96,19 @@ export default defineComponent({
   errorCaptured(err) {
     if (err instanceof ResponseError) {
       this.failedResponse = err.response;
-      err.response.text().then(t => this.failedResponseText = t);
+      err.response.text().then(t => {
+        try {
+          const json = JSON.parse(t);
+          const status = V1StatusFromJSON(json);
+          if (status.message || status.reason) {
+            this.failedResponseText = status.message ? status.message! : status.reason!;
+          } else {
+            this.failedResponseText = JSON.stringify(json, null, 2);
+          }
+        } catch (e) {
+          this.failedResponseText = t;
+        }
+      });
       this.showsDialog = true;
       return false;
     } else if (err instanceof FetchError) {
