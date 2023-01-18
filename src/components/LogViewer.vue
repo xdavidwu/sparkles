@@ -26,6 +26,8 @@ onMounted(async () => {
   const div = document.getElementById(uuid)!;
   terminal.open(div);
   fitAddon.fit();
+  new ResizeObserver(() => fitAddon.fit()).observe(div);
+
   const config = await useApiConfig().getConfig();
   const response = (await new CoreV1Api(config).readNamespacedPodLogRaw({
     namespace: props.containerSpec.namespace,
