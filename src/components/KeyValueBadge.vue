@@ -54,16 +54,16 @@ const shortK = computed(() => {
 const shortV = computed(() => props.v.length > 10 ?
   `${props.v.substring(0, 7)}...` : props.v);
 
-const fnv1 = (str) => {
+const fnv1 = (str: string) => {
   let hash = 0x811c9dc5;
-  for (const i in str) {
+  for (let i = 0; i < str.length; i++) {
     hash = hash * 0x01000193;
     hash = Math.abs(hash ^ str.charCodeAt(i));
   }
   return hash;
 };
 
-const color = (str) => {
+const color = (str: string) => {
   let hash = fnv1(str);
   const base = baseColors[hash % baseColors.length];
   hash = Math.floor(hash / baseColors.length);
