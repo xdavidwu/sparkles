@@ -106,7 +106,7 @@ watch(pendingError, (error) => {
             <div>{{ failedResponse.url }}</div>
             <div>{{ failedResponse.status }} {{ failedResponse.statusText }}</div>
           </template>
-          <pre>{{ failedResponseText }}</pre>
+          <pre class="text-wrap">{{ failedResponseText }}</pre>
         </VCardText>
         <VCardActions>
           <VBtn color="primary"
