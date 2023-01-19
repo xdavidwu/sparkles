@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api } from '@/kubernetes-api/src';
 
@@ -19,7 +20,7 @@ export const useNamespaces = defineStore('namespace', {
           const api = new CoreV1Api(await useApiConfig().getConfig());
           state._namespaces = (await api.listNamespace()).items.map((i) => (i.metadata!.name!));
           state.selectedNamespace = state._namespaces[0];
-        })();
+        })().catch((e) => useErrorPresentation().pendingError = e);
       }
       return state._namespaces;
     },

@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useApiConfig } from '@/stores/apiConfig';
 import { ApisApi, CoreApi, type V1APIGroup } from '@/kubernetes-api/src';
 
@@ -32,7 +33,7 @@ export const useApisDiscovery = defineStore('apisDiscovery', {
             },
             ...response.groups,
           ];
-        })();
+        })().catch((e) => useErrorPresentation().pendingError = e);
       }
       return state._groups;
     },
