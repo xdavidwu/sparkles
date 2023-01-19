@@ -84,11 +84,9 @@ watch(pendingError, (error) => {
       <VToolbarTitle>{{ title }}</VToolbarTitle>
     </VAppBar>
     <VNavigationDrawer v-model="drawer">
-      <VSelect label="Namespace" variant="solo" :items="namespaces"
-        v-model="selectedNamespace"/>
-      <VDivider />
       <VList>
-        <VListSubheader>Namespaced</VListSubheader>
+        <VSelect label="Namespace" variant="solo" :items="namespaces"
+          v-model="selectedNamespace"/>
         <VListItem :to="{ name: 'pods' }">Pods</VListItem>
       </VList>
       <VDivider />
