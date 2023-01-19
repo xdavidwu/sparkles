@@ -90,16 +90,14 @@ const bell = (index: number) => {
 <template>
   <VTabs v-model="tab">
     <VTab value="table">Pods</VTab>
-    <template v-for="(tab, index) in tabs" :key="tab.id">
-      <VTab :value="tab.id"
-        @click="() => tab.type === 'exec' && ((tab as ExecTab).alerting = false)">
-        <VBadge v-if="tab.type === 'exec'" dot color="red" v-model="(tab as ExecTab).alerting">
-          {{ (tab as ExecTab).title ?? `Terminal: ${tab.spec.pod}/${tab.spec.container}` }}
-        </VBadge>
-        <template v-else>{{ `Log: ${tab.spec.pod}/${tab.spec.container}` }}</template>
-        <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
-      </VTab>
-    </template>
+    <VTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id"
+      @click="() => tab.type === 'exec' && ((tab as ExecTab).alerting = false)">
+      <VBadge v-if="tab.type === 'exec'" dot color="red" v-model="(tab as ExecTab).alerting">
+        {{ (tab as ExecTab).title ?? `Terminal: ${tab.spec.pod}/${tab.spec.container}` }}
+      </VBadge>
+      <template v-else>{{ `Log: ${tab.spec.pod}/${tab.spec.container}` }}</template>
+      <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
+    </VTab>
   </VTabs>
   <VWindow v-model="tab">
     <VWindowItem value="table">
