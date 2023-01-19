@@ -140,6 +140,7 @@ const bell = (index: number) => {
               <td class="text-no-wrap">
                 <VBtn size="small" icon="mdi-console-line"
                   title="Terminal" variant="text"
+                  :disabled="!pod.status!.containerStatuses![index].state.running"
                   @click="createExecTab(pod.metadata!.name!, container.name)" />
                 <VBtn size="small" icon="mdi-file-document"
                   title="Log" variant="text"
