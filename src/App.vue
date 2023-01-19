@@ -36,7 +36,7 @@ const showsDialog = ref(false);
 const failedResponse = ref<Response | null>(null);
 const failedResponseText = ref('');
 
-const handleError = (err) => {
+const handleError = (err: any) => {
   if (err instanceof ResponseError) {
     failedResponse.value = err.response;
     err.response.text().then(t => {
