@@ -90,14 +90,15 @@ const bell = (index: number) => {
 <template>
   <VTabs v-model="tab">
     <VTab value="table">Pods</VTab>
-    <template v-for="tab in tabs" :key="tab.id">
-      <VTab v-if="tab.type === 'exec'" :value="tab.id"
-        @click="() => (tab as ExecTab).alerting = false">
-        <VBadge dot color="red" v-model="(tab as ExecTab).alerting">
+    <template v-for="(tab, index) in tabs" :key="tab.id">
+      <VTab :value="tab.id"
+        @click="() => tab.type === 'exec' && ((tab as ExecTab).alerting = false)">
+        <VBadge v-if="tab.type === 'exec'" dot color="red" v-model="(tab as ExecTab).alerting">
           {{ (tab as ExecTab).title ?? `Terminal: ${tab.spec.pod}/${tab.spec.container}` }}
         </VBadge>
+        <template v-else>{{ `Log: ${tab.spec.pod}/${tab.spec.container}` }}</template>
+        <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
       </VTab>
-      <VTab v-else :value="tab.id">{{ `Log: ${tab.spec.pod}/${tab.spec.container}` }}</VTab>
     </template>
   </VTabs>
   <VWindow v-model="tab">
@@ -157,7 +158,6 @@ const bell = (index: number) => {
         :container-spec="{ namespace: selectedNamespace, ...tab.spec}" />
       <LogViewer v-if="tab.type === 'log'"
         :container-spec="{ namespace: selectedNamespace, ...tab.spec}" />
-      <VBtn @click="closeTab(index)">Close</VBtn>
     </VWindowItem>
   </VWindow>
 </template>
