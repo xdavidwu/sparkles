@@ -60,15 +60,15 @@ const closeTab = (index: number) => {
   tabs.value.splice(index, 1);
 };
 
-const createExecTab = (pod: string, container: string) => {
-  const id = `terminal-${pod}/${container}`;
-  tabs.value.push({ type: 'exec', id, spec: { pod, container }, alerting: false });
-  tab.value = id;
-};
-
-const createLogTab = (pod: string, container: string) => {
-  const id = `log-${pod}/${container}`;
-  tabs.value.push({ type: 'log', id, spec: { pod, container } });
+const createTab = (type: 'exec' | 'log', pod: string, container: string) => {
+  const id = `${type}-${pod}/${container}`;
+  if (!tabs.value.find((t) => t.id === id)) {
+    if (type === 'exec') {
+      tabs.value.push({ type, id, spec: { pod, container }, alerting: false });
+    } else {
+      tabs.value.push({ type, id, spec: { pod, container } });
+    }
+  }
   tab.value = id;
 };
 
@@ -111,7 +111,7 @@ const bell = (index: number) => {
               <KeyValueBadge k="annotation" v="value" />
               <KeyValueBadge k="label" v="value" pill />
             </th>
-            <th>Container name</th>
+            <th>Container</th>
             <th>Container image</th>
             <th>Ready</th>
             <th class="text-center">Actions</th>
@@ -141,10 +141,10 @@ const bell = (index: number) => {
                 <VBtn size="small" icon="mdi-console-line"
                   title="Terminal" variant="text"
                   :disabled="!pod.status!.containerStatuses![index].state.running"
-                  @click="createExecTab(pod.metadata!.name!, container.name)" />
+                  @click="createTab('exec', pod.metadata!.name!, container.name)" />
                 <VBtn size="small" icon="mdi-file-document"
                   title="Log" variant="text"
-                  @click="createLogTab(pod.metadata!.name!, container.name)" />
+                  @click="createTab('log', pod.metadata!.name!, container.name)" />
               </td>
             </tr>
           </template>
