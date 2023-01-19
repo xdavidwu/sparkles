@@ -21,9 +21,44 @@ import {
 } from 'vuetify/components';
 import { useNamespaces } from '@/stores/namespaces';
 import { storeToRefs } from 'pinia';
+import { ref, onErrorCaptured } from 'vue';
+import { ResponseError, FetchError, V1StatusFromJSON } from '@/kubernetes-api/src';
+
+const title = import.meta.env.VITE_APP_BRANDING ?? 'Kubernetes SPA Client';
 
 const namespaceStore = useNamespaces();
 const { namespaces, selectedNamespace } = storeToRefs(namespaceStore);
+
+const drawer = ref<boolean | null>(null);
+const showsDialog = ref(false);
+const failedResponse = ref<Response | null>(null);
+const failedResponseText = ref('');
+
+onErrorCaptured((err) => {
+  if (err instanceof ResponseError) {
+    failedResponse.value = err.response;
+    err.response.text().then(t => {
+      try {
+        const json = JSON.parse(t);
+        const status = V1StatusFromJSON(json);
+        if (status.message || status.reason) {
+          failedResponseText.value = status.message ? status.message! : status.reason!;
+        } else {
+          failedResponseText.value = JSON.stringify(json, null, 2);
+        }
+      } catch (e) {
+        failedResponseText.value = t;
+      }
+    });
+    showsDialog.value = true;
+    return false;
+  } else if (err instanceof FetchError) {
+    failedResponse.value = null;
+    failedResponseText.value = err.cause.message;
+    showsDialog.value = true;
+    return false;
+  }
+});
 </script>
 
 <template>
@@ -73,50 +108,3 @@ const { namespaces, selectedNamespace } = storeToRefs(namespaceStore);
     </VMain>
   </VApp>
 </template>
-
-<script lang="ts">
-import { defineComponent } from 'vue';
-import { ResponseError, FetchError, V1StatusFromJSON } from '@/kubernetes-api/src';
-
-interface Data {
-  drawer: boolean | null,
-  showsDialog: boolean,
-  failedResponse: Response | null,
-  failedResponseText: string,
-}
-
-export default defineComponent({
-  props: {
-    title: {
-      type: String,
-      default: import.meta.env.VITE_APP_BRANDING ?? 'Kubernetes SPA Client',
-    },
-  },
-  data: (): Data => ({ drawer: null, showsDialog: false, failedResponse: null, failedResponseText: '' }),
-  errorCaptured(err) {
-    if (err instanceof ResponseError) {
-      this.failedResponse = err.response;
-      err.response.text().then(t => {
-        try {
-          const json = JSON.parse(t);
-          const status = V1StatusFromJSON(json);
-          if (status.message || status.reason) {
-            this.failedResponseText = status.message ? status.message! : status.reason!;
-          } else {
-            this.failedResponseText = JSON.stringify(json, null, 2);
-          }
-        } catch (e) {
-          this.failedResponseText = t;
-        }
-      });
-      this.showsDialog = true;
-      return false;
-    } else if (err instanceof FetchError) {
-      this.failedResponse = null;
-      this.failedResponseText = err.cause.message;
-      this.showsDialog = true;
-      return false;
-    }
-  },
-});
-</script>
