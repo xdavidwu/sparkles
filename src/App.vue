@@ -23,6 +23,7 @@ import { useNamespaces } from '@/stores/namespaces';
 import { storeToRefs } from 'pinia';
 import { ref, onErrorCaptured } from 'vue';
 import { ResponseError, FetchError, V1StatusFromJSON } from '@/kubernetes-api/src';
+import { PresentedError } from '@/utils/PresentedError';
 
 const title = import.meta.env.VITE_APP_BRANDING ?? 'Kubernetes SPA Client';
 
@@ -55,6 +56,11 @@ onErrorCaptured((err) => {
   } else if (err instanceof FetchError) {
     failedResponse.value = null;
     failedResponseText.value = err.cause.message;
+    showsDialog.value = true;
+    return false;
+  } else if (err instanceof PresentedError) {
+    failedResponse.value = null;
+    failedResponseText.value = err.message;
     showsDialog.value = true;
     return false;
   }
