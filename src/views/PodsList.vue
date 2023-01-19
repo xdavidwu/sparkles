@@ -114,7 +114,7 @@ const bell = (index: number) => {
             <th>Container name</th>
             <th>Container image</th>
             <th>Ready</th>
-            <th>Actions</th>
+            <th class="text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -137,12 +137,12 @@ const bell = (index: number) => {
                   :icon="pod.status!.containerStatuses![index].ready ? 'mdi-check' : 'mdi-close'"
                   :color="pod.status!.containerStatuses![index].ready ? '' : 'red'" />
               </td>
-              <td>
-                <VBtn size="x-small" icon="mdi-console-line" color="info"
-                  title="Terminal"
+              <td class="text-no-wrap">
+                <VBtn size="small" icon="mdi-console-line"
+                  title="Terminal" variant="text"
                   @click="createExecTab(pod.metadata!.name!, container.name)" />
-                <VBtn size="x-small" icon="mdi-file-document" color="info"
-                  title="Log"
+                <VBtn size="small" icon="mdi-file-document"
+                  title="Log" variant="text"
                   @click="createLogTab(pod.metadata!.name!, container.name)" />
               </td>
             </tr>
