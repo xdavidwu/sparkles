@@ -1,9 +1,6 @@
 <script lang="ts" setup>
-import 'xterm/css/xterm.css';
-import { onMounted } from 'vue';
-import { v4 as uuidv4 } from 'uuid';
-import { Terminal } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
+import XTerm from '@/components/XTerm.vue';
+import type { Terminal } from 'xterm';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api } from '@/kubernetes-api/src';
 
@@ -15,19 +12,9 @@ const props = defineProps<{
   },
 }>();
 
-const uuid = uuidv4();
-const terminal = new Terminal();
-const fitAddon = new FitAddon();
 const decoder = new TextDecoder();
 
-terminal.loadAddon(fitAddon);
-
-onMounted(async () => {
-  const div = document.getElementById(uuid)!;
-  terminal.open(div);
-  fitAddon.fit();
-  new ResizeObserver(() => fitAddon.fit()).observe(div);
-
+const display = async (terminal: Terminal) => {
   const config = await useApiConfig().getConfig();
   const response = (await new CoreV1Api(config).readNamespacedPodLogRaw({
     namespace: props.containerSpec.namespace,
@@ -46,10 +33,9 @@ onMounted(async () => {
 
     terminal.write(decoder.decode(value!).replace(/\n/g, '\r\n'));
   }
-});
+};
 </script>
 
 <template>
-  <div :id="uuid">
-  </div>
+  <XTerm @ready="display" />
 </template>

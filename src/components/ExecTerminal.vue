@@ -1,9 +1,6 @@
 <script lang="ts" setup>
-import 'xterm/css/xterm.css';
-import { onMounted } from 'vue';
-import { v4 as uuidv4 } from 'uuid';
-import { Terminal } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
+import XTerm from '@/components/XTerm.vue';
+import type { Terminal } from 'xterm';
 import { useApiConfig } from '@/stores/apiConfig';
 import { V1StatusFromJSON } from '@/kubernetes-api/src';
 import { PresentedError } from '@/utils/PresentedError';
@@ -25,21 +22,15 @@ const emit = defineEmits<{
   (e: 'bell'): void,
 }>();
 
-const uuid = uuidv4();
-const terminal = new Terminal();
 const url = `/api/v1/namespaces/${props.containerSpec.namespace}/pods/${props.containerSpec.pod}/exec?container=${encodeURIComponent(props.containerSpec.container)}&stdout=true&stdin=true&tty=true`;
-const fitAddon = new FitAddon();
-terminal.loadAddon(fitAddon);
-terminal.onTitleChange((title) => emit('titleChanged', title));
-terminal.onBell(() => emit('bell'));
 
 const base64url = (s: string) => btoa(s).replace(/=+$/g, '').replace(/\+/g, '-').replace(/\\/g, '_');
 
-onMounted(async () => {
-  const div = document.getElementById(uuid)!;
-  terminal.open(div);
-  fitAddon.fit();
+const display = async (terminal: Terminal) => {
+  terminal.onTitleChange((title) => emit('titleChanged', title));
+  terminal.onBell(() => emit('bell'));
   terminal.write('Connecting...');
+
   const config = await useApiConfig().getConfig();
   const token = await useApiConfig().getBearerToken();
   const socketBase = config.basePath.replace(/^https:\/\//, 'wss://')
@@ -49,19 +40,19 @@ onMounted(async () => {
   // https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/cri/streaming/remotecommand/websocket.go
   const socket = new WebSocket(fullUrl, token ? [
     // https://github.com/kubernetes/kubernetes/pull/47740
-    'v4.channel.k8s.io', `base64url.bearer.authorization.k8s.io.${base64url(token)}`
+    'v4.channel.k8s.io',
+    `base64url.bearer.authorization.k8s.io.${base64url(token)}`
   ] : 'v4.channel.k8s.io');
   socket.binaryType = 'arraybuffer';
   socket.onerror = (event) => {
-    useErrorPresentation().pendingError = new PresentedError(`WebSocket connetion to ${event.target.url} failed`);
+    useErrorPresentation().pendingError = new PresentedError(
+      `WebSocket connetion to ${(event.target! as WebSocket).url} failed`);
   };
 
   const CSI = '\x1b[';
   socket.onopen = () => {
     socket.send(`\x04{Width:${terminal.cols},Height:${terminal.rows}}`);
     terminal.write(`${CSI}2J${CSI}H`); // clear all, reset cursor
-    fitAddon.fit();
-    new ResizeObserver(() => fitAddon.fit()).observe(div);
     terminal.onData((data) => {
       socket.send(`\x00${data}`);
     });
@@ -90,10 +81,9 @@ onMounted(async () => {
       socket.close();
     }
   };
-});
+};
 </script>
 
 <template>
-  <div :id="uuid">
-  </div>
+  <XTerm @ready="display" />
 </template>
