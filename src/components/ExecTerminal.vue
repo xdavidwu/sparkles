@@ -6,6 +6,8 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { useApiConfig } from '@/stores/apiConfig';
 import { V1StatusFromJSON } from '@/kubernetes-api/src';
+import { PresentedError } from '@/utils/PresentedError';
+import { useErrorPresentation } from '@/stores/errorPresentation';
 
 const props = defineProps<{
   containerSpec: {
@@ -50,6 +52,10 @@ onMounted(async () => {
     'v4.channel.k8s.io', `base64url.bearer.authorization.k8s.io.${base64url(token)}`
   ] : 'v4.channel.k8s.io');
   socket.binaryType = 'arraybuffer';
+  socket.onerror = (event) => {
+    useErrorPresentation().pendingError = new PresentedError(`WebSocket connetion to ${event.target.url} failed`);
+  };
+
   const CSI = '\x1b[';
   socket.onopen = () => {
     socket.send(`\x04{Width:${terminal.cols},Height:${terminal.rows}}`);

@@ -21,21 +21,22 @@ import {
 } from 'vuetify/components';
 import { useNamespaces } from '@/stores/namespaces';
 import { storeToRefs } from 'pinia';
-import { ref, onErrorCaptured } from 'vue';
+import { ref, onErrorCaptured, watch } from 'vue';
 import { ResponseError, FetchError, V1StatusFromJSON } from '@/kubernetes-api/src';
 import { PresentedError } from '@/utils/PresentedError';
+import { useErrorPresentation } from '@/stores/errorPresentation';
 
 const title = import.meta.env.VITE_APP_BRANDING ?? 'Kubernetes SPA Client';
 
-const namespaceStore = useNamespaces();
-const { namespaces, selectedNamespace } = storeToRefs(namespaceStore);
+const { namespaces, selectedNamespace } = storeToRefs(useNamespaces());
+const { pendingError } = storeToRefs(useErrorPresentation());
 
 const drawer = ref<boolean | null>(null);
 const showsDialog = ref(false);
 const failedResponse = ref<Response | null>(null);
 const failedResponseText = ref('');
 
-onErrorCaptured((err) => {
+const handleError = (err) => {
   if (err instanceof ResponseError) {
     failedResponse.value = err.response;
     err.response.text().then(t => {
@@ -63,6 +64,15 @@ onErrorCaptured((err) => {
     failedResponseText.value = err.message;
     showsDialog.value = true;
     return false;
+  }
+};
+
+onErrorCaptured(handleError);
+
+watch(pendingError, (error) => {
+  if (error) {
+    pendingError.value = null;
+    handleError(error);
   }
 });
 </script>
