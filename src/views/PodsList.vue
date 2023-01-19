@@ -154,10 +154,12 @@ const bell = (index: number) => {
     <VWindowItem v-for="(tab, index) in tabs" :key="tab.id"
       :value="tab.id">
       <ExecTerminal v-if="tab.type === 'exec'"
+        style="height: calc(100vh - 144px)"
         @title-changed="(title) => (tab as ExecTab).title = title"
         @bell="() => bell(index)"
         :container-spec="{ namespace: selectedNamespace, ...tab.spec}" />
       <LogViewer v-if="tab.type === 'log'"
+        style="height: calc(100vh - 144px)"
         :container-spec="{ namespace: selectedNamespace, ...tab.spec}" />
     </VWindowItem>
   </VWindow>
