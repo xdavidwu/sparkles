@@ -117,9 +117,9 @@ const bell = (index: number) => {
         </thead>
         <tbody>
           <template v-for="pod in pods" :key="uniqueKeyForObject(pod)">
-            <tr v-for="(container, index) in pod.spec!.containers"
+            <tr v-for="(container, index) in pod.status!.containerStatuses"
               :key="container.name">
-              <td v-if="index === 0" :rowspan="pod.spec!.containers.length">
+              <td v-if="index === 0" :rowspan="pod.status!.containerStatuses!.length">
                 {{ pod.metadata!.name }}
                 <br />
                 <KeyValueBadge v-for="(value, key) in pod.metadata!.annotations"
@@ -132,13 +132,13 @@ const bell = (index: number) => {
               <td>{{ container.image }}</td>
               <td>
                 <VIcon
-                  :icon="pod.status!.containerStatuses![index].ready ? 'mdi-check' : 'mdi-close'"
-                  :color="pod.status!.containerStatuses![index].ready ? '' : 'red'" />
+                  :icon="container.ready ? 'mdi-check' : 'mdi-close'"
+                  :color="container.ready ? '' : 'red'" />
               </td>
               <td class="text-no-wrap">
                 <VBtn size="small" icon="mdi-console-line"
                   title="Terminal" variant="text"
-                  :disabled="!pod.status!.containerStatuses![index].state!.running"
+                  :disabled="!container.state!.running"
                   @click="createTab('exec', pod.metadata!.name!, container.name)" />
                 <VBtn size="small" icon="mdi-file-document"
                   title="Log" variant="text"
