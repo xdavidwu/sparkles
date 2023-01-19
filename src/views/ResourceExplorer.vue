@@ -120,19 +120,20 @@ interface Data {
 
 const apiConfig = await useApiConfig().getConfig();
 const anyApi = new AnyApi(apiConfig);
+const LOADING = '(loading)';
 const NS_ALL_NAMESPACES = '(all)';
 
 export default defineComponent({
   async created() {
-    this.$watch('targetAPI', this.getResources);
+    this.$watch('targetAPI', this.getResources, { immediate: true });
     this.$watch('targetResource', this.listResources);
     this.$watch('targetNamespace', this.listResources);
   },
   data(): Data {
     return {
-      targetAPI: { name: '', versions: [], preferredVersion: { groupVersion: '(loading)', version: '' } },
+      targetAPI: { name: '', versions: [], preferredVersion: { groupVersion: LOADING, version: '' } },
       resources: [],
-      targetResource: { kind: '(loading)', name: '(loading)', namespaced: false, singularName: '(loading)', verbs: [] },
+      targetResource: { kind: '', name: LOADING, namespaced: false, singularName: '', verbs: [] },
       targetNamespace: NS_ALL_NAMESPACES,
       listing: {
         columnDefinitions: [],
@@ -154,6 +155,9 @@ export default defineComponent({
     },
     uniqueKeyForInspectedObject: uniqueKeyForObject,
     async getResources() {
+      if (this.targetAPI.preferredVersion!.groupVersion === LOADING) {
+        return;
+      }
       const response = await anyApi.getAPIResources({
         group: this.targetAPI.name,
         version: this.targetAPI.preferredVersion!.version,
