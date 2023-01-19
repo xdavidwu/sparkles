@@ -126,7 +126,7 @@ const bell = (index: number) => {
                 <br />
                 <KeyValueBadge v-for="(value, key) in pod.metadata!.annotations"
                   :key="key" :k="key as string" :v="value" />
-                <br />
+                <br v-if="pod.metadata!.annotations" />
                 <KeyValueBadge v-for="(value, key) in pod.metadata!.labels"
                   :key="key" :k="key as string" :v="value" pill />
               </td>
