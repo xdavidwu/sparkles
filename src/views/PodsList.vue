@@ -16,6 +16,7 @@ import { ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
+import { useErrorPresentation } from '@/stores/errorPresentation';
 import { CoreV1Api, type V1Pod, V1PodFromJSON } from '@/kubernetes-api/src';
 import { uniqueKeyForObject } from '@/utils/keys';
 import { listAndWatch } from '@/utils/watch';
@@ -63,7 +64,8 @@ watch(selectedNamespace, async (namespace) => {
   // TODO cancellation
   listAndWatch(pods, V1PodFromJSON,
     (opt) => api.listNamespacedPodRaw(opt), { namespace },
-    { signal: abortController.signal });
+    { signal: abortController.signal })
+      .catch((e) => useErrorPresentation().pendingError = e);
 }, { immediate: true });
 
 const closeTab = (index: number) => {
