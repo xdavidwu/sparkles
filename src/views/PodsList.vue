@@ -61,10 +61,9 @@ watch(selectedNamespace, async (namespace) => {
   abortController = new AbortController();
 
   const api = new CoreV1Api(await useApiConfig().getConfig());
-  // TODO cancellation
   listAndWatch(pods, V1PodFromJSON,
-    (opt) => api.listNamespacedPodRaw(opt), { namespace },
-    { signal: abortController.signal })
+    (opt) => api.listNamespacedPodRaw(opt, { signal: abortController!.signal }),
+    { namespace })
       .catch((e) => useErrorPresentation().pendingError = e);
 }, { immediate: true });
 

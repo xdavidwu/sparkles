@@ -1,7 +1,7 @@
 import {
+  FetchError,
   V1WatchEventFromJSON,
   type ApiResponse,
-  type InitOverrideFunction,
   type V1ListMeta,
   type V1ObjectMeta,
 } from '@/kubernetes-api/src';
@@ -25,20 +25,28 @@ const createLineDelimitedJSONStream = () => {
   });
 };
 
-export async function* rawResponseToWatchEvents<T>(raw: ApiResponse<T>) {
+export async function* rawResponseToWatchEvents<T>(raw: ApiResponse<T>,
+    expectAbort = false) {
   const reader = raw.raw.body!
     .pipeThrough(new TextDecoderStream())
     .pipeThrough(createLineDelimitedJSONStream())
     .getReader();
 
   while (true) {
-    const { value, done } = await reader.read();
+    try {
+      const { value, done } = await reader.read();
 
-    if (done) {
-      return;
+      if (done) {
+        return;
+      }
+
+      yield V1WatchEventFromJSON(value);
+    } catch (e) {
+      if (expectAbort && e instanceof DOMException && e.name === 'AbortError') {
+        return;
+      }
+      throw e;
     }
-
-    yield V1WatchEventFromJSON(value);
   }
 }
 
@@ -70,26 +78,29 @@ const isSameKubernetesObject = (a: KubernetesObject, b: KubernetesObject) => {
 export const listAndWatch = async<ListOpt> (
     dest: Ref<Array<KubernetesObject>>,
     transformer: (obj: any) => KubernetesObject,
-    lister: (opt: ListOpt, init?: RequestInit | InitOverrideFunction) =>
-      Promise<ApiResponse<KubernetesList>>,
+    lister: (opt: ListOpt) => Promise<ApiResponse<KubernetesList>>,
     opt: ListOpt,
-    init?: RequestInit | InitOverrideFunction, 
+    expectAbortOnWatch: boolean = true,
   ) => {
-  const listResponse = await (await lister(opt, init)).value();
+  const listResponse = await (await lister(opt)).value();
   dest.value = listResponse.items;
 
-  const updates = await lister({
-    ...opt,
-    resourceVersion: listResponse.metadata!.resourceVersion,
-    watch: true
-  }, init);
-
-  for await (const event of rawResponseToWatchEvents(updates)) {
-    // XXX: requests seem not to be aborted on firefox?
-    if ((init as RequestInit).signal?.aborted) {
+  let updates: ApiResponse<KubernetesList> | null = null;
+  try {
+    updates = await lister({
+      ...opt,
+      resourceVersion: listResponse.metadata!.resourceVersion,
+      watch: true
+    });
+  } catch (e) {
+    if (expectAbortOnWatch && e instanceof FetchError &&
+        e.cause instanceof DOMException && e.cause.name === 'AbortError') {
       return;
     }
+    throw e;
+  }
 
+  for await (const event of rawResponseToWatchEvents(updates!, expectAbortOnWatch)) {
     if (event.type === 'ADDED') {
       const obj = transformer(event.object);
       dest.value.push(obj);
