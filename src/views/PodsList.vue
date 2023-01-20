@@ -47,14 +47,23 @@ const tab = ref('table');
 const tabs = ref<Array<ExecTab | LogTab>>([]);
 const pods = ref<Array<V1Pod>>([]);
 
+let abortController: AbortController | null = null;
+
 watch(selectedNamespace, async (namespace) => {
   if (!namespace || namespace.length === 0) {
     pods.value = [];
     return;
   }
+  if (abortController) {
+    abortController.abort();
+  }
+  abortController = new AbortController();
+
   const api = new CoreV1Api(await useApiConfig().getConfig());
   // TODO cancellation
-  listAndWatch(pods, (opt) => api.listNamespacedPodRaw(opt), { namespace }, V1PodFromJSON);
+  listAndWatch(pods, V1PodFromJSON,
+    (opt) => api.listNamespacedPodRaw(opt), { namespace },
+    { signal: abortController.signal });
 }, { immediate: true });
 
 const closeTab = (index: number) => {

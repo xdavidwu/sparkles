@@ -1,6 +1,7 @@
 import {
   V1WatchEventFromJSON,
   type ApiResponse,
+  type InitOverrideFunction,
   type V1ListMeta,
   type V1ObjectMeta,
 } from '@/kubernetes-api/src';
@@ -68,20 +69,27 @@ const isSameKubernetesObject = (a: KubernetesObject, b: KubernetesObject) => {
 
 export const listAndWatch = async<ListOpt> (
     dest: Ref<Array<KubernetesObject>>,
-    lister: (opt: ListOpt) => Promise<ApiResponse<KubernetesList>>,
-    opt: ListOpt,
     transformer: (obj: any) => KubernetesObject,
+    lister: (opt: ListOpt, init?: RequestInit | InitOverrideFunction) =>
+      Promise<ApiResponse<KubernetesList>>,
+    opt: ListOpt,
+    init?: RequestInit | InitOverrideFunction, 
   ) => {
-  const listResponse = await (await lister(opt)).value();
+  const listResponse = await (await lister(opt, init)).value();
   dest.value = listResponse.items;
 
   const updates = await lister({
     ...opt,
     resourceVersion: listResponse.metadata!.resourceVersion,
     watch: true
-  });
+  }, init);
 
   for await (const event of rawResponseToWatchEvents(updates)) {
+    // XXX: requests seem not to be aborted on firefox?
+    if ((init as RequestInit).signal?.aborted) {
+      return;
+    }
+
     if (event.type === 'ADDED') {
       const obj = transformer(event.object);
       dest.value.push(obj);
