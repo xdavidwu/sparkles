@@ -34,7 +34,7 @@ watch(groups, (groups) => {
 <template>
   <VTabs v-model="tab">
     <VTab value="explore">Explore</VTab>
-    <VTab v-for="obj in inspectedObjects"
+    <VTab v-for="(obj, index) in inspectedObjects"
       :key="uniqueKeyForInspectedObject(obj.object)"
       :value="uniqueKeyForInspectedObject(obj.object)">
       <template v-if="obj.object.metadata.namespace">
@@ -43,6 +43,7 @@ watch(groups, (groups) => {
       <template v-else>
         {{ obj.object.metadata.name }}
       </template>
+      <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
     </VTab>
   </VTabs>
   <VWindow v-model="tab">
@@ -80,11 +81,10 @@ watch(groups, (groups) => {
         </tbody>
       </VTable>
     </VWindowItem>
-    <VWindowItem v-for="(obj, idx) in inspectedObjects"
+    <VWindowItem v-for="obj in inspectedObjects"
       :key="uniqueKeyForInspectedObject(obj.object)"
       :value="uniqueKeyForInspectedObject(obj.object)">
       <YAMLViewer :data="obj.object" :schema="obj.schema" />
-      <VBtn @click="closeTab(idx)">Close</VBtn>
     </VWindowItem>
   </VWindow>
 </template>
