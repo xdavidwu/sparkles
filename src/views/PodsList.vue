@@ -16,8 +16,9 @@ import { ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
-import { CoreV1Api, type V1Pod } from '@/kubernetes-api/src';
+import { CoreV1Api, type V1Pod, V1PodFromJSON } from '@/kubernetes-api/src';
 import { uniqueKeyForObject } from '@/utils/keys';
+import { listAndWatch } from '@/utils/watch';
 
 interface ContainerSpec {
   pod: string,
@@ -52,7 +53,8 @@ watch(selectedNamespace, async (namespace) => {
     return;
   }
   const api = new CoreV1Api(await useApiConfig().getConfig());
-  pods.value = (await api.listNamespacedPod({ namespace })).items;
+  // TODO cancellation
+  listAndWatch(pods, (opt) => api.listNamespacedPodRaw(opt), { namespace }, V1PodFromJSON);
 }, { immediate: true });
 
 const closeTab = (index: number) => {
