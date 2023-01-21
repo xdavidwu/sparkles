@@ -34,6 +34,12 @@ const router = createRouter({
       component: () => import('../views/PodsList.vue'),
       meta: { name: 'Pods' },
     },
+    {
+      path: '/helm',
+      name: 'helm',
+      component: () => import('../views/HelmList.vue'),
+      meta: { name: 'Helm' },
+    },
   ]
 });
 

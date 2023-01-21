@@ -1,0 +1,1 @@
+../../node_modules/@types/golang-wasm-exec/index.d.ts

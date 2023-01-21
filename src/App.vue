@@ -88,6 +88,7 @@ watch(pendingError, (error) => {
         <VSelect label="Namespace" variant="solo" :items="namespaces"
           v-model="selectedNamespace"/>
         <VListItem :to="{ name: 'pods' }">Pods</VListItem>
+        <VListItem :to="{ name: 'helm' }">Helm</VListItem>
       </VList>
       <VDivider />
       <VList>

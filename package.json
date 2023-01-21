@@ -2,10 +2,11 @@
   "name": "kubernetes-spa-playground",
   "version": "0.0.0",
   "scripts": {
-    "dev": "vite --port 8000",
+    "wasm": "cd helm-wasm && env GOOS=js GOARCH=wasm go build -o ../public/helm.wasm",
+    "dev": "npm run wasm && vite --port 8000",
     "build": "run-p type-check build-only",
     "preview": "vite preview --port 4173",
-    "build-only": "vite build",
+    "build-only": "npm run wasm && vite build",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
   },
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.1.4",
+    "@types/golang-wasm-exec": "^1.15.0",
     "@types/json-pointer": "^1.0.31",
     "@types/node": "^16.11.56",
     "@types/uuid": "^9.0.0",
