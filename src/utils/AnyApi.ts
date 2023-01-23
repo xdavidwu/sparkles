@@ -12,6 +12,7 @@ import {
   type V1ObjectMeta,
   type HTTPHeaders,
   type Middleware,
+  type InitOverrideFunction,
 } from '@/kubernetes-api/src';
 import type { OpenAPIV3 } from 'openapi-types';
 
@@ -49,14 +50,6 @@ const toCore: Middleware['pre'] = async (context) => ({
   ...context,
   url: context.url.replace('apis/core', 'api'),
 });
-
-const asTable: Middleware['pre'] = async (context) => {
-  context.init.headers = {
-    ...context.init.headers,
-    accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
-  };
-  return context;
-};
 
 // https://github.com/kubernetes/apimachinery/blob/master/pkg/apis/meta/v1/types.go
 
@@ -99,59 +92,97 @@ export class AnyApi extends CustomObjectsApi {
   }
 
   // TODO: type this
-  async listClusterCustomObjectRaw(requestParameters: AnyApiListClusterCustomObjectRequest):
-      Promise<ApiResponse<object>> {
+  async listClusterCustomObjectRaw(
+      requestParameters: AnyApiListClusterCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction
+      ): Promise<ApiResponse<object>> {
     if (requestParameters.group) {
-      return super.listClusterCustomObjectRaw({ ...requestParameters, group: requestParameters.group! });
+      return super.listClusterCustomObjectRaw({
+        ...requestParameters,
+        group: requestParameters.group!,
+      }, initOverrides);
     } else {
       return super.withPreMiddleware(toCore)
-        .listClusterCustomObjectRaw({ ...requestParameters, group: 'core' });
+        .listClusterCustomObjectRaw({
+          ...requestParameters,
+          group: 'core',
+        }, initOverrides);
     }
   }
 
-  async listNamespacedCustomObjectRaw(requestParameters: AnyApiListNamespacedCustomObjectRequest):
-      Promise<ApiResponse<object>> {
+  async listNamespacedCustomObjectRaw(
+      requestParameters: AnyApiListNamespacedCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction
+      ): Promise<ApiResponse<object>> {
     if (requestParameters.group) {
-      return super.listNamespacedCustomObjectRaw({ ...requestParameters, group: requestParameters.group! });
+      return super.listNamespacedCustomObjectRaw({
+        ...requestParameters,
+        group: requestParameters.group!,
+      }, initOverrides);
     } else {
       return super.withPreMiddleware(toCore)
-        .listNamespacedCustomObjectRaw({ ...requestParameters, group: 'core' });
+        .listNamespacedCustomObjectRaw({
+          ...requestParameters,
+          group: 'core',
+        }, initOverrides);
     }
   }
 
-  async listClusterCustomObject(requestParameters: AnyApiListClusterCustomObjectRequest):
-      Promise<object> {
-    const response = await this.listClusterCustomObjectRaw(requestParameters);
+  async listClusterCustomObject(
+      requestParameters: AnyApiListClusterCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction
+      ): Promise<object> {
+    const response = await this.listClusterCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
-  async listNamespacedCustomObject(requestParameters: AnyApiListNamespacedCustomObjectRequest):
-      Promise<object> {
-    const response = await this.listNamespacedCustomObjectRaw(requestParameters);
+  async listNamespacedCustomObject(
+      requestParameters: AnyApiListNamespacedCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction
+      ): Promise<object> {
+    const response = await this.listNamespacedCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
-  async listClusterCustomObjectAsTableRaw(requestParameters: AnyApiListClusterCustomObjectRequest):
-      Promise<ApiResponse<V1Table>> {
-    return <ApiResponse<V1Table>> await this.withPreMiddleware(asTable)
-      .listClusterCustomObjectRaw(requestParameters);
+  async listClusterCustomObjectAsTableRaw(
+      requestParameters: AnyApiListClusterCustomObjectRequest,
+      initOverrides?: RequestInit
+      ): Promise<ApiResponse<V1Table>> {
+    return <ApiResponse<V1Table>> await this.listClusterCustomObjectRaw(requestParameters, {
+      ...initOverrides,
+      headers: {
+        ...initOverrides?.headers,
+        accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
+      },
+    });
   }
 
-  async listNamespacedCustomObjectAsTableRaw(requestParameters: AnyApiListNamespacedCustomObjectRequest):
-      Promise<ApiResponse<V1Table>> {
-    return <ApiResponse<V1Table>> await this.withPreMiddleware(asTable)
-      .listNamespacedCustomObjectRaw(requestParameters);
+  async listNamespacedCustomObjectAsTableRaw(
+      requestParameters: AnyApiListNamespacedCustomObjectRequest,
+      initOverrides?: RequestInit
+      ): Promise<ApiResponse<V1Table>> {
+    return <ApiResponse<V1Table>> await this.listNamespacedCustomObjectRaw(requestParameters, {
+      ...initOverrides,
+      headers: {
+        ...initOverrides?.headers,
+        accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
+      },
+    });
   }
 
-  async listClusterCustomObjectAsTable(requestParameters: AnyApiListClusterCustomObjectRequest):
-      Promise<V1Table> {
-    const response = await this.listClusterCustomObjectAsTableRaw(requestParameters);
+  async listClusterCustomObjectAsTable(
+      requestParameters: AnyApiListClusterCustomObjectRequest,
+      initOverrides?: RequestInit
+      ): Promise<V1Table> {
+    const response = await this.listClusterCustomObjectAsTableRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
-  async listNamespacedCustomObjectAsTable(requestParameters: AnyApiListNamespacedCustomObjectRequest):
-      Promise<V1Table> {
-    const response = await this.listNamespacedCustomObjectAsTableRaw(requestParameters);
+  async listNamespacedCustomObjectAsTable(
+        requestParameters: AnyApiListNamespacedCustomObjectRequest,
+        initOverrides?: RequestInit
+        ): Promise<V1Table> {
+    const response = await this.listNamespacedCustomObjectAsTableRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
