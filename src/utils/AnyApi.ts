@@ -1,6 +1,7 @@
 import {
   CoreV1Api,
   CustomObjectsApi,
+  type ApiResponse,
   type CustomObjectsApiGetAPIResourcesRequest,
   type CustomObjectsApiGetClusterCustomObjectRequest,
   type CustomObjectsApiGetNamespacedCustomObjectRequest,
@@ -98,34 +99,60 @@ export class AnyApi extends CustomObjectsApi {
   }
 
   // TODO: type this
-  async listClusterCustomObject(requestParameters: AnyApiListClusterCustomObjectRequest):
-      Promise<object> {
+  async listClusterCustomObjectRaw(requestParameters: AnyApiListClusterCustomObjectRequest):
+      Promise<ApiResponse<object>> {
     if (requestParameters.group) {
-      return super.listClusterCustomObject({ ...requestParameters, group: requestParameters.group! });
+      return super.listClusterCustomObjectRaw({ ...requestParameters, group: requestParameters.group! });
     } else {
       return super.withPreMiddleware(toCore)
-        .listClusterCustomObject({ ...requestParameters, group: 'core' });
+        .listClusterCustomObjectRaw({ ...requestParameters, group: 'core' });
     }
+  }
+
+  async listNamespacedCustomObjectRaw(requestParameters: AnyApiListNamespacedCustomObjectRequest):
+      Promise<ApiResponse<object>> {
+    if (requestParameters.group) {
+      return super.listNamespacedCustomObjectRaw({ ...requestParameters, group: requestParameters.group! });
+    } else {
+      return super.withPreMiddleware(toCore)
+        .listNamespacedCustomObjectRaw({ ...requestParameters, group: 'core' });
+    }
+  }
+
+  async listClusterCustomObject(requestParameters: AnyApiListClusterCustomObjectRequest):
+      Promise<object> {
+    const response = await this.listClusterCustomObjectRaw(requestParameters);
+    return await response.value();
   }
 
   async listNamespacedCustomObject(requestParameters: AnyApiListNamespacedCustomObjectRequest):
       Promise<object> {
-    if (requestParameters.group) {
-      return super.listNamespacedCustomObject({ ...requestParameters, group: requestParameters.group! });
-    } else {
-      return super.withPreMiddleware(toCore)
-        .listNamespacedCustomObject({ ...requestParameters, group: 'core' });
-    }
+    const response = await this.listNamespacedCustomObjectRaw(requestParameters);
+    return await response.value();
+  }
+
+  async listClusterCustomObjectAsTableRaw(requestParameters: AnyApiListClusterCustomObjectRequest):
+      Promise<ApiResponse<V1Table>> {
+    return <ApiResponse<V1Table>> await this.withPreMiddleware(asTable)
+      .listClusterCustomObjectRaw(requestParameters);
+  }
+
+  async listNamespacedCustomObjectAsTableRaw(requestParameters: AnyApiListNamespacedCustomObjectRequest):
+      Promise<ApiResponse<V1Table>> {
+    return <ApiResponse<V1Table>> await this.withPreMiddleware(asTable)
+      .listNamespacedCustomObjectRaw(requestParameters);
   }
 
   async listClusterCustomObjectAsTable(requestParameters: AnyApiListClusterCustomObjectRequest):
       Promise<V1Table> {
-    return <V1Table> await this.withPreMiddleware(asTable).listClusterCustomObject(requestParameters);
+    const response = await this.listClusterCustomObjectAsTableRaw(requestParameters);
+    return await response.value();
   }
 
   async listNamespacedCustomObjectAsTable(requestParameters: AnyApiListNamespacedCustomObjectRequest):
       Promise<V1Table> {
-    return <V1Table> await this.withPreMiddleware(asTable).listNamespacedCustomObject(requestParameters);
+    const response = await this.listNamespacedCustomObjectAsTableRaw(requestParameters);
+    return await response.value();
   }
 
   async getClusterCustomObject(requestParameters: AnyApiGetClusterCustomObjectRequest):
