@@ -5,6 +5,7 @@ import {
   type V1ListMeta,
   type V1ObjectMeta,
 } from '@/kubernetes-api/src';
+import type { V1PartialObjectMetadata, V1Table, V1TableRow } from '@/utils/AnyApi';
 import type { Ref } from 'vue';
 
 const createLineDelimitedJSONStream = () => {
@@ -111,6 +112,56 @@ export const listAndWatch = async<ListOpt> (
       const obj = transformer(event.object);
       const index = dest.value.findIndex((v) => isSameKubernetesObject(obj, v));
       dest.value[index] = obj;
+    }
+  }
+};
+
+const isKubernetesObjectInRows = (a: V1TableRow, b: Array<V1TableRow>) => {
+  for (const v of b) {
+    if (isSameKubernetesObject(<V1PartialObjectMetadata> a.object, <V1PartialObjectMetadata> v.object)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+export const listAndWatchTable = async<ListOpt> (
+    dest: Ref<V1Table>,
+    lister: (opt: ListOpt) => Promise<ApiResponse<V1Table>>,
+    opt: ListOpt,
+    expectAbortOnWatch: boolean = true,
+  ) => {
+  const listResponse = await (await lister(opt)).value();
+  dest.value = listResponse;
+
+  let updates: ApiResponse<V1Table> | null = null;
+  try {
+    updates = await lister({
+      ...opt,
+      resourceVersion: listResponse.metadata!.resourceVersion,
+      watch: true
+    });
+  } catch (e) {
+    if (expectAbortOnWatch && e instanceof FetchError &&
+        e.cause instanceof DOMException && e.cause.name === 'AbortError') {
+      return;
+    }
+    throw e;
+  }
+
+  for await (const event of rawResponseToWatchEvents(updates!, expectAbortOnWatch)) {
+    const obj = <V1Table> event.object;
+    if (event.type === 'ADDED') {
+      dest.value.rows.concat(obj.rows);
+    } else if (event.type === 'DELETED') {
+      dest.value.rows = dest.value.rows.filter((v) => !isKubernetesObjectInRows(v, obj.rows));
+    } else if (event.type === 'MODIFIED') {
+      for (const r of obj.rows) {
+        const index = dest.value.rows.findIndex(
+          (v) => isSameKubernetesObject(<V1PartialObjectMetadata> v.object, <V1PartialObjectMetadata> r.object)
+        );
+        dest.value.rows[index] = r;
+      }
     }
   }
 };
