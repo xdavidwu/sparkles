@@ -18,7 +18,7 @@ import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { CoreV1Api, type V1Pod, V1PodFromJSON } from '@/kubernetes-api/src';
-import { uniqueKeyForObject } from '@/utils/keys';
+import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndWatch } from '@/utils/watch';
 
 interface ContainerSpec {

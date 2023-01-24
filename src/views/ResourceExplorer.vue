@@ -95,7 +95,7 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import type { V1APIResource } from '@/kubernetes-api/src';
 import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
-import { uniqueKeyForObject } from '@/utils/keys';
+import { uniqueKeyForObject } from '@/utils/objects';
 import type { OpenAPIV3 } from 'openapi-types';
 
 type ResponseSchema = {

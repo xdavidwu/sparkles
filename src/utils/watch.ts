@@ -2,10 +2,9 @@ import {
   FetchError,
   V1WatchEventFromJSON,
   type ApiResponse,
-  type V1ListMeta,
-  type V1ObjectMeta,
 } from '@/kubernetes-api/src';
 import type { V1PartialObjectMetadata, V1Table, V1TableRow } from '@/utils/AnyApi';
+import { isSameKubernetesObject, type KubernetesObject, type KubernetesList } from '@/utils/objects';
 import type { Ref } from 'vue';
 
 const createLineDelimitedJSONStream = () => {
@@ -50,31 +49,6 @@ export async function* rawResponseToWatchEvents<T>(raw: ApiResponse<T>,
     }
   }
 }
-
-interface KubernetesObject {
-  apiVersion?: string;
-  kind?: string;
-  metadata?: V1ObjectMeta;
-}
-
-interface KubernetesList {
-  apiVersion?: string;
-  items: Array<KubernetesObject>;
-  kind?: string;
-  metadata?: V1ListMeta;
-}
-
-const isSameKubernetesObject = (a: KubernetesObject, b: KubernetesObject) => {
-  if (a.metadata!.uid) {
-    return a.metadata!.uid === b.metadata!.uid;
-  }
-
-  if (a.metadata!.namespace && a.metadata!.namespace !== b.metadata!.namespace) {
-    return false;
-  }
-
-  return a.metadata!.name === b.metadata!.name;
-};
 
 export const listAndWatch = async<ListOpt> (
     dest: Ref<Array<KubernetesObject>>,
