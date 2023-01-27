@@ -17,6 +17,7 @@ import { useNamespaces } from '@/stores/namespaces';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { storeToRefs } from 'pinia';
 import type { V1APIGroup } from '@/kubernetes-api/src';
+import { uniqueKeyForObject } from '@/utils/objects';
 
 const { namespaces } = storeToRefs(useNamespaces());
 const namespaceOptions = computed(() => [ '(all)', ...namespaces.value ]);
@@ -35,8 +36,8 @@ watch(groups, (groups) => {
   <VTabs v-model="tab">
     <VTab value="explore">Explore</VTab>
     <VTab v-for="(obj, index) in inspectedObjects"
-      :key="uniqueKeyForInspectedObject(obj.object)"
-      :value="uniqueKeyForInspectedObject(obj.object)">
+      :key="uniqueKeyForObject(obj.object)"
+      :value="uniqueKeyForObject(obj.object)">
       <template v-if="obj.object.metadata.namespace">
         {{ obj.object.metadata.namespace }}/{{ obj.object.metadata.name }}
       </template>
@@ -73,7 +74,7 @@ watch(groups, (groups) => {
         </thead>
         <tbody>
           <tr v-for="row in listing.rows"
-            :key="uniqueKeyForTable(row.object as V1PartialObjectMetadata)"
+            :key="uniqueKeyForObject(row.object as V1PartialObjectMetadata)"
             @click="inspectObject(row.object as V1PartialObjectMetadata)"
             style="cursor: pointer">
             <td v-for="cell in row.cells" :key="String(cell)">{{ cell }}</td>
@@ -82,8 +83,8 @@ watch(groups, (groups) => {
       </VTable>
     </VWindowItem>
     <VWindowItem v-for="obj in inspectedObjects"
-      :key="uniqueKeyForInspectedObject(obj.object)"
-      :value="uniqueKeyForInspectedObject(obj.object)">
+      :key="uniqueKeyForObject(obj.object)"
+      :value="uniqueKeyForObject(obj.object)">
       <YAMLViewer :data="obj.object" :schema="obj.schema" />
     </VWindowItem>
   </VWindow>
@@ -95,7 +96,6 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import type { V1APIResource } from '@/kubernetes-api/src';
 import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
-import { uniqueKeyForObject } from '@/utils/objects';
 import type { OpenAPIV3 } from 'openapi-types';
 
 type ResponseSchema = {
@@ -144,16 +144,6 @@ export default defineComponent({
     };
   },
   methods: {
-    uniqueKeyForTable(obj: V1PartialObjectMetadata) {
-      if (obj.metadata!.uid) {
-        return obj.metadata!.uid;
-      }
-      if (obj.metadata!.namespace) {
-        return `${obj.metadata!.namespace}/${obj.metadata!.name}`;
-      }
-      return obj.metadata!.name;
-    },
-    uniqueKeyForInspectedObject: uniqueKeyForObject,
     async getResources() {
       if (this.targetAPI.preferredVersion!.groupVersion === LOADING) {
         return;
@@ -231,7 +221,7 @@ export default defineComponent({
       }
 
       this.inspectedObjects.push(objectRecord);
-      this.tab = this.uniqueKeyForInspectedObject(object);
+      this.tab = uniqueKeyForObject(object);
     },
     closeTab(idx: number) {
       this.tab = 'explore';
