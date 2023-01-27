@@ -198,24 +198,25 @@ watch(targetNamespace, listResources);
   </VTabs>
   <VWindow v-model="tab">
     <VWindowItem value="explore">
-      <VRow>
-        <VCol>
+      <VRow class="mb-1">
+        <VCol cols="6" md="">
           <VAutocomplete label="API group" v-model="targetAPI" :items="groups"
-            return-object
+            return-object hide-details
             :item-title="(api) => (api.preferredVersion!.groupVersion)" />
         </VCol>
-        <VCol>
+        <VCol cols="6" md="">
           <VAutocomplete label="Kind" v-model="targetResource" :items="resources"
-            return-object item-title="name" />
+            return-object hide-details item-title="name" />
         </VCol>
-        <VCol>
+        <VCol cols="6" md="">
           <VAutocomplete v-if="targetResource.namespaced" label="Namespace"
-            v-model="targetNamespace" :items="namespaceOptions" />
-          <VSelect v-else label="Namespace" model-value="(global)" disabled />
+            v-model="targetNamespace" :items="namespaceOptions" hide-details />
+          <VSelect v-else label="Namespace" model-value="(global)" hide-details
+            disabled />
         </VCol>
-        <VCol>
+        <VCol cols="6" md="2">
           <VSelect label="Verbosity" v-model="verbosity"
-            :items="['minimal', 'full']" />
+            :items="['minimal', 'full']" hide-details />
         </VCol>
       </VRow>
       <VTable hover fixed-header height="calc(100vh - 224px)"

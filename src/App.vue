@@ -86,7 +86,7 @@ watch(pendingError, (error) => {
     <VNavigationDrawer v-model="drawer">
       <VList>
         <VSelect label="Namespace" variant="solo" :items="namespaces"
-          v-model="selectedNamespace"/>
+          v-model="selectedNamespace" hide-details />
         <VListItem :to="{ name: 'pods' }">Pods</VListItem>
         <VListItem :to="{ name: 'helm' }">Helm</VListItem>
       </VList>
