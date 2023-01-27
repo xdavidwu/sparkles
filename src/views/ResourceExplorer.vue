@@ -59,6 +59,7 @@ const listing = ref<V1Table>({
 });
 const tab = ref('explore');
 const inspectedObjects = ref<Array<ObjectRecord>>([]);
+const verbosity = ref('minimal');
 
 const getResources = async () => {
   if (targetAPI.value.preferredVersion!.groupVersion === LOADING) {
@@ -212,12 +213,18 @@ watch(targetNamespace, listResources);
             v-model="targetNamespace" :items="namespaceOptions" />
           <VSelect v-else label="Namespace" model-value="(global)" disabled />
         </VCol>
+        <VCol>
+          <VSelect label="Verbosity" v-model="verbosity"
+            :items="['minimal', 'full']" />
+        </VCol>
       </VRow>
-      <VTable hover fixed-header height="calc(100vh - 224px)">
+      <VTable hover fixed-header height="calc(100vh - 224px)"
+        :class="{ 'show-all': verbosity === 'full' }">
         <thead>
           <tr>
             <th v-if="targetResource.namespaced && targetNamespace === NS_ALL_NAMESPACES">Namespace</th>
             <th v-for="column in listing.columnDefinitions" :key="column.name"
+              :class="{ 'low-priority': column.priority > 0 }"
               :title="column.description">{{ column.name }}</th>
           </tr>
         </thead>
@@ -229,7 +236,9 @@ watch(targetNamespace, listResources);
             <td v-if="targetResource.namespaced && targetNamespace === NS_ALL_NAMESPACES">
               {{ (row.object as V1PartialObjectMetadata).metadata!.namespace }}
             </td>
-            <td v-for="cell in row.cells" :key="String(cell)">{{ cell }}</td>
+            <td v-for="(cell, index) in row.cells" :key="String(cell)"
+              :class="{ 'low-priority': listing.columnDefinitions[index].priority > 0 }"
+              >{{ cell }}</td>
           </tr>
         </tbody>
       </VTable>
@@ -241,3 +250,13 @@ watch(targetNamespace, listResources);
     </VWindowItem>
   </VWindow>
 </template>
+
+<style scoped>
+.low-priority {
+  display: none;
+}
+
+.show-all .low-priority {
+  display: table-cell;
+}
+</style>
