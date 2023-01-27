@@ -126,7 +126,7 @@ export const listAndWatchTable = async<ListOpt> (
   for await (const event of rawResponseToWatchEvents(updates!, expectAbortOnWatch)) {
     const obj = <V1Table> event.object;
     if (event.type === 'ADDED') {
-      dest.value.rows.concat(obj.rows);
+      dest.value.rows.push(...obj.rows);
     } else if (event.type === 'DELETED') {
       dest.value.rows = dest.value.rows.filter((v) => !isKubernetesObjectInRows(v, obj.rows));
     } else if (event.type === 'MODIFIED') {
