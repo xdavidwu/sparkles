@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"syscall/js"
 )
 
 // TODO read from js
-var config = rest.Config {
+var config = rest.Config{
 	Host: "http://localhost:8000",
 }
 
@@ -20,7 +20,35 @@ func jsError(e any) any {
 	return js.Global().Get("Error").New(e)
 }
 
+func configConnection(this js.Value, args []js.Value) any {
+	host := args[0].Get("basePath")
+	config.Host = host.String()
+	token := args[0].Get("accessToken")
+	if token.Truthy() {
+		config.BearerToken = token.String()
+	}
+	impersonation := args[0].Get("impersonation")
+	user := impersonation.Get("asUser")
+	if user.Truthy() {
+		config.Impersonate = rest.ImpersonationConfig{
+			UserName: user.String(),
+		}
+		group := impersonation.Get("asGroup")
+		if !group.IsUndefined() && !group.IsNull() {
+			config.Impersonate.Groups = []string{group.String()}
+		}
+	}
+	return nil
+}
+
+func prepareConfig() {
+	if client == nil {
+		client = kubernetes.NewForConfigOrDie(&config)
+	}
+}
+
 func listReleasesForNamespaceAsPromise(this js.Value, args []js.Value) any {
+	prepareConfig()
 	namespace := args[0].String()
 	handler := js.FuncOf(func(this js.Value, args []js.Value) any {
 		resolve := args[0]
@@ -43,8 +71,9 @@ func listReleasesForNamespaceAsPromise(this js.Value, args []js.Value) any {
 	})
 	return js.Global().Get("Promise").New(handler)
 }
+
 func main() {
-	client = kubernetes.NewForConfigOrDie(&config)
+	js.Global().Set("configConnection", js.FuncOf(configConnection))
 	js.Global().Set("listReleasesForNamespace",
 		js.FuncOf(listReleasesForNamespaceAsPromise))
 	<-make(chan bool)
