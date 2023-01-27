@@ -51,6 +51,14 @@ const toCore: Middleware['pre'] = async (context) => ({
   url: context.url.replace('apis/core', 'api'),
 });
 
+const asTable: Middleware['pre'] = async (context) => {
+  context.init.headers = {
+    ...context.init.headers,
+    accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
+  };
+  return context;
+};
+
 // https://github.com/kubernetes/apimachinery/blob/master/pkg/apis/meta/v1/types.go
 
 export interface V1TableColumnDefinition {
@@ -148,26 +156,16 @@ export class AnyApi extends CustomObjectsApi {
       requestParameters: AnyApiListClusterCustomObjectRequest,
       initOverrides?: RequestInit
       ): Promise<ApiResponse<V1Table>> {
-    return <ApiResponse<V1Table>> await this.listClusterCustomObjectRaw(requestParameters, {
-      ...initOverrides,
-      headers: {
-        ...initOverrides?.headers,
-        accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
-      },
-    });
+    return <ApiResponse<V1Table>> await this.withPreMiddleware(asTable)
+      .listClusterCustomObjectRaw(requestParameters, initOverrides);
   }
 
   async listNamespacedCustomObjectAsTableRaw(
       requestParameters: AnyApiListNamespacedCustomObjectRequest,
       initOverrides?: RequestInit
       ): Promise<ApiResponse<V1Table>> {
-    return <ApiResponse<V1Table>> await this.listNamespacedCustomObjectRaw(requestParameters, {
-      ...initOverrides,
-      headers: {
-        ...initOverrides?.headers,
-        accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
-      },
-    });
+    return <ApiResponse<V1Table>> await this.withPreMiddleware(asTable)
+      .listNamespacedCustomObjectRaw(requestParameters, initOverrides);
   }
 
   async listClusterCustomObjectAsTable(
