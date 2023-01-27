@@ -213,7 +213,7 @@ watch(targetNamespace, listResources);
           <VSelect v-else label="Namespace" model-value="(global)" disabled />
         </VCol>
       </VRow>
-      <VTable hover>
+      <VTable hover fixed-header height="calc(100vh - 224px)">
         <thead>
           <tr>
             <th v-for="column in listing.columnDefinitions" :key="column.name"
