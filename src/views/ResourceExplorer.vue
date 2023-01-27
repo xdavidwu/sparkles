@@ -17,11 +17,13 @@ import { useNamespaces } from '@/stores/namespaces';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
+import { useErrorPresentation } from '@/stores/errorPresentation';
 import { storeToRefs } from 'pinia';
 import type { V1APIGroup, V1APIResource } from '@/kubernetes-api/src';
 import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
 import type { OpenAPIV3 } from 'openapi-types';
 import { uniqueKeyForObject } from '@/utils/objects';
+import { listAndWatchTable } from '@/utils/watch';
 
 type ResponseSchema = {
   root: OpenAPIV3.Document,
@@ -75,20 +77,43 @@ const getResources = async () => {
   targetResource.value = resources.value[0];
 };
 
+let abortController: AbortController | null = null;
 const listResources = async () => {
+  if (abortController) {
+    abortController.abort();
+  }
+  abortController = new AbortController();
+
   const anyApi = new AnyApi(await apiConfigStore.getConfig());
   const sharedOptions = {
     group: targetAPI.value.name,
     version: targetAPI.value.preferredVersion!.version,
     plural: targetResource.value.name,
   };
-  if (targetResource.value.namespaced && targetNamespace.value !== NS_ALL_NAMESPACES) {
-    listing.value = await anyApi.listNamespacedCustomObjectAsTable({
-      ...sharedOptions,
-      namespace: targetNamespace.value,
-    });
+  const listNamespaced = targetResource.value.namespaced && targetNamespace.value !== NS_ALL_NAMESPACES;
+  if (targetResource.value.verbs.includes('watch')) {
+    if (listNamespaced) {
+      listAndWatchTable(
+        listing,
+        (opt) => anyApi.listNamespacedCustomObjectAsTableRaw(opt, { signal: abortController!.signal }),
+        { ...sharedOptions, namespace: targetNamespace.value },
+      ).catch((e) => useErrorPresentation().pendingError = e);
+    } else {
+      listAndWatchTable(
+        listing,
+        (opt) => anyApi.listClusterCustomObjectAsTableRaw(opt, { signal: abortController!.signal }),
+        sharedOptions,
+      ).catch((e) => useErrorPresentation().pendingError = e);
+    }
   } else {
-    listing.value = await anyApi.listClusterCustomObjectAsTable(sharedOptions);
+    if (listNamespaced) {
+      listing.value = await anyApi.listNamespacedCustomObjectAsTable({
+        ...sharedOptions,
+        namespace: targetNamespace.value,
+      });
+    } else {
+      listing.value = await anyApi.listClusterCustomObjectAsTable(sharedOptions);
+    }
   }
 };
 
