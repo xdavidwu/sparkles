@@ -15,21 +15,144 @@ import YAMLViewer from '@/components/YAMLViewer.vue';
 import { computed, watch, ref } from 'vue';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
+import { useApiConfig } from '@/stores/apiConfig';
+import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import { storeToRefs } from 'pinia';
-import type { V1APIGroup } from '@/kubernetes-api/src';
+import type { V1APIGroup, V1APIResource } from '@/kubernetes-api/src';
+import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
+import type { OpenAPIV3 } from 'openapi-types';
 import { uniqueKeyForObject } from '@/utils/objects';
+
+type ResponseSchema = {
+  root: OpenAPIV3.Document,
+  object: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject,
+};
+
+type ObjectRecord = {
+  schema?: ResponseSchema,
+  object: any,
+};
+
+const LOADING = '(loading)';
+const NS_ALL_NAMESPACES = '(all)';
+const apiConfigStore = useApiConfig();
+const openAPISchemaDiscovery = useOpenAPISchemaDiscovery();
 
 const { namespaces } = storeToRefs(useNamespaces());
 const namespaceOptions = computed(() => [ '(all)', ...namespaces.value ]);
-
+const targetNamespace = ref(NS_ALL_NAMESPACES);
 const { groups } = storeToRefs(useApisDiscovery());
-const targetAPI = ref<V1APIGroup>({ name: '', versions: [], preferredVersion: { groupVersion: '(loading)', version: '' } });
+const targetAPI = ref<V1APIGroup>({
+  name: '', versions: [], preferredVersion: {
+    groupVersion: LOADING, version: '',
+  },
+});
+const resources = ref<Array<V1APIResource>>([]);
+const targetResource = ref<V1APIResource>({
+  kind: '', name: LOADING, namespaced: false, singularName: '', verbs: [],
+});
+const listing = ref<V1Table>({
+  columnDefinitions: [],
+  rows: [],
+});
+const tab = ref('explore');
+const inspectedObjects = ref<Array<ObjectRecord>>([]);
+
+const getResources = async () => {
+  if (targetAPI.value.preferredVersion!.groupVersion === LOADING) {
+    return;
+  }
+  const anyApi = new AnyApi(await apiConfigStore.getConfig());
+  const response = await anyApi.getAPIResources({
+    group: targetAPI.value.name,
+    version: targetAPI.value.preferredVersion!.version,
+  });
+
+  // filter out subresources, unlistables
+  resources.value = response.resources.filter(
+    (v) => (!v.name.includes('/') && v.verbs.includes('list'))
+  );
+  targetResource.value = resources.value[0];
+};
+
+const listResources = async () => {
+  const anyApi = new AnyApi(await apiConfigStore.getConfig());
+  const sharedOptions = {
+    group: targetAPI.value.name,
+    version: targetAPI.value.preferredVersion!.version,
+    plural: targetResource.value.name,
+  };
+  if (targetResource.value.namespaced && targetNamespace.value !== NS_ALL_NAMESPACES) {
+    listing.value = await anyApi.listNamespacedCustomObjectAsTable({
+      ...sharedOptions,
+      namespace: targetNamespace.value,
+    });
+  } else {
+    listing.value = await anyApi.listClusterCustomObjectAsTable(sharedOptions);
+  }
+};
+
+const inspectObject = async (obj: V1PartialObjectMetadata) => {
+  const anyApi = new AnyApi(await apiConfigStore.getConfig());
+  const api = {
+    group: targetAPI.value.name,
+    version: targetAPI.value.preferredVersion!.version,
+  };
+  const sharedOptions = {
+    ...api,
+    plural: targetResource.value.name,
+    name: obj.metadata!.name!,
+  };
+  let object;
+  if (obj.metadata!.namespace) {
+    object = await anyApi.getNamespacedCustomObject({
+      ...sharedOptions,
+      namespace: obj.metadata!.namespace!,
+    });
+  } else {
+    object = await anyApi.getClusterCustomObject(sharedOptions);
+  }
+
+  const objectRecord: ObjectRecord = { object };
+
+  try {
+    const root = await openAPISchemaDiscovery.getSchema(api);
+
+    // XXX: is there a better place to place this?
+    const apiBase = targetAPI.value.name ?
+      `/apis/${targetAPI.value.preferredVersion!.groupVersion}` :
+      `/api/${targetAPI.value.preferredVersion!.version}`;
+    const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${targetResource.value.name}/{name}`;
+    const object = (root.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject)
+      .content?.['application/json']?.schema;
+
+    if (!object) {
+      console.log('Schema discoverd, but no response definition for: ', path);
+    } else {
+      objectRecord.schema = { root, object };
+    }
+  } catch (e) {
+    //shrug
+    console.log('Schema discovery failed: ', e);
+  }
+
+  inspectedObjects.value.push(objectRecord);
+  tab.value = uniqueKeyForObject(object);
+};
+
+const closeTab = (idx: number) => {
+  tab.value = 'explore';
+  inspectedObjects.value.splice(idx, 1);
+};
 
 watch(groups, (groups) => {
   if (groups.length) {
     targetAPI.value = groups[0];
   }
 }, { immediate: true });
+watch(targetAPI, getResources, { immediate: true });
+watch(targetResource, listResources);
+watch(targetNamespace, listResources);
 </script>
 
 <template>
@@ -89,144 +212,3 @@ watch(groups, (groups) => {
     </VWindowItem>
   </VWindow>
 </template>
-
-<script lang="ts">
-import { defineComponent } from 'vue';
-import { useApiConfig } from '@/stores/apiConfig';
-import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
-import type { V1APIResource } from '@/kubernetes-api/src';
-import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
-import type { OpenAPIV3 } from 'openapi-types';
-
-type ResponseSchema = {
-  root: OpenAPIV3.Document,
-  object: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject,
-};
-
-type ObjectRecord = {
-  schema?: ResponseSchema,
-  object: any,
-};
-
-interface Data {
-  targetAPI: V1APIGroup,
-  resources: Array<V1APIResource>;
-  targetResource: V1APIResource;
-  targetNamespace: string;
-  listing: V1Table;
-  tab: string;
-  inspectedObjects: Array<ObjectRecord>;
-}
-
-const apiConfig = await useApiConfig().getConfig();
-const anyApi = new AnyApi(apiConfig);
-const LOADING = '(loading)';
-const NS_ALL_NAMESPACES = '(all)';
-
-export default defineComponent({
-  async created() {
-    this.$watch('targetAPI', this.getResources, { immediate: true });
-    this.$watch('targetResource', this.listResources);
-    this.$watch('targetNamespace', this.listResources);
-  },
-  data(): Data {
-    return {
-      targetAPI: { name: '', versions: [], preferredVersion: { groupVersion: LOADING, version: '' } },
-      resources: [],
-      targetResource: { kind: '', name: LOADING, namespaced: false, singularName: '', verbs: [] },
-      targetNamespace: NS_ALL_NAMESPACES,
-      listing: {
-        columnDefinitions: [],
-        rows: [],
-      },
-      tab: 'explore',
-      inspectedObjects: [],
-    };
-  },
-  methods: {
-    async getResources() {
-      if (this.targetAPI.preferredVersion!.groupVersion === LOADING) {
-        return;
-      }
-      const response = await anyApi.getAPIResources({
-        group: this.targetAPI.name,
-        version: this.targetAPI.preferredVersion!.version,
-      });
-
-      // filter out subresources, unlistables
-      this.resources = response.resources.filter(
-        (v) => (!v.name.includes('/') && v.verbs.includes('list'))
-      );
-      this.targetResource = this.resources[0];
-    },
-    async listResources() {
-      if (this.targetResource.namespaced && this.targetNamespace !== NS_ALL_NAMESPACES) {
-        this.listing = await anyApi.listNamespacedCustomObjectAsTable({
-          group: this.targetAPI.name,
-          version: this.targetAPI.preferredVersion!.version,
-          plural: this.targetResource.name,
-          namespace: this.targetNamespace,
-        });
-      } else {
-        this.listing = await anyApi.listClusterCustomObjectAsTable({
-          group: this.targetAPI.name,
-          version: this.targetAPI.preferredVersion!.version,
-          plural: this.targetResource.name,
-        });
-      }
-    },
-    async inspectObject(obj: V1PartialObjectMetadata) {
-      let object;
-      if (obj.metadata!.namespace) {
-        object = await anyApi.getNamespacedCustomObject({
-          group: this.targetAPI.name,
-          version: this.targetAPI.preferredVersion!.version,
-          plural: this.targetResource.name,
-          namespace: obj.metadata!.namespace!,
-          name: obj.metadata!.name!,
-        });
-      } else {
-        object = await anyApi.getClusterCustomObject({
-          group: this.targetAPI.name,
-          version: this.targetAPI.preferredVersion!.version,
-          plural: this.targetResource.name,
-          name: obj.metadata!.name!,
-        });
-      }
-
-      const objectRecord: ObjectRecord = { object };
-
-      try {
-        const root = await useOpenAPISchemaDiscovery().getSchema({
-          group: this.targetAPI.name,
-          version: this.targetAPI.preferredVersion!.version,
-        });
-
-        // XXX: is there a better place to place this?
-        const apiBase = this.targetAPI.name ?
-          `/apis/${this.targetAPI.name}/${this.targetAPI.preferredVersion!.version}` :
-          `/api/${this.targetAPI.preferredVersion!.version}`;
-        const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${this.targetResource.name}/{name}`;
-        const object = (root.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject)
-          .content?.['application/json']?.schema;
-
-        if (!object) {
-          console.log('Schema discoverd, but no response definition for: ', path);
-        } else {
-          objectRecord.schema = { root, object };
-        }
-      } catch (e) {
-        //shrug
-        console.log('Schema discovery failed: ', e);
-      }
-
-      this.inspectedObjects.push(objectRecord);
-      this.tab = uniqueKeyForObject(object);
-    },
-    closeTab(idx: number) {
-      this.tab = 'explore';
-      this.inspectedObjects.splice(idx, 1);
-    },
-  },
-});
-</script>
