@@ -216,6 +216,7 @@ watch(targetNamespace, listResources);
       <VTable hover fixed-header height="calc(100vh - 224px)">
         <thead>
           <tr>
+            <th v-if="targetResource.namespaced && targetNamespace === NS_ALL_NAMESPACES">Namespace</th>
             <th v-for="column in listing.columnDefinitions" :key="column.name"
               :title="column.description">{{ column.name }}</th>
           </tr>
@@ -225,6 +226,9 @@ watch(targetNamespace, listResources);
             :key="uniqueKeyForObject(row.object as V1PartialObjectMetadata)"
             @click="inspectObject(row.object as V1PartialObjectMetadata)"
             style="cursor: pointer">
+            <td v-if="targetResource.namespaced && targetNamespace === NS_ALL_NAMESPACES">
+              {{ (row.object as V1PartialObjectMetadata).metadata!.namespace }}
+            </td>
             <td v-for="cell in row.cells" :key="String(cell)">{{ cell }}</td>
           </tr>
         </tbody>
