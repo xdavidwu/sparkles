@@ -4,6 +4,7 @@ import {
 } from 'vuetify/components';
 import { ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
+import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
 import '@/vendor/wasm_exec';
 
@@ -17,6 +18,8 @@ const setupGo = async () => {
   if (goInitialized) {
     return;
   }
+  const config = useApiConfig();
+  const token = await config.getBearerToken();
 
   // eslint-disable-next-line no-undef
   const go = new Go();
@@ -24,6 +27,13 @@ const setupGo = async () => {
     fetch('helm.wasm'), go.importObject);
   go.run(wasm.instance);
   goInitialized = true;
+
+  // eslint-disable-next-line no-undef
+  configConnection({
+    basePath: import.meta.env.VITE_KUBERNETES_API,
+    accessToken: token,
+    impersonation: config.impersonation,
+  });
 };
 
 watch(selectedNamespace, async (namespace) => {
