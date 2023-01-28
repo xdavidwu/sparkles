@@ -12,7 +12,7 @@ const props = defineProps<{
     pod: string,
     container: string,
   },
-  command?: string,
+  command?: Array<string>,
 }>();
 
 const emit = defineEmits<{
@@ -22,7 +22,11 @@ const emit = defineEmits<{
   (e: 'bell'): void,
 }>();
 
-const url = `/api/v1/namespaces/${props.containerSpec.namespace}/pods/${props.containerSpec.pod}/exec?container=${encodeURIComponent(props.containerSpec.container)}&stdout=true&stdin=true&tty=true`;
+let commandOpts = '';
+for (const i of props.command ?? ['/bin/sh']) {
+  commandOpts = `${commandOpts}&command=${encodeURIComponent(i)}`;
+}
+const url = `/api/v1/namespaces/${props.containerSpec.namespace}/pods/${props.containerSpec.pod}/exec?container=${encodeURIComponent(props.containerSpec.container)}&stdout=true&stdin=true&tty=true${commandOpts}`;
 
 const base64url = (s: string) => btoa(s).replace(/=+$/g, '').replace(/\+/g, '-').replace(/\\/g, '_');
 
@@ -35,7 +39,7 @@ const display = async (terminal: Terminal) => {
   const token = await useApiConfig().getBearerToken();
   const socketBase = config.basePath.replace(/^https:\/\//, 'wss://')
     .replace(/^http:\/\//, 'ws://');
-  const fullUrl = `${socketBase}${url}&command=${encodeURIComponent(props.command ?? '/bin/sh')}`;
+  const fullUrl = `${socketBase}${url}`;
 
   // https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/cri/streaming/remotecommand/websocket.go
   const socket = new WebSocket(fullUrl, token ? [
