@@ -7,13 +7,12 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { indentFold, createTextTooltip, type Tooltips } from '@/utils/CodeMirror';
 import { stringify, parseDocument, visit, Pair, YAMLMap, YAMLSeq, Scalar, type Node } from 'yaml';
 import pointer from 'json-pointer';
-import type { OpenAPIV3 } from 'openapi-types';
 
 const props = defineProps<{
   data: Object,
   schema?: {
-    root: OpenAPIV3.Document,
-    object: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject,
+    root?: any,
+    object: any,
   },
 }>();
 

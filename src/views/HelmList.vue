@@ -16,7 +16,7 @@ import '@/vendor/wasm_exec';
 
 interface ValuesTab {
   id: string,
-  values?: object,
+  values: object,
   schema?: object,
 }
 
@@ -54,8 +54,8 @@ const createTab = (release: any) => {
   if (!tabs.value.find((t) => t.id === id)) {
     tabs.value.push({
       id,
-      schema: release.chart.schema,
-      values: release.config,
+      schema: JSON.parse(atob(release.chart.schema)),
+      values: release.config ?? {},
     });
   }
   tab.value = id;
@@ -114,7 +114,7 @@ watch(selectedNamespace, async (namespace) => {
       </VTable>
     </VWindowItem>
     <VWindowItem v-for="tab in tabs" :key="tab.id" :value="tab.id">
-      <YAMLViewer :data="tab.values" />
+      <YAMLViewer :data="tab.values" :schema="{ object: tab.schema }" />
     </VWindowItem>
   </VWindow>
 </template>
