@@ -57,7 +57,7 @@ const display = async (terminal: Terminal) => {
 
   const CSI = '\x1b[';
   socket.onopen = () => {
-    socket.send(`\x04{Width:${terminal.cols},Height:${terminal.rows}}`);
+    socket.send(`\x04{"Width":${terminal.cols},"Height":${terminal.rows}}`);
     terminal.write(`${CSI}2J${CSI}H`); // clear all, reset cursor
     terminal.onData((data) => {
       socket.send(`\x00${data}`);
