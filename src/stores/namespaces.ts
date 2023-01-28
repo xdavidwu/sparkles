@@ -29,7 +29,11 @@ export const useNamespaces = defineStore('namespace', () => {
     if (old.length === 0 || removed.indexOf(selectedNamespace.value) === -1) {
       // TODO fire a notification on removed?
       if (newNamespaces.length) {
-        selectedNamespace.value = newNamespaces[0];
+        if (newNamespaces.indexOf('default') !== -1) {
+          selectedNamespace.value = 'default';
+        } else {
+          selectedNamespace.value = newNamespaces[0];
+        }
       } else {
         selectedNamespace.value = '';
       }
