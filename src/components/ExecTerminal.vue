@@ -55,13 +55,18 @@ const display = async (terminal: Terminal) => {
       `WebSocket connetion to ${(event.target! as WebSocket).url} failed`);
   };
 
+  const resize = (t: { cols: number, rows: number }) => {
+    socket.send(`\x04{"Width":${t.cols},"Height":${t.rows}}\n`);
+  };
+
   const CSI = '\x1b[';
   socket.onopen = () => {
-    socket.send(`\x04{"Width":${terminal.cols},"Height":${terminal.rows}}`);
+    resize(terminal);
     terminal.write(`${CSI}2J${CSI}H`); // clear all, reset cursor
     terminal.onData((data) => {
       socket.send(`\x00${data}`);
     });
+    terminal.onResize(resize);
   };
   socket.onmessage = (event) => {
     const data = new Uint8Array(event.data);
