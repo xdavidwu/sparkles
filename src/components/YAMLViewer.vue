@@ -28,7 +28,11 @@ function descriptionFromPath(schema: any, path: Array<any>): string | null | und
   }
 
   if (path.length === 0) {
-    return schema.description as string | undefined;
+    let res = schema.description as string | undefined;
+    if (schema.title) {
+      res = `${schema.title}:\n${res ?? ''}`;
+    }
+    return res;
   }
 
   if (path[0] instanceof Pair) {

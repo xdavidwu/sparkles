@@ -43,7 +43,7 @@ export const createTextTooltip = (tooltips: Tooltips) => hoverTooltip((view, pos
         end: tooltip.range[1],
         create: () => {
           const div = document.createElement('div');
-          div.style.margin = '0.5em 1em';
+          div.classList.add('mx-4', 'my-2', 'text-pre-wrap');
           div.textContent = tooltip.text;
           div.innerHTML = div.innerHTML.replace(/((http:|https:)[^\s]+[\w])/g, (match) => {
             let url;
