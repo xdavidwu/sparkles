@@ -4,6 +4,7 @@ import {
   VApp,
   VAppBar,
   VAppBarNavIcon,
+  VAutocomplete,
   VBtn,
   VCard,
   VCardActions,
@@ -16,7 +17,6 @@ import {
   VListSubheader,
   VMain,
   VNavigationDrawer,
-  VSelect,
   VToolbarTitle,
 } from 'vuetify/components';
 import { useNamespaces } from '@/stores/namespaces';
@@ -85,7 +85,7 @@ watch(pendingError, (error) => {
     </VAppBar>
     <VNavigationDrawer v-model="drawer">
       <VList>
-        <VSelect label="Namespace" variant="solo" :items="namespaces"
+        <VAutocomplete label="Namespace" variant="solo" :items="namespaces"
           v-model="selectedNamespace" hide-details />
         <VListItem :to="{ name: 'pods' }">Pods</VListItem>
         <VListItem :to="{ name: 'helm' }">Helm</VListItem>
