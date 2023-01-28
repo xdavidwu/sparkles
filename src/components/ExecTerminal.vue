@@ -22,8 +22,10 @@ const emit = defineEmits<{
   (e: 'bell'): void,
 }>();
 
+const findShell = 'for i in /bin/bash /bin/sh; do if [ -x "$i" ]; then "$i"; break; fi; done';
+
 let commandOpts = '';
-for (const i of props.command ?? ['/bin/sh']) {
+for (const i of props.command ?? ['/bin/sh', '-c', findShell]) {
   commandOpts = `${commandOpts}&command=${encodeURIComponent(i)}`;
 }
 const url = `/api/v1/namespaces/${props.containerSpec.namespace}/pods/${props.containerSpec.pod}/exec?container=${encodeURIComponent(props.containerSpec.container)}&stdout=true&stdin=true&tty=true${commandOpts}`;
