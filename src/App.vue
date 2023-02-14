@@ -21,12 +21,14 @@ import {
 } from 'vuetify/components';
 import { useNamespaces } from '@/stores/namespaces';
 import { storeToRefs } from 'pinia';
-import { ref, onErrorCaptured, watch } from 'vue';
+import { computed, ref, onErrorCaptured, watch } from 'vue';
 import { ResponseError, FetchError, V1StatusFromJSON } from '@/kubernetes-api/src';
 import { PresentedError } from '@/utils/PresentedError';
 import { useErrorPresentation } from '@/stores/errorPresentation';
+import { useRouter } from 'vue-router';
+import { useTitle } from '@vueuse/core';
 
-const title = import.meta.env.VITE_APP_BRANDING ?? 'Kubernetes SPA Client';
+const brand = import.meta.env.VITE_APP_BRANDING ?? 'Kubernetes SPA Client';
 
 const { namespaces, selectedNamespace } = storeToRefs(useNamespaces());
 const { pendingError } = storeToRefs(useErrorPresentation());
@@ -35,6 +37,9 @@ const drawer = ref<boolean | null>(null);
 const showsDialog = ref(false);
 const failedResponse = ref<Response | null>(null);
 const failedResponseText = ref('');
+const route = useRouter().currentRoute;
+const title = computed(() => `${route.value.meta.name} - ${brand}`);
+useTitle(title);
 
 const handleError = (err: any) => {
   if (err instanceof ResponseError) {
@@ -81,7 +86,7 @@ watch(pendingError, (error) => {
   <VApp>
     <VAppBar>
       <VAppBarNavIcon @click="drawer = !drawer" />
-      <VToolbarTitle>{{ title }}</VToolbarTitle>
+      <VToolbarTitle>{{ brand }}</VToolbarTitle>
     </VAppBar>
     <VNavigationDrawer v-model="drawer">
       <VList>

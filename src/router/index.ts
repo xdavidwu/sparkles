@@ -43,9 +43,4 @@ const router = createRouter({
   ]
 });
 
-router.beforeEach((to, from, next) => {
-  document.title = `${to.meta.name} - ${import.meta.env.VITE_APP_BRANDING ?? 'Kubernetes SPA Client'}`;
-  next();
-});
-
 export default router;
