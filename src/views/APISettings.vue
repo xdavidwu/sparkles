@@ -1,5 +1,27 @@
 <script setup lang="ts">
 import { VSelect, VTextField, VBtn } from 'vuetify/components';
+import { ref } from 'vue';
+import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
+
+const configStore = useApiConfig();
+
+const schemes = Object.entries(AuthScheme).filter((i) => isNaN(Number(i[0])));
+const scheme = ref(configStore.authScheme);
+const token = ref(configStore.accessToken);
+const impersonateUser = ref(configStore.impersonation.asUser);
+const impersonateGroup = ref(configStore.impersonation.asGroup);
+
+const apply = () => {
+  configStore.$patch({
+    authScheme: scheme.value,
+    accessToken: token.value,
+    impersonation: {
+      asUser: impersonateUser.value,
+      asGroup: impersonateGroup.value,
+    },
+  });
+  window.location.reload();
+};
 </script>
 
 <template>
@@ -12,43 +34,3 @@ import { VSelect, VTextField, VBtn } from 'vuetify/components';
     v-model="impersonateGroup" />
   <VBtn @click="apply">Apply</VBtn>
 </template>
-
-<script lang="ts">
-import { defineComponent } from 'vue';
-import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
-
-interface Data {
-  token: string,
-  schemes: Array<[string, string | AuthScheme]>,
-  scheme: AuthScheme,
-  impersonateUser: string,
-  impersonateGroup: string,
-}
-
-const configStore = useApiConfig();
-
-export default defineComponent({
-  data(): Data {
-    return {
-      token: configStore.accessToken,
-      schemes: Object.entries(AuthScheme).filter((i) => isNaN(Number(i[0]))),
-      scheme: configStore.authScheme,
-      impersonateUser: configStore.impersonation.asUser,
-      impersonateGroup: configStore.impersonation.asGroup,
-    };
-  },
-  methods: {
-    apply() {
-      configStore.$patch({
-        authScheme: this.scheme,
-        accessToken: this.token,
-        impersonation: {
-          asUser: this.impersonateUser,
-          asGroup: this.impersonateGroup,
-        },
-      });
-      window.location.reload();
-    },
-  },
-});
-</script>
