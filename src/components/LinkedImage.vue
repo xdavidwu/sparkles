@@ -30,5 +30,5 @@ const url = computed(() => {
 
 <template>
   <a v-if="url" :href="url" target="_blank">{{ image }}</a>
-  <template v-else>{{ image }}</template>
+  <span v-else>{{ image }}</span>
 </template>

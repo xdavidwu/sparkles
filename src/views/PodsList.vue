@@ -142,7 +142,10 @@ const bell = (index: number) => {
                   :key="key" :k="key as string" :v="value" pill />
               </td>
               <td>{{ container.name }}</td>
-              <td><LinkedImage :image="container.image" /></td>
+              <td>
+                <LinkedImage :image="container.image"
+                  :title="container.imageID" />
+              </td>
               <td>
                 <VIcon
                   :icon="container.ready ? 'mdi-check' : 'mdi-close'"
