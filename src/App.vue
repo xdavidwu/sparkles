@@ -37,7 +37,11 @@ const drawer = ref<boolean | null>(null);
 const showsDialog = ref(false);
 const failedResponse = ref<Response | null>(null);
 const failedResponseText = ref('');
-const route = useRouter().currentRoute;
+const router = useRouter();
+const route = router.currentRoute;
+const routes = router.getRoutes().filter(r => !r.meta.hidden);
+const namespacedRoutes = routes.filter(r => r.meta.namespaced);
+const globalRoutes = routes.filter(r => !r.meta.namespaced);
 const title = computed(() => `${route.value.meta.name} - ${brand}`);
 useTitle(title);
 
@@ -92,15 +96,18 @@ watch(pendingError, (error) => {
       <VList>
         <VAutocomplete label="Namespace" variant="solo" :items="namespaces"
           v-model="selectedNamespace" hide-details />
-        <VListItem :to="{ name: 'pods' }">Pods</VListItem>
-        <VListItem :to="{ name: 'helm' }">Helm</VListItem>
+        <VListItem v-for="route in namespacedRoutes"
+          :key="route.meta.name as string" :to="route">
+          {{ route.meta.name }}
+        </VListItem>
       </VList>
       <VDivider />
       <VList>
         <VListSubheader>Global</VListSubheader>
-        <VListItem :to="{ name: 'home' }">Home</VListItem>
-        <VListItem :to="{ name: 'settings' }">Settings</VListItem>
-        <VListItem :to="{ name: 'explore' }">Resource Explorer</VListItem>
+        <VListItem v-for="route in globalRoutes"
+          :key="route.meta.name as string" :to="route">
+          {{ route.meta.name }}
+        </VListItem>
       </VList>
     </VNavigationDrawer>
     <VDialog v-model="showsDialog">
@@ -114,7 +121,7 @@ watch(pendingError, (error) => {
         </VCardText>
         <VCardActions>
           <VBtn color="primary"
-            @click="showsDialog = false; $router.push({ name: 'settings' })">
+            @click="showsDialog = false; router.push({ name: 'settings' })">
             Go to settings
           </VBtn>
           <VBtn @click="showsDialog = false">Close</VBtn>

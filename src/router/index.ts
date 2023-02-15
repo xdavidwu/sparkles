@@ -20,7 +20,7 @@ const router = createRouter({
       path: '/oidc/callback',
       name: 'oidc_callback',
       component: () => import('../views/OIDCCallback.vue'),
-      meta: { name: 'OIDC Auth' },
+      meta: { name: 'OIDC Auth', hidden: true },
     },
     {
       path: '/explore',
@@ -32,13 +32,13 @@ const router = createRouter({
       path: '/pods',
       name: 'pods',
       component: () => import('../views/PodsList.vue'),
-      meta: { name: 'Pods' },
+      meta: { name: 'Pods', namespaced: true },
     },
     {
       path: '/helm',
       name: 'helm',
       component: () => import('../views/HelmList.vue'),
-      meta: { name: 'Helm' },
+      meta: { name: 'Helm', namespaced: true },
     },
   ]
 });
