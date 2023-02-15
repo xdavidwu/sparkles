@@ -54,7 +54,7 @@ const createTab = (release: any) => {
   if (!tabs.value.find((t) => t.id === id)) {
     tabs.value.push({
       id,
-      schema: JSON.parse(atob(release.chart.schema)),
+      schema: release.chart.schema ? JSON.parse(atob(release.chart.schema)) : undefined,
       values: release.config ?? {},
     });
   }
