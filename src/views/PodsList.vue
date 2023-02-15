@@ -12,6 +12,7 @@ import {
 import ExecTerminal from '@/components/ExecTerminal.vue';
 import KeyValueBadge from '@/components/KeyValueBadge.vue';
 import LogViewer from '@/components/LogViewer.vue';
+import LinkedImage from '@/components/LinkedImage.vue';
 import { ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
@@ -141,7 +142,7 @@ const bell = (index: number) => {
                   :key="key" :k="key as string" :v="value" pill />
               </td>
               <td>{{ container.name }}</td>
-              <td>{{ container.image }}</td>
+              <td><LinkedImage :image="container.image" /></td>
               <td>
                 <VIcon
                   :icon="container.ready ? 'mdi-check' : 'mdi-close'"
