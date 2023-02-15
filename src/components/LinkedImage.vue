@@ -19,7 +19,9 @@ const url = computed(() => {
     case 'docker.io':
       return `https://hub.docker.com/r/${components.slice(1).join('/')}`;
     case 'quay.io':
-      return `https://quay.io/repository/${components.slice(1).join('/')}`;
+    case 'gcr.io':
+    case 'ghcr.io':
+      return `https://${components.join('/')}`;
     default:
       return null;
   }
