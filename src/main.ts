@@ -12,6 +12,10 @@ import 'vuetify/styles';
 
 Chart.register(Title, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
 
+Chart.defaults.color = '#fffd';
+Chart.defaults.borderColor = '#fff4';
+Chart.defaults.backgroundColor = '#fff4';
+
 const app = createApp(App);
 
 app.use(createPinia());
