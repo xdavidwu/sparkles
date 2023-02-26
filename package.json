@@ -19,6 +19,7 @@
     "json-pointer": "^0.6.2",
     "oidc-client-ts": "^2.0.6",
     "openapi-types": "^12.1.0",
+    "param-case": "^3.0.4",
     "pinia": "^2.0.21",
     "vue": "^3.2.38",
     "vue-chartjs": "^5.2.0",

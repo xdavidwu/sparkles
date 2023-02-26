@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { BaseColor, ColorVariant, colorToClass, hashColor } from '@/utils/colors';
 
 const props = withDefaults(defineProps<{
   k: string,
@@ -11,32 +12,9 @@ const props = withDefaults(defineProps<{
   pill: false,
 });
 
-const baseColors = [
-  'red',
-  'pink',
-  'purple',
-  'deep-purple',
-  'indigo',
-  'blue',
-  'light-blue',
-  'cyan',
-  'teal',
-  'green',
-  'light-green',
-  'lime',
-  'yellow',
-  'amber',
-  'orange',
-  'deep-orange',
-  'brown',
-  'blue-grey',
-  'grey',
-];
+const baseColors = Object.values(BaseColor);
 
-const variants = [
-  '-darken-2',
-  '-darken-4',
-];
+const variants = [ ColorVariant.Darken2, ColorVariant.Darken4 ];
 
 const title = computed(() => `${props.k}: ${props.v}`);
 
@@ -54,24 +32,8 @@ const shortK = computed(() => {
 const shortV = computed(() => props.v.length > 10 ?
   `${props.v.substring(0, 7)}...` : props.v);
 
-const fnv1 = (str: string) => {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    hash = hash * 0x01000193;
-    hash = Math.abs(hash ^ str.charCodeAt(i));
-  }
-  return hash;
-};
-
-const color = (str: string) => {
-  let hash = fnv1(str);
-  const base = baseColors[hash % baseColors.length];
-  hash = Math.floor(hash / baseColors.length);
-  return `${base}${variants[hash % variants.length]}`;
-};
-
-const kColor = computed(() => color(props.k));
-const vColor = computed(() => color(props.v));
+const kColor = computed(() => colorToClass(hashColor(props.k, baseColors, variants)));
+const vColor = computed(() => colorToClass(hashColor(props.v, baseColors, variants)));
 </script>
 
 <template>
