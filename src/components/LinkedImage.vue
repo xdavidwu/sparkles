@@ -18,6 +18,8 @@ const url = computed(() => {
   switch (components[0]) {
     case 'docker.io':
       return `https://hub.docker.com/r/${components.slice(1).join('/')}`;
+    case 'public.ecr.aws':
+      return `https://gallery.ecr.aws/${components.slice(1).join('/')}`;
     case 'quay.io':
     case 'gcr.io':
     case 'ghcr.io':
