@@ -79,8 +79,8 @@ onMounted(async () => {
       const metrics = {
         cpu,
         mem,
-        cpuRatio: cpu / nodes.value[i.metadata.name].cpu,
-        memRatio: mem / nodes.value[i.metadata.name].mem,
+        cpuPercentage: cpu / nodes.value[i.metadata.name].cpu * 100,
+        memPercentage: mem / nodes.value[i.metadata.name].mem * 100,
       };
       samples.value[index][i.metadata.name] = metrics;
 
@@ -133,8 +133,8 @@ onUnmounted(() => stopUpdating!());
             responsive: true,
             maintainAspectRatio: false,
             plugins: { title: { display: true, text: 'CPU usage (%)' } },
-            scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${Number(v) * 100}%` } } },
-            parsing: { yAxisKey: 'cpuRatio' },
+            scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
+            parsing: { yAxisKey: 'cpuPercentage' },
           }" />
       </VCardText></VCard>
     </VCol>
@@ -145,8 +145,8 @@ onUnmounted(() => stopUpdating!());
             responsive: true,
             maintainAspectRatio: false,
             plugins: { title: { display: true, text: 'Memory usage (%)' } },
-            scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${Number(v) * 100}%` } } },
-            parsing: { yAxisKey: 'memRatio' },
+            scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
+            parsing: { yAxisKey: 'memPercentage' },
           }" />
       </VCardText></VCard>
     </VCol>
