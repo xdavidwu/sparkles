@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { VCard, VCardText, VRow, VCol } from 'vuetify/components';
 import { Line } from 'vue-chartjs';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CustomObjectsApi } from '@/kubernetes-api/src';
@@ -7,6 +8,8 @@ import { useIntervalFn, type Pausable } from '@vueuse/core';
 import { BaseColor, ColorVariant, colorToCode, hashColor } from '@/utils/colors';
 import parseDuration from 'parse-duration';
 import { real } from '@ragnarpa/quantity';
+// @ts-expect-error Missing type definitions
+import { fromBytes } from '@tsmx/human-readable';
 
 const timeRange = 600;
 const nodes = ref<{ [key: string]: true }>({});
@@ -29,7 +32,7 @@ const chartData = computed(() => ({
     ...datasetMetadata.value[n],
     data: samples.value.map((s, i) => (s[n] !== undefined ? {
       x: (latestSample.value - samples.value.length + i) * 1000,
-      y: s[n],
+      ...s[n],
     } : undefined)).filter((s) => s !== undefined),
   })),
 }));
@@ -63,8 +66,11 @@ onMounted(async () => {
       }
 
       nodes.value[i.metadata.name] ??= true;
-      const cpu = real(i.usage.cpu);
-      samples.value[index][i.metadata.name] = cpu;
+      const metrics = {
+        cpu: real(i.usage.cpu),
+        mem: real(i.usage.memory),
+      };
+      samples.value[index][i.metadata.name] = metrics;
 
       const d = parseDuration(i.window, 's');
       for (let j = 1; j < d; j++) {
@@ -72,7 +78,7 @@ onMounted(async () => {
         if (index < 0) {
           return;
         }
-        samples.value[index][i.metadata.name] = cpu;
+        samples.value[index][i.metadata.name] = metrics;
       }
     });
   }, 5000, { immediateCallback: true });
@@ -83,9 +89,26 @@ onUnmounted(() => stopUpdating!());
 </script>
 
 <template>
-  <Line :data="chartData" :options="{
-    animation: false,
-    plugins: { title: { display: true, text: 'CPU usage' } },
-    scales: { x: { type: 'time' } },
-  }" />
+  <VRow>
+    <VCol>
+      <VCard><VCardText>
+        <Line :data="chartData" :options="{
+          animation: false,
+          plugins: { title: { display: true, text: 'CPU usage' } },
+          scales: { x: { type: 'time' } },
+          parsing: { yAxisKey: 'cpu' },
+        }" />
+      </VCardText></VCard>
+    </VCol>
+    <VCol>
+      <VCard><VCardText>
+        <Line :data="chartData" :options="{
+          animation: false,
+          plugins: { title: { display: true, text: 'Memory usage' } },
+          scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => fromBytes(v, { mode: 'IEC' }) } } },
+          parsing: { yAxisKey: 'mem' },
+        }" />
+      </VCardText></VCard>
+    </VCol>
+  </VRow>
 </template>

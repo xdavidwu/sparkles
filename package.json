@@ -16,6 +16,7 @@
     "@codemirror/theme-one-dark": "^6.1.0",
     "@mdi/font": "^7.0.96",
     "@ragnarpa/quantity": "^0.2.0",
+    "@tsmx/human-readable": "^1.0.8",
     "@vueuse/core": "^9.2.0",
     "chartjs-adapter-date-std": "^0.1.8",
     "json-pointer": "^0.6.2",
