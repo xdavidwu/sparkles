@@ -13,7 +13,9 @@ import { fromBytes } from '@tsmx/human-readable';
 
 const timeRange = 600;
 const nodes = ref<{ [key: string]: { cpu: number, mem: number } }>({});
-const samples = ref(Array(timeRange).fill({}));
+const samples = ref<Array<{
+  [key: string]: { cpu: number, mem: number, cpuPercentage: number, memPercentage: number }
+}>>(Array(timeRange).fill(false).map(() => ({})));
 const latestSample = ref(Math.floor(new Date().valueOf() / 1000));
 
 const datasetMetadata = computed(() => Object.keys(nodes.value).reduce((r, n) => {
