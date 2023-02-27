@@ -3,14 +3,35 @@ import '@mdi/font/css/materialdesignicons.css';
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import { createVuetify } from 'vuetify';
-import { Chart, Title, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
+import {
+  Chart,
+  Title,
+  Tooltip,
+  Legend,
+  LinearScale,
+  TimeScale,
+  LineElement,
+  PointElement,
+  _adapters
+} from 'chart.js';
+import { StdDateAdapter } from 'chartjs-adapter-date-std';
 
 import App from './App.vue';
 import router from './router';
 
 import 'vuetify/styles';
 
-Chart.register(Title, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
+Chart.register(
+  Title,
+  Tooltip,
+  Legend,
+  LinearScale,
+  TimeScale,
+  PointElement,
+  LineElement,
+);
+
+_adapters._date.override(StdDateAdapter.chartJsStandardAdapter());
 
 Chart.defaults.color = '#fffd';
 Chart.defaults.borderColor = '#fff4';

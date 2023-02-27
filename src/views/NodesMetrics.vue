@@ -8,8 +8,8 @@ import { BaseColor, ColorVariant, colorToCode, hashColor } from '@/utils/colors'
 import parseDuration from 'parse-duration';
 import { real } from '@ragnarpa/quantity';
 
-const timeRange = 60;
-const nodes = ref({});
+const timeRange = 600;
+const nodes = ref<{ [key: string]: true }>({});
 const samples = ref(Array(timeRange).fill({}));
 const latestSample = ref(Math.floor(new Date().valueOf() / 1000));
 
@@ -22,18 +22,17 @@ const datasetMetadata = computed(() => Object.keys(nodes.value).reduce((r, n) =>
     pointStyle: false,
   };
   return r;
-}, {}));
+}, {} as { [key: string]: any }));
 
 const chartData = computed(() => ({
-  labels: samples.value.map((s, i) =>
-    new Date((latestSample.value - samples.value.length + i) * 1000).toLocaleTimeString()),
   datasets: Object.keys(nodes.value).map((n) => ({
     ...datasetMetadata.value[n],
-    data: samples.value.map((s) => s[n] ?? 0),
+    data: samples.value.map((s, i) => (s[n] !== undefined ? {
+      x: (latestSample.value - samples.value.length + i) * 1000,
+      y: s[n],
+    } : undefined)).filter((s) => s !== undefined),
   })),
 }));
-
-const ready = ref(false);
 
 let stopUpdating: Pausable['pause'] | null = null;
 
@@ -76,7 +75,6 @@ onMounted(async () => {
         samples.value[index][i.metadata.name] = cpu;
       }
     });
-    ready.value = true;
   }, 5000, { immediateCallback: true });
   stopUpdating = pause;
 });
@@ -85,6 +83,9 @@ onUnmounted(() => stopUpdating!());
 </script>
 
 <template>
-  <Line :data="chartData" v-if="ready"
-    :options="{ animation: false, plugins: { title: { display: true, text: 'CPU usage' } } }" />
+  <Line :data="chartData" :options="{
+    animation: false,
+    plugins: { title: { display: true, text: 'CPU usage' } },
+    scales: { x: { type: 'time' } },
+  }" />
 </template>

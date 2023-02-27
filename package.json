@@ -17,6 +17,7 @@
     "@mdi/font": "^7.0.96",
     "@ragnarpa/quantity": "^0.2.0",
     "@vueuse/core": "^9.2.0",
+    "chartjs-adapter-date-std": "^0.1.8",
     "json-pointer": "^0.6.2",
     "oidc-client-ts": "^2.0.6",
     "openapi-types": "^12.1.0",
