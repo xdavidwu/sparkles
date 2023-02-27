@@ -36,6 +36,10 @@ _adapters._date.override(StdDateAdapter.chartJsStandardAdapter());
 Chart.defaults.color = '#fffd';
 Chart.defaults.borderColor = '#fff4';
 Chart.defaults.backgroundColor = '#fff4';
+Chart.defaults.plugins.legend.labels.boxWidth = 8;
+Chart.defaults.plugins.legend.labels.boxHeight = 8;
+Chart.defaults.plugins.legend.labels.padding = 8;
+Chart.defaults.plugins.title.padding = 0;
 
 const app = createApp(App);
 

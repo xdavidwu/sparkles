@@ -90,24 +90,28 @@ onUnmounted(() => stopUpdating!());
 
 <template>
   <VRow>
-    <VCol>
-      <VCard><VCardText>
+    <VCol cols="12" md="6">
+      <VCard><VCardText style="height: 250px">
         <Line :data="chartData" :options="{
-          animation: false,
-          plugins: { title: { display: true, text: 'CPU usage' } },
-          scales: { x: { type: 'time' } },
-          parsing: { yAxisKey: 'cpu' },
-        }" />
+            animation: false,
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { title: { display: true, text: 'CPU usage' } },
+            scales: { x: { type: 'time' } },
+            parsing: { yAxisKey: 'cpu' },
+          }" />
       </VCardText></VCard>
     </VCol>
-    <VCol>
-      <VCard><VCardText>
+    <VCol cols="12" md="6">
+      <VCard><VCardText style="height: 250px">
         <Line :data="chartData" :options="{
-          animation: false,
-          plugins: { title: { display: true, text: 'Memory usage' } },
-          scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => fromBytes(v, { mode: 'IEC' }) } } },
-          parsing: { yAxisKey: 'mem' },
-        }" />
+            animation: false,
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { title: { display: true, text: 'Memory usage' } },
+            scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => fromBytes(v, { mode: 'IEC' }) } } },
+            parsing: { yAxisKey: 'mem' },
+          }" />
       </VCardText></VCard>
     </VCol>
   </VRow>
