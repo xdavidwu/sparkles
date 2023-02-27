@@ -20,6 +20,9 @@ const url = computed(() => {
       return `https://hub.docker.com/r/${components.slice(1).join('/')}`;
     case 'public.ecr.aws':
       return `https://gallery.ecr.aws/${components.slice(1).join('/')}`;
+    case 'registry.k8s.io':
+    case 'k8s.gcr.io':
+      return `https://us-central1-docker.pkg.dev/k8s-artifacts-prod/images/${components.slice(1).join('/')}`;
     case 'quay.io':
     case 'gcr.io':
     case 'ghcr.io':
