@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { VCard, VCardText, VRow, VCol } from 'vuetify/components';
 import { Line } from 'vue-chartjs';
 import { useApiConfig } from '@/stores/apiConfig';
-import { CustomObjectsApi } from '@/kubernetes-api/src';
+import { CustomObjectsApi, CoreV1Api } from '@/kubernetes-api/src';
 import { useIntervalFn, type Pausable } from '@vueuse/core';
 import { BaseColor, ColorVariant, colorToCode, hashColor } from '@/utils/colors';
 import parseDuration from 'parse-duration';
@@ -12,7 +12,7 @@ import { real } from '@ragnarpa/quantity';
 import { fromBytes } from '@tsmx/human-readable';
 
 const timeRange = 600;
-const nodes = ref<{ [key: string]: true }>({});
+const nodes = ref<{ [key: string]: { cpu: number, mem: number } }>({});
 const samples = ref(Array(timeRange).fill({}));
 const latestSample = ref(Math.floor(new Date().valueOf() / 1000));
 
@@ -41,6 +41,14 @@ let stopUpdating: Pausable['pause'] | null = null;
 
 onMounted(async () => {
   const config = await useApiConfig().getConfig();
+  const coreApi = new CoreV1Api(config);
+  (await coreApi.listNode()).items.forEach((n) => {
+    nodes.value[n.metadata!.name!] = {
+      cpu: real(n.status!.capacity!.cpu)!,
+      mem: real(n.status!.capacity!.memory)!,
+    };
+  });
+
   const api = new CustomObjectsApi(config);
   const metricsApi = {
     group: 'metrics.k8s.io',
@@ -65,10 +73,12 @@ onMounted(async () => {
         index = time - (latestSample.value - timeRange);
       }
 
-      nodes.value[i.metadata.name] ??= true;
+      const cpu = real(i.usage.cpu)!, mem = real(i.usage.memory)!;
       const metrics = {
-        cpu: real(i.usage.cpu),
-        mem: real(i.usage.memory),
+        cpu,
+        mem,
+        cpuRatio: cpu / nodes.value[i.metadata.name].cpu,
+        memRatio: mem / nodes.value[i.metadata.name].mem,
       };
       samples.value[index][i.metadata.name] = metrics;
 
@@ -111,6 +121,30 @@ onUnmounted(() => stopUpdating!());
             plugins: { title: { display: true, text: 'Memory usage' } },
             scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => fromBytes(v, { mode: 'IEC' }) } } },
             parsing: { yAxisKey: 'mem' },
+          }" />
+      </VCardText></VCard>
+    </VCol>
+    <VCol cols="12" md="6">
+      <VCard><VCardText style="height: 250px">
+        <Line :data="chartData" :options="{
+            animation: false,
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { title: { display: true, text: 'CPU usage (%)' } },
+            scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${Number(v) * 100}%` } } },
+            parsing: { yAxisKey: 'cpuRatio' },
+          }" />
+      </VCardText></VCard>
+    </VCol>
+    <VCol cols="12" md="6">
+      <VCard><VCardText style="height: 250px">
+        <Line :data="chartData" :options="{
+            animation: false,
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { title: { display: true, text: 'Memory usage (%)' } },
+            scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${Number(v) * 100}%` } } },
+            parsing: { yAxisKey: 'memRatio' },
           }" />
       </VCardText></VCard>
     </VCol>
