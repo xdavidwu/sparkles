@@ -26,6 +26,7 @@ const url = computed(() => {
     case 'quay.io':
     case 'gcr.io':
     case 'ghcr.io':
+    case components[0].match(/.-docker\.pkg\.dev$/)?.input:
       return `https://${components.join('/')}`;
     default:
       return null;
