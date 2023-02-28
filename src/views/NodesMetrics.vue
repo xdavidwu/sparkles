@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { VCard, VCardText, VRow, VCol } from 'vuetify/components';
 import { Line } from 'vue-chartjs';
 import { useApiConfig } from '@/stores/apiConfig';
+import { useErrorPresentation } from '@/stores/errorPresentation';
 import { CustomObjectsApi, CoreV1Api } from '@/kubernetes-api/src';
 import { useIntervalFn, type Pausable } from '@vueuse/core';
 import { BaseColor, ColorVariant, colorToCode, hashColor } from '@/utils/colors';
@@ -56,42 +57,47 @@ onMounted(async () => {
     group: 'metrics.k8s.io',
     version: 'v1beta1',
   };
-  const { pause } = useIntervalFn(async () => {
-    const sample = await api.listClusterCustomObject({ ...metricsApi, plural: 'nodes'}) as any;
-    sample.items.forEach((i: any) => {
-      const time = Math.floor(new Date(i.timestamp).valueOf() / 1000);
-      let index = time - (latestSample.value - timeRange);
-      if (index < 0) {
-        return;
-      }
-
-      if (index >= timeRange) {
-        const room = index - timeRange + 1;
-        for (let i = 0; i < room; i++) {
-          samples.value.shift();
-          samples.value.push({});
-        }
-        latestSample.value += room;
-        index = time - (latestSample.value - timeRange);
-      }
-
-      const cpu = real(i.usage.cpu)!, mem = real(i.usage.memory)!;
-      const metrics = {
-        cpu,
-        mem,
-        cpuPercentage: cpu / nodes.value[i.metadata.name].cpu * 100,
-        memPercentage: mem / nodes.value[i.metadata.name].mem * 100,
-      };
-      samples.value[index][i.metadata.name] = metrics;
-
-      const d = parseDuration(i.window, 's');
-      for (let j = 1; j < d; j++) {
-        index -= 1;
+  const { pause } = useIntervalFn(() => {
+    (async () => {
+      const sample = await api.listClusterCustomObject({ ...metricsApi, plural: 'nodes'}) as any;
+      sample.items.forEach((i: any) => {
+        const time = Math.floor(new Date(i.timestamp).valueOf() / 1000);
+        let index = time - (latestSample.value - timeRange);
         if (index < 0) {
           return;
         }
+
+        if (index >= timeRange) {
+          const room = index - timeRange + 1;
+          for (let i = 0; i < room; i++) {
+            samples.value.shift();
+            samples.value.push({});
+          }
+          latestSample.value += room;
+          index = time - (latestSample.value - timeRange);
+        }
+
+        const cpu = real(i.usage.cpu)!, mem = real(i.usage.memory)!;
+        const metrics = {
+          cpu,
+          mem,
+          cpuPercentage: cpu / nodes.value[i.metadata.name].cpu * 100,
+          memPercentage: mem / nodes.value[i.metadata.name].mem * 100,
+        };
         samples.value[index][i.metadata.name] = metrics;
-      }
+
+        const d = parseDuration(i.window, 's');
+        for (let j = 1; j < d; j++) {
+          index -= 1;
+          if (index < 0) {
+            return;
+          }
+          samples.value[index][i.metadata.name] = metrics;
+        }
+      });
+    })().catch((e) => {
+      useErrorPresentation().pendingError = e;
+      pause()
     });
   }, 5000, { immediateCallback: true });
   stopUpdating = pause;
