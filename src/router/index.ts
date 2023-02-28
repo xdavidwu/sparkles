@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import AboutView from '../views/AboutView.vue';
+import { useApisDiscovery } from '@/stores/apisDiscovery';
+import { computed } from 'vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,7 +34,11 @@ const router = createRouter({
       path: '/metrics',
       name: 'metrics',
       component: () => import('../views/NodesMetrics.vue'),
-      meta: { name: 'Nodes Metrics' },
+      meta: { name: 'Nodes Metrics', unsupported: computed(() => {
+        if (!useApisDiscovery().groups.find((g) => g.name === 'metrics.k8s.io')) {
+          return 'Metrics not supported by cluster';
+        }
+      }) },
     },
     {
       path: '/pods',

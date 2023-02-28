@@ -39,9 +39,14 @@ const failedResponse = ref<Response | null>(null);
 const failedResponseText = ref('');
 const router = useRouter();
 const route = router.currentRoute;
-const routes = router.getRoutes().filter(r => !r.meta.hidden);
-const namespacedRoutes = routes.filter(r => r.meta.namespaced);
-const globalRoutes = routes.filter(r => !r.meta.namespaced);
+const routes = computed(() => router.getRoutes().filter(r => !r.meta.hidden).map(r => {
+  return {
+    ...r,
+    unsupportedReason: r.meta.unsupported?.value,
+  }
+}));
+const namespacedRoutes = computed(() => routes.value.filter(r => r.meta.namespaced));
+const globalRoutes = computed(() => routes.value.filter(r => !r.meta.namespaced));
 const title = computed(() => `${route.value.meta.name} - ${brand}`);
 useTitle(title);
 
@@ -105,6 +110,8 @@ watch(pendingError, (error) => {
       <VList>
         <VListSubheader>Global</VListSubheader>
         <VListItem v-for="route in globalRoutes"
+          :disabled="!!route.unsupportedReason"
+          :subtitle="route.unsupportedReason"
           :key="route.meta.name as string" :to="route">
           {{ route.meta.name }}
         </VListItem>
