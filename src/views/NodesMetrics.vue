@@ -4,7 +4,7 @@ import { VCard, VCardText, VRow, VCol } from 'vuetify/components';
 import { Line } from 'vue-chartjs';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
-import { CustomObjectsApi, CoreV1Api } from '@/kubernetes-api/src';
+import { CustomObjectsApi, CoreV1Api, ResponseError } from '@/kubernetes-api/src';
 import { useIntervalFn, type Pausable } from '@vueuse/core';
 import { BaseColor, ColorVariant, colorToCode, hashColor } from '@/utils/colors';
 import parseDuration from 'parse-duration';
@@ -13,11 +13,12 @@ import { real } from '@ragnarpa/quantity';
 import { fromBytes } from '@tsmx/human-readable';
 
 const timeRange = 600;
-const nodes = ref<{ [key: string]: { cpu: number, mem: number } }>({});
+const nodes = ref<{ [key: string]: { cpu?: number, mem?: number } }>({});
 const samples = ref<Array<{
-  [key: string]: { cpu: number, mem: number, cpuPercentage: number, memPercentage: number }
+  [key: string]: { cpu: number, mem: number, cpuPercentage?: number, memPercentage?: number }
 }>>(Array(timeRange).fill(false).map(() => ({})));
 const latestSample = ref(Math.floor(new Date().valueOf() / 1000));
+const capacityAvailable = ref(false);
 
 const datasetMetadata = computed(() => Object.keys(nodes.value).reduce((r, n) => {
   let color = colorToCode(hashColor(n, Object.values(BaseColor), [ColorVariant.Base]));
@@ -45,12 +46,21 @@ let stopUpdating: Pausable['pause'] | null = null;
 onMounted(async () => {
   const config = await useApiConfig().getConfig();
   const coreApi = new CoreV1Api(config);
-  (await coreApi.listNode()).items.forEach((n) => {
-    nodes.value[n.metadata!.name!] = {
-      cpu: real(n.status!.capacity!.cpu)!,
-      mem: real(n.status!.capacity!.memory)!,
-    };
-  });
+  try {
+    (await coreApi.listNode()).items.forEach((n) => {
+      nodes.value[n.metadata!.name!] = {
+        cpu: real(n.status!.capacity!.cpu)!,
+        mem: real(n.status!.capacity!.memory)!,
+      };
+    });
+    capacityAvailable.value = true;
+  } catch (e) {
+    if (e instanceof ResponseError && e.response.status === 403) {
+      useErrorPresentation().pendingToast = 'Percentage graphs unavailable: Permission denied on nodes info.';
+    } else {
+      throw e;
+    }
+  }
 
   const api = new CustomObjectsApi(config);
   const metricsApi = {
@@ -78,12 +88,13 @@ onMounted(async () => {
         }
 
         const cpu = real(i.usage.cpu)!, mem = real(i.usage.memory)!;
-        const metrics = {
+        const metrics = capacityAvailable.value ? {
           cpu,
           mem,
-          cpuPercentage: cpu / nodes.value[i.metadata.name].cpu * 100,
-          memPercentage: mem / nodes.value[i.metadata.name].mem * 100,
-        };
+          cpuPercentage: cpu / nodes.value[i.metadata.name].cpu! * 100,
+          memPercentage: mem / nodes.value[i.metadata.name].mem! * 100,
+        } : { cpu, mem };
+        nodes.value[i.metadata.name] ??= {};
         samples.value[index][i.metadata.name] = metrics;
 
         const d = parseDuration(i.window, 's');
@@ -97,7 +108,7 @@ onMounted(async () => {
       });
     })().catch((e) => {
       useErrorPresentation().pendingError = e;
-      pause()
+      pause();
     });
   }, 5000, { immediateCallback: true });
   stopUpdating = pause;
@@ -132,29 +143,31 @@ onUnmounted(() => stopUpdating!());
           }" />
       </VCardText></VCard>
     </VCol>
-    <VCol cols="12" md="6">
-      <VCard><VCardText style="height: 250px">
-        <Line :data="chartData" :options="{
-            animation: false,
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { title: { display: true, text: 'CPU usage (%)' } },
-            scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
-            parsing: { yAxisKey: 'cpuPercentage' },
-          }" />
-      </VCardText></VCard>
-    </VCol>
-    <VCol cols="12" md="6">
-      <VCard><VCardText style="height: 250px">
-        <Line :data="chartData" :options="{
-            animation: false,
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { title: { display: true, text: 'Memory usage (%)' } },
-            scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
-            parsing: { yAxisKey: 'memPercentage' },
-          }" />
-      </VCardText></VCard>
-    </VCol>
+    <template v-if="capacityAvailable">
+      <VCol cols="12" md="6">
+        <VCard><VCardText style="height: 250px">
+          <Line :data="chartData" :options="{
+              animation: false,
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { title: { display: true, text: 'CPU usage (%)' } },
+              scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
+              parsing: { yAxisKey: 'cpuPercentage' },
+            }" />
+        </VCardText></VCard>
+      </VCol>
+      <VCol cols="12" md="6">
+        <VCard><VCardText style="height: 250px">
+          <Line :data="chartData" :options="{
+              animation: false,
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { title: { display: true, text: 'Memory usage (%)' } },
+              scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
+              parsing: { yAxisKey: 'memPercentage' },
+            }" />
+        </VCardText></VCard>
+      </VCol>
+    </template>
   </VRow>
 </template>
