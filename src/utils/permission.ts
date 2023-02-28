@@ -1,5 +1,5 @@
 import { useApiConfig } from '@/stores/apiConfig';
-import { AuthorizationV1Api } from '@/kubernetes-api/src';
+import { AuthorizationV1Api, type V1ResourceAttributes } from '@/kubernetes-api/src';
 
 export enum PermissionStatus {
   Allowed = "allowed",
@@ -7,14 +7,12 @@ export enum PermissionStatus {
   Unknown = "unknown",
 }
 
-export const checkPermission = async (resource: string, verb: string): Promise<PermissionStatus> => {
+export const checkPermission = async (operation: V1ResourceAttributes): Promise<PermissionStatus> => {
   const apiConfig = useApiConfig();
   const response = await (new AuthorizationV1Api(await apiConfig.getConfig())).createSelfSubjectAccessReview({
     body: {
       spec: {
-        resourceAttributes: {
-          resource, verb
-        },
+        resourceAttributes: operation,
       },
     },
   });
