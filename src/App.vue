@@ -18,6 +18,7 @@ import {
   VMain,
   VNavigationDrawer,
   VToolbarTitle,
+  VSnackbar,
 } from 'vuetify/components';
 import { useNamespaces } from '@/stores/namespaces';
 import { storeToRefs } from 'pinia';
@@ -31,10 +32,12 @@ import { useTitle } from '@vueuse/core';
 const brand = import.meta.env.VITE_APP_BRANDING ?? 'Kubernetes SPA Client';
 
 const { namespaces, selectedNamespace } = storeToRefs(useNamespaces());
-const { pendingError } = storeToRefs(useErrorPresentation());
+const { pendingError, pendingToast } = storeToRefs(useErrorPresentation());
 
 const drawer = ref<boolean | null>(null);
 const showsDialog = ref(false);
+const showsSnackbar = ref(false);
+const snackbarMessage = ref('');
 const failedResponse = ref<Response | null>(null);
 const failedResponseText = ref('');
 const router = useRouter();
@@ -89,6 +92,15 @@ watch(pendingError, (error) => {
     handleError(error);
   }
 });
+
+watch(pendingToast, (toast) => {
+  if (toast) {
+    console.log(toast);
+    snackbarMessage.value = toast;
+    showsSnackbar.value = true;
+    pendingToast.value = null;
+  }
+});
 </script>
 
 <template>
@@ -139,6 +151,12 @@ watch(pendingError, (error) => {
       <VContainer fluid>
         <RouterView />
       </VContainer>
+      <VSnackbar v-model="showsSnackbar">
+        {{ snackbarMessage }}
+        <template v-slot:actions>
+          <VBtn variant="text" @click="showsSnackbar = false">Close</VBtn>
+        </template>
+      </VSnackbar>
     </VMain>
   </VApp>
 </template>
