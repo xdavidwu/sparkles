@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { VCard, VCardText, VRow, VCol } from 'vuetify/components';
+import { VCard, VCardText, VRow, VCol, VSwitch } from 'vuetify/components';
 import { Line } from 'vue-chartjs';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
@@ -19,12 +19,13 @@ const samples = ref<Array<{
 }>>(Array(timeRange).fill(false).map(() => ({})));
 const latestSample = ref(Math.floor(new Date().valueOf() / 1000));
 const capacityAvailable = ref(false);
+const stacked = ref(false);
 
 const datasetMetadata = computed(() => Object.keys(nodes.value).reduce((r, n) => {
   let color = colorToCode(hashColor(n, Object.values(BaseColor), [ColorVariant.Base]));
   r[n] = {
     label: n,
-    backgroundColor: color,
+    backgroundColor: `${color}aa`,
     borderColor: color,
     pointStyle: false,
   };
@@ -118,28 +119,27 @@ onUnmounted(() => stopUpdating!());
 </script>
 
 <template>
+  <div class="overflow-hidden">
+    <VSwitch v-model="stacked" label="Stacked" hide-details class="float-right" />
+  </div>
   <VRow>
     <VCol cols="12" md="6">
       <VCard><VCardText style="height: 250px">
         <Line :data="chartData" :options="{
-            animation: false,
-            responsive: true,
-            maintainAspectRatio: false,
             plugins: { title: { display: true, text: 'CPU usage' } },
-            scales: { x: { type: 'time' } },
+            scales: { x: { type: 'time' }, y: { stacked } },
             parsing: { yAxisKey: 'cpu' },
+            datasets: { line: { fill: stacked ? 'stack' : false } },
           }" />
       </VCardText></VCard>
     </VCol>
     <VCol cols="12" md="6">
       <VCard><VCardText style="height: 250px">
         <Line :data="chartData" :options="{
-            animation: false,
-            responsive: true,
-            maintainAspectRatio: false,
             plugins: { title: { display: true, text: 'Memory usage' } },
-            scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => fromBytes(v, { mode: 'IEC' }) } } },
+            scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => fromBytes(v, { mode: 'IEC' }) }, stacked } },
             parsing: { yAxisKey: 'mem' },
+            datasets: { line: { fill: stacked ? 'stack' : false } },
           }" />
       </VCardText></VCard>
     </VCol>
@@ -147,9 +147,6 @@ onUnmounted(() => stopUpdating!());
       <VCol cols="12" md="6">
         <VCard><VCardText style="height: 250px">
           <Line :data="chartData" :options="{
-              animation: false,
-              responsive: true,
-              maintainAspectRatio: false,
               plugins: { title: { display: true, text: 'CPU usage (%)' } },
               scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
               parsing: { yAxisKey: 'cpuPercentage' },
@@ -159,9 +156,6 @@ onUnmounted(() => stopUpdating!());
       <VCol cols="12" md="6">
         <VCard><VCardText style="height: 250px">
           <Line :data="chartData" :options="{
-              animation: false,
-              responsive: true,
-              maintainAspectRatio: false,
               plugins: { title: { display: true, text: 'Memory usage (%)' } },
               scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
               parsing: { yAxisKey: 'memPercentage' },
