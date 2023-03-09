@@ -11,6 +11,7 @@ import {
   Filler,
   LinearScale,
   TimeScale,
+  ArcElement,
   LineElement,
   PointElement,
   _adapters
@@ -29,6 +30,7 @@ Chart.register(
   Filler,
   LinearScale,
   TimeScale,
+  ArcElement,
   PointElement,
   LineElement,
 );
@@ -43,8 +45,6 @@ Chart.defaults.plugins.legend.labels.boxHeight = 8;
 Chart.defaults.plugins.legend.labels.padding = 8;
 Chart.defaults.plugins.title.padding = 0;
 Chart.defaults.animation = false;
-Chart.defaults.responsive = true;
-Chart.defaults.maintainAspectRatio = false;
 
 const app = createApp(App);
 

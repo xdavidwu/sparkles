@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { VCard, VCardText } from 'vuetify/components';
+import QuotaDoughnut from '@/components/QuotaDoughnut.vue';
 import { ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
@@ -8,6 +9,7 @@ import { useErrorPresentation } from '@/stores/errorPresentation';
 import { CoreV1Api, type V1ResourceQuota, V1ResourceQuotaFromJSON } from '@/kubernetes-api/src';
 import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndWatch } from '@/utils/watch';
+import { real } from '@ragnarpa/quantity';
 
 const { selectedNamespace } = storeToRefs(useNamespaces());
 
@@ -36,12 +38,15 @@ watch(selectedNamespace, async (namespace) => {
 <template>
   <!-- TODO: mark scoped quotas -->
   <VCard v-for="quota in quotas" :key="uniqueKeyForObject(quota)"
-    :title="quota.metadata!.name" class="mb-4"><VCardText>
-    <template v-for="(value, key) of quota.spec!.hard" :key="key">
-      {{ key }}: {{ quota.status!.used![key] }}/{{ value }}
-      <br>
-    </template>
-  </VCardText></VCard>
+    :title="quota.metadata!.name" class="mb-4">
+    <VCardText class="d-flex justify-center justify-space-evenly align-center flex-wrap">
+      <QuotaDoughnut v-for="(value, key) of quota.spec!.hard" :key="key"
+        class="ma-2" :title="key as string"
+        :used="real(quota.status!.used![key])!" :total="real(value)!">
+        {{ quota.status!.used![key] }}/{{ value }}
+      </QuotaDoughnut>
+    </VCardText>
+  </VCard>
   <template v-if="!quotas.length">
     No quota enforcement found in this namespace.
   </template>

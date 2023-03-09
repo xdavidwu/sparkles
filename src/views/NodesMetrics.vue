@@ -126,6 +126,7 @@ onUnmounted(() => stopUpdating!());
     <VCol cols="12" md="6">
       <VCard><VCardText style="height: 250px">
         <Line :data="chartData" :options="{
+            responsive: true, maintainAspectRatio: false,
             plugins: { title: { display: true, text: 'CPU usage' } },
             scales: { x: { type: 'time' }, y: { stacked } },
             parsing: { yAxisKey: 'cpu' },
@@ -136,6 +137,7 @@ onUnmounted(() => stopUpdating!());
     <VCol cols="12" md="6">
       <VCard><VCardText style="height: 250px">
         <Line :data="chartData" :options="{
+            responsive: true, maintainAspectRatio: false,
             plugins: { title: { display: true, text: 'Memory usage' } },
             scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => fromBytes(v, { mode: 'IEC' }) }, stacked } },
             parsing: { yAxisKey: 'mem' },
@@ -147,6 +149,7 @@ onUnmounted(() => stopUpdating!());
       <VCol cols="12" md="6">
         <VCard><VCardText style="height: 250px">
           <Line :data="chartData" :options="{
+              responsive: true, maintainAspectRatio: false,
               plugins: { title: { display: true, text: 'CPU usage (%)' } },
               scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
               parsing: { yAxisKey: 'cpuPercentage' },
@@ -156,6 +159,7 @@ onUnmounted(() => stopUpdating!());
       <VCol cols="12" md="6">
         <VCard><VCardText style="height: 250px">
           <Line :data="chartData" :options="{
+              responsive: true, maintainAspectRatio: false,
               plugins: { title: { display: true, text: 'Memory usage (%)' } },
               scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
               parsing: { yAxisKey: 'memPercentage' },
