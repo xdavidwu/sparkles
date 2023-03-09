@@ -38,7 +38,14 @@ const router = createRouter({
         if (!useApisDiscovery().groups.find((g) => g.name === 'metrics.k8s.io')) {
           return 'Metrics not supported by cluster';
         }
+        return undefined;
       }) },
+    },
+    {
+      path: '/quotas',
+      name: 'quotas',
+      component: () => import('../views/QuotasUsage.vue'),
+      meta: { name: 'Quotas', namespaced: true },
     },
     {
       path: '/pods',
