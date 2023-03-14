@@ -8,6 +8,7 @@ const props = defineProps<{
   used: number,
   total: number,
   title: string,
+  details?: { [key: string]: number },
 }>();
 
 const percentage = computed(() => ((props.used / props.total) * 100).toFixed(2));
@@ -21,17 +22,32 @@ const color = computed(() => {
   return colors['green']['darken1'];
 });
 
+const detailKeys = computed(() => Object.keys(props.details ?? {})
+  .sort((a, b) => props.details![a] - props.details![b]));
+const detailColorsDensity = computed(() => detailKeys.value.map(
+  (k, i) => Math.floor(255 * (detailKeys.value.length - i)
+    / (detailKeys.value.length + 1))));
+const detailColors = computed(() =>
+  detailColorsDensity.value.map((v) => `rgb(${v}, ${v}, ${v})`));
+
 const chartData = computed(() => ({
-  labels: [
+  labels: detailKeys.value.concat([
     'Used',
     'Unused',
-  ],
+  ]),
   datasets: [{
+    data: detailKeys.value.map((k) => props.details![k]),
+    backgroundColor: detailColors.value,
+    borderColor: detailColors.value,
+    weight: 0.25,
+  }, {
     data: [props.used, props.total - props.used],
-    backgroundColor: [color.value, '#fff1'],
+    backgroundColor: [color.value, '#0000'],
     borderColor: [color.value, '#fff1'],
   }],
 }));
+
+// TODO: external tooltip to make it not restricted to canvas?
 </script>
 
 <template>
