@@ -13,7 +13,7 @@ import ExecTerminal from '@/components/ExecTerminal.vue';
 import KeyValueBadge from '@/components/KeyValueBadge.vue';
 import LogViewer from '@/components/LogViewer.vue';
 import LinkedImage from '@/components/LinkedImage.vue';
-import { ref, watch } from 'vue';
+import { ref, watch, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -98,6 +98,12 @@ const bell = (index: number) => {
     }
   }, 1000);
 };
+
+onUnmounted(() => {
+  if (abortController) {
+    abortController.abort();
+  }
+})
 </script>
 
 <template>

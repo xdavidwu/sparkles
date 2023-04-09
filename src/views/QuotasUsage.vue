@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { VCard, VCardText } from 'vuetify/components';
 import QuotaDoughnut from '@/components/QuotaDoughnut.vue';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -67,6 +67,12 @@ watch(selectedNamespace, async (namespace) => {
     { namespace })
       .catch((e) => useErrorPresentation().pendingError = e);
 }, { immediate: true });
+
+onUnmounted(() => {
+  if (abortController) {
+    abortController.abort();
+  }
+})
 </script>
 
 <template>

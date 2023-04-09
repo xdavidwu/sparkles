@@ -12,7 +12,7 @@ import {
   VWindowItem,
 } from 'vuetify/components';
 import YAMLViewer from '@/components/YAMLViewer.vue';
-import { computed, watch, ref } from 'vue';
+import { computed, watch, ref, onUnmounted } from 'vue';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -179,6 +179,12 @@ watch(groups, (groups) => {
 watch(targetAPI, getResources, { immediate: true });
 watch(targetResource, listResources);
 watch(targetNamespace, listResources);
+
+onUnmounted(() => {
+  if (abortController) {
+    abortController.abort();
+  }
+})
 </script>
 
 <template>
