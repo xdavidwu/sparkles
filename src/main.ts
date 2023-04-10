@@ -45,6 +45,7 @@ Chart.defaults.plugins.legend.labels.boxHeight = 8;
 Chart.defaults.plugins.legend.labels.padding = 8;
 Chart.defaults.plugins.title.padding = 0;
 Chart.defaults.animation = false;
+Chart.defaults.resizeDelay = 1000 / 24;
 
 const app = createApp(App);
 
