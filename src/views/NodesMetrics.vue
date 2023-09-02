@@ -9,7 +9,6 @@ import { useIntervalFn, type Pausable } from '@vueuse/core';
 import { BaseColor, ColorVariant, colorToCode, hashColor } from '@/utils/colors';
 import parseDuration from 'parse-duration';
 import { real } from '@ragnarpa/quantity';
-// @ts-expect-error Missing type definitions
 import { fromBytes } from '@tsmx/human-readable';
 
 const timeRange = 600;
@@ -98,7 +97,7 @@ onMounted(async () => {
         nodes.value[i.metadata.name] ??= {};
         samples.value[index][i.metadata.name] = metrics;
 
-        const d = parseDuration(i.window, 's');
+        const d = parseDuration(i.window, 's')!;
         for (let j = 1; j < d; j++) {
           index -= 1;
           if (index < 0) {
@@ -139,7 +138,7 @@ onUnmounted(() => stopUpdating!());
         <Line :data="chartData" :options="{
             responsive: true, maintainAspectRatio: false,
             plugins: { title: { display: true, text: 'Memory usage' } },
-            scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => fromBytes(v, { mode: 'IEC' }) }, stacked } },
+            scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => fromBytes(+v, { mode: 'IEC' }) }, stacked } },
             parsing: { yAxisKey: 'mem' },
             datasets: { line: { fill: stacked ? 'stack' : false } },
           }" />
