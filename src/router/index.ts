@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import AboutView from '../views/AboutView.vue';
+import AboutView from '@/views/AboutView.vue';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { computed } from 'vue';
 
@@ -15,25 +15,25 @@ const router = createRouter({
     {
       path: '/settings',
       name: 'settings',
-      component: () => import('../views/APISettings.vue'),
+      component: () => import('@/views/APISettings.vue'),
       meta: { name: 'Settings' },
     },
     {
       path: '/oidc/callback',
       name: 'oidc_callback',
-      component: () => import('../views/OIDCCallback.vue'),
+      component: () => import('@/views/OIDCCallback.vue'),
       meta: { name: 'OIDC Auth', hidden: true },
     },
     {
       path: '/explore',
       name: 'explore',
-      component: () => import('../views/ResourceExplorer.vue'),
+      component: () => import('@/views/ResourceExplorer.vue'),
       meta: { name: 'Resource Explorer' },
     },
     {
       path: '/metrics',
       name: 'metrics',
-      component: () => import('../views/NodesMetrics.vue'),
+      component: () => import('@/views/NodesMetrics.vue'),
       meta: { name: 'Nodes Metrics', unsupported: computed(() => {
         if (!useApisDiscovery().groups.find((g) => g.name === 'metrics.k8s.io')) {
           return 'Metrics not supported by cluster';
@@ -44,19 +44,19 @@ const router = createRouter({
     {
       path: '/quotas',
       name: 'quotas',
-      component: () => import('../views/QuotasUsage.vue'),
+      component: () => import('@/views/QuotasUsage.vue'),
       meta: { name: 'Quotas', namespaced: true },
     },
     {
       path: '/pods',
       name: 'pods',
-      component: () => import('../views/PodsList.vue'),
+      component: () => import('@/views/PodsList.vue'),
       meta: { name: 'Pods', namespaced: true },
     },
     {
       path: '/helm',
       name: 'helm',
-      component: () => import('../views/HelmList.vue'),
+      component: () => import('@/views/HelmList.vue'),
       meta: { name: 'Helm', namespaced: true },
     },
   ]
