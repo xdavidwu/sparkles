@@ -34,14 +34,12 @@ const setupGo = async () => {
   const config = useApiConfig();
   const token = await config.getBearerToken();
 
-  // eslint-disable-next-line no-undef
   const go = new Go();
   const wasm = await WebAssembly.instantiateStreaming(
     fetch('helm.wasm'), go.importObject);
   go.run(wasm.instance);
   goInitialized = true;
 
-  // eslint-disable-next-line no-undef
   configConnection({
     basePath: import.meta.env.VITE_KUBERNETES_API,
     accessToken: token,
@@ -71,7 +69,6 @@ watch(selectedNamespace, async (namespace) => {
     return;
   }
   await setupGo();
-  // eslint-disable-next-line no-undef
   releases.value = JSON.parse(await listReleasesForNamespace(namespace));
 }, { immediate: true });
 </script>

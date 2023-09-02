@@ -16,9 +16,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  // eslint-disable-next-line no-unused-vars
   (e: 'titleChanged', title: string): void,
-  // eslint-disable-next-line no-unused-vars
   (e: 'bell'): void,
 }>();
 

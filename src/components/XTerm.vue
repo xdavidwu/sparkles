@@ -5,7 +5,6 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 
 const emit = defineEmits<{
-  // eslint-disable-next-line no-unused-vars
   (e: 'ready', terminal: Terminal): void,
 }>();
 
