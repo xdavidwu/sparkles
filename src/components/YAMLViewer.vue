@@ -4,7 +4,7 @@ import { Codemirror } from 'vue-codemirror';
 import { yaml } from '@codemirror/legacy-modes/mode/yaml';
 import { StreamLanguage } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { indentFold, createTextTooltip, type Tooltips } from '@/utils/CodeMirror';
+import { indentFold, createTextTooltip, type Tooltips } from '@/utils/codeMirror';
 import { stringify, parseDocument, visit, Pair, YAMLMap, YAMLSeq, Scalar, type Node } from 'yaml';
 import pointer from 'json-pointer';
 
