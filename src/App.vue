@@ -20,6 +20,7 @@ import {
   VToolbarTitle,
   VSnackbar,
 } from 'vuetify/components';
+import IdentityIndicator from '@/components/IdentityIndicator.vue';
 import { useNamespaces } from '@/stores/namespaces';
 import { storeToRefs } from 'pinia';
 import { computed, ref, onErrorCaptured, watch } from 'vue';
@@ -108,6 +109,7 @@ watch(pendingToast, (toast) => {
     <VAppBar>
       <VAppBarNavIcon @click="drawer = !drawer" />
       <VToolbarTitle>{{ brand }}</VToolbarTitle>
+      <IdentityIndicator class="mr-6" />
     </VAppBar>
     <VNavigationDrawer v-model="drawer">
       <VList>
