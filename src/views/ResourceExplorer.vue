@@ -37,6 +37,10 @@ type ObjectRecord = {
 
 const LOADING = '(loading)';
 const NS_ALL_NAMESPACES = '(all)';
+const EMPTY_V1_TABLE = {
+  columnDefinitions: [],
+  rows: [],
+};
 const apiConfigStore = useApiConfig();
 const openAPISchemaDiscovery = useOpenAPISchemaDiscovery();
 
@@ -50,13 +54,10 @@ const targetGroup = ref<V1APIGroup>({
   },
 });
 const types = ref<Array<V1APIResource>>([]);
-const targetType = ref<V1APIResource>({
+const targetType = ref<V1APIResource | null>({
   kind: '', name: LOADING, namespaced: false, singularName: '', verbs: [],
 });
-const objects = ref<V1Table>({
-  columnDefinitions: [],
-  rows: [],
-});
+const objects = ref<V1Table>(EMPTY_V1_TABLE);
 const tab = ref('explore');
 const inspectedObjects = ref<Array<ObjectRecord>>([]);
 const verbosity = ref('minimal');
@@ -75,7 +76,7 @@ const getTypes = async () => {
   types.value = response.resources.filter(
     (v) => (!v.name.includes('/') && v.verbs.includes('list'))
   );
-  targetType.value = types.value[0];
+  targetType.value = types.value[0] ?? null;
 };
 
 let abortController: AbortController | null = null;
@@ -84,6 +85,11 @@ const listObjects = async () => {
     abortController.abort();
   }
   abortController = new AbortController();
+
+  if (targetType.value === null) {
+    objects.value = EMPTY_V1_TABLE;
+    return;
+  }
 
   const anyApi = new AnyApi(await apiConfigStore.getConfig());
   const sharedOptions = {
@@ -107,6 +113,7 @@ const listObjects = async () => {
       ).catch((e) => useErrorPresentation().pendingError = e);
     }
   } else {
+    // TODO notify user table is not receiving updates
     if (listNamespaced) {
       objects.value = await anyApi.listNamespacedCustomObjectAsTable({
         ...sharedOptions,
@@ -126,7 +133,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
   };
   const sharedOptions = {
     ...api,
-    plural: targetType.value.name,
+    plural: targetType.value!.name,
     name: obj.metadata!.name!,
   };
   let object;
@@ -148,7 +155,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     const apiBase = targetGroup.value.name ?
       `/apis/${targetGroup.value.preferredVersion!.groupVersion}` :
       `/api/${targetGroup.value.preferredVersion!.version}`;
-    const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${targetType.value.name}/{name}`;
+    const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${targetType.value!.name}/{name}`;
     const object = (root.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject)
       .content?.['application/json']?.schema;
 
@@ -215,7 +222,7 @@ onUnmounted(() => {
             return-object hide-details item-title="name" />
         </VCol>
         <VCol cols="6" md="">
-          <VAutocomplete v-if="targetType.namespaced" label="Namespace"
+          <VAutocomplete v-if="targetType?.namespaced" label="Namespace"
             v-model="targetNamespace" :items="namespaceOptions" hide-details />
           <VSelect v-else label="Namespace" model-value="(global)" hide-details
             disabled />
@@ -229,7 +236,7 @@ onUnmounted(() => {
         :class="{ 'show-all': verbosity === 'full' }">
         <thead>
           <tr>
-            <th v-if="targetType.namespaced && targetNamespace === NS_ALL_NAMESPACES">Namespace</th>
+            <th v-if="targetType?.namespaced && targetNamespace === NS_ALL_NAMESPACES">Namespace</th>
             <th v-for="column in objects.columnDefinitions" :key="column.name"
               :class="{ 'low-priority': column.priority > 0 }"
               :title="column.description">{{ column.name }}</th>
@@ -240,7 +247,7 @@ onUnmounted(() => {
             :key="uniqueKeyForObject(row.object as V1PartialObjectMetadata)"
             @click="inspectObject(row.object as V1PartialObjectMetadata)"
             style="cursor: pointer">
-            <td v-if="targetType.namespaced && targetNamespace === NS_ALL_NAMESPACES">
+            <td v-if="targetType?.namespaced && targetNamespace === NS_ALL_NAMESPACES">
               {{ (row.object as V1PartialObjectMetadata).metadata!.namespace }}
             </td>
             <td v-for="(cell, index) in row.cells" :key="String(cell)"
