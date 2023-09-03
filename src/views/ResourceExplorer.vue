@@ -44,16 +44,16 @@ const { namespaces } = storeToRefs(useNamespaces());
 const namespaceOptions = computed(() => [ '(all)', ...namespaces.value ]);
 const targetNamespace = ref(NS_ALL_NAMESPACES);
 const { groups } = storeToRefs(useApisDiscovery());
-const targetAPI = ref<V1APIGroup>({
+const targetGroup = ref<V1APIGroup>({
   name: '', versions: [], preferredVersion: {
     groupVersion: LOADING, version: '',
   },
 });
-const resources = ref<Array<V1APIResource>>([]);
-const targetResource = ref<V1APIResource>({
+const types = ref<Array<V1APIResource>>([]);
+const targetType = ref<V1APIResource>({
   kind: '', name: LOADING, namespaced: false, singularName: '', verbs: [],
 });
-const listing = ref<V1Table>({
+const objects = ref<V1Table>({
   columnDefinitions: [],
   rows: [],
 });
@@ -61,25 +61,25 @@ const tab = ref('explore');
 const inspectedObjects = ref<Array<ObjectRecord>>([]);
 const verbosity = ref('minimal');
 
-const getResources = async () => {
-  if (targetAPI.value.preferredVersion!.groupVersion === LOADING) {
+const getTypes = async () => {
+  if (targetGroup.value.preferredVersion!.groupVersion === LOADING) {
     return;
   }
   const anyApi = new AnyApi(await apiConfigStore.getConfig());
   const response = await anyApi.getAPIResources({
-    group: targetAPI.value.name,
-    version: targetAPI.value.preferredVersion!.version,
+    group: targetGroup.value.name,
+    version: targetGroup.value.preferredVersion!.version,
   });
 
   // filter out subresources, unlistables
-  resources.value = response.resources.filter(
+  types.value = response.resources.filter(
     (v) => (!v.name.includes('/') && v.verbs.includes('list'))
   );
-  targetResource.value = resources.value[0];
+  targetType.value = types.value[0];
 };
 
 let abortController: AbortController | null = null;
-const listResources = async () => {
+const listObjects = async () => {
   if (abortController) {
     abortController.abort();
   }
@@ -87,33 +87,33 @@ const listResources = async () => {
 
   const anyApi = new AnyApi(await apiConfigStore.getConfig());
   const sharedOptions = {
-    group: targetAPI.value.name,
-    version: targetAPI.value.preferredVersion!.version,
-    plural: targetResource.value.name,
+    group: targetGroup.value.name,
+    version: targetGroup.value.preferredVersion!.version,
+    plural: targetType.value.name,
   };
-  const listNamespaced = targetResource.value.namespaced && targetNamespace.value !== NS_ALL_NAMESPACES;
-  if (targetResource.value.verbs.includes('watch')) {
+  const listNamespaced = targetType.value.namespaced && targetNamespace.value !== NS_ALL_NAMESPACES;
+  if (targetType.value.verbs.includes('watch')) {
     if (listNamespaced) {
       listAndWatchTable(
-        listing,
+        objects,
         (opt) => anyApi.listNamespacedCustomObjectAsTableRaw(opt, { signal: abortController!.signal }),
         { ...sharedOptions, namespace: targetNamespace.value },
       ).catch((e) => useErrorPresentation().pendingError = e);
     } else {
       listAndWatchTable(
-        listing,
+        objects,
         (opt) => anyApi.listClusterCustomObjectAsTableRaw(opt, { signal: abortController!.signal }),
         sharedOptions,
       ).catch((e) => useErrorPresentation().pendingError = e);
     }
   } else {
     if (listNamespaced) {
-      listing.value = await anyApi.listNamespacedCustomObjectAsTable({
+      objects.value = await anyApi.listNamespacedCustomObjectAsTable({
         ...sharedOptions,
         namespace: targetNamespace.value,
       });
     } else {
-      listing.value = await anyApi.listClusterCustomObjectAsTable(sharedOptions);
+      objects.value = await anyApi.listClusterCustomObjectAsTable(sharedOptions);
     }
   }
 };
@@ -121,12 +121,12 @@ const listResources = async () => {
 const inspectObject = async (obj: V1PartialObjectMetadata) => {
   const anyApi = new AnyApi(await apiConfigStore.getConfig());
   const api = {
-    group: targetAPI.value.name,
-    version: targetAPI.value.preferredVersion!.version,
+    group: targetGroup.value.name,
+    version: targetGroup.value.preferredVersion!.version,
   };
   const sharedOptions = {
     ...api,
-    plural: targetResource.value.name,
+    plural: targetType.value.name,
     name: obj.metadata!.name!,
   };
   let object;
@@ -145,10 +145,10 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     const root = await openAPISchemaDiscovery.getSchema(api);
 
     // XXX: is there a better place to place this?
-    const apiBase = targetAPI.value.name ?
-      `/apis/${targetAPI.value.preferredVersion!.groupVersion}` :
-      `/api/${targetAPI.value.preferredVersion!.version}`;
-    const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${targetResource.value.name}/{name}`;
+    const apiBase = targetGroup.value.name ?
+      `/apis/${targetGroup.value.preferredVersion!.groupVersion}` :
+      `/api/${targetGroup.value.preferredVersion!.version}`;
+    const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${targetType.value.name}/{name}`;
     const object = (root.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject)
       .content?.['application/json']?.schema;
 
@@ -173,12 +173,12 @@ const closeTab = (idx: number) => {
 
 watch(groups, (groups) => {
   if (groups.length) {
-    targetAPI.value = groups[0];
+    targetGroup.value = groups[0];
   }
 }, { immediate: true });
-watch(targetAPI, getResources, { immediate: true });
-watch(targetResource, listResources);
-watch(targetNamespace, listResources);
+watch(targetGroup, getTypes, { immediate: true });
+watch(targetType, listObjects);
+watch(targetNamespace, listObjects);
 
 onUnmounted(() => {
   if (abortController) {
@@ -206,16 +206,16 @@ onUnmounted(() => {
     <VWindowItem value="explore">
       <VRow class="mb-1">
         <VCol cols="6" md="">
-          <VAutocomplete label="API group" v-model="targetAPI" :items="groups"
+          <VAutocomplete label="API group" v-model="targetGroup" :items="groups"
             return-object hide-details
             :item-title="(api) => (api.preferredVersion!.groupVersion)" />
         </VCol>
         <VCol cols="6" md="">
-          <VAutocomplete label="Kind" v-model="targetResource" :items="resources"
+          <VAutocomplete label="Type" v-model="targetType" :items="types"
             return-object hide-details item-title="name" />
         </VCol>
         <VCol cols="6" md="">
-          <VAutocomplete v-if="targetResource.namespaced" label="Namespace"
+          <VAutocomplete v-if="targetType.namespaced" label="Namespace"
             v-model="targetNamespace" :items="namespaceOptions" hide-details />
           <VSelect v-else label="Namespace" model-value="(global)" hide-details
             disabled />
@@ -229,22 +229,22 @@ onUnmounted(() => {
         :class="{ 'show-all': verbosity === 'full' }">
         <thead>
           <tr>
-            <th v-if="targetResource.namespaced && targetNamespace === NS_ALL_NAMESPACES">Namespace</th>
-            <th v-for="column in listing.columnDefinitions" :key="column.name"
+            <th v-if="targetType.namespaced && targetNamespace === NS_ALL_NAMESPACES">Namespace</th>
+            <th v-for="column in objects.columnDefinitions" :key="column.name"
               :class="{ 'low-priority': column.priority > 0 }"
               :title="column.description">{{ column.name }}</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in listing.rows"
+          <tr v-for="row in objects.rows"
             :key="uniqueKeyForObject(row.object as V1PartialObjectMetadata)"
             @click="inspectObject(row.object as V1PartialObjectMetadata)"
             style="cursor: pointer">
-            <td v-if="targetResource.namespaced && targetNamespace === NS_ALL_NAMESPACES">
+            <td v-if="targetType.namespaced && targetNamespace === NS_ALL_NAMESPACES">
               {{ (row.object as V1PartialObjectMetadata).metadata!.namespace }}
             </td>
             <td v-for="(cell, index) in row.cells" :key="String(cell)"
-              :class="{ 'low-priority': listing.columnDefinitions[index].priority > 0 }"
+              :class="{ 'low-priority': objects.columnDefinitions[index].priority > 0 }"
               >{{ cell }}</td>
           </tr>
         </tbody>
