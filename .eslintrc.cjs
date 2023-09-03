@@ -11,5 +11,5 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 'latest'
   },
-  ignorePatterns: ['**/vendor/*.js'],
+  ignorePatterns: ['**/vendor/*.js', 'src/kubernetes-api/'],
 }
