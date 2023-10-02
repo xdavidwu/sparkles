@@ -1,3 +1,4 @@
+import type { Ref } from 'vue';
 import { foldService, IndentContext } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
 import { hoverTooltip } from "@codemirror/view"
@@ -35,8 +36,8 @@ type Range = [number, number];
 type Tooltip = { range: Range, text: string };
 export type Tooltips = Array<Tooltip>;
 
-export const createTextTooltip = (tooltips: Tooltips) => hoverTooltip((view, pos) => {
-  for (const tooltip of tooltips) {
+export const createTextTooltip = (tooltips: Ref<Tooltips>) => hoverTooltip((view, pos) => {
+  for (const tooltip of tooltips.value) {
     if (pos >= tooltip.range[0] && pos <= tooltip.range[1]) {
       return {
         pos: tooltip.range[0],

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, watch } from 'vue';
+import { computed } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { yaml } from '@codemirror/legacy-modes/mode/yaml';
 import { StreamLanguage } from '@codemirror/language';
@@ -59,31 +59,32 @@ function descriptionFromPath(schema: any, path: Array<any>): string | null | und
   return descriptionFromPath(schema, path.slice(1));
 }
 
-const tooltips: Tooltips = [];
-
-if (props.schema) {
-  watch(dataAsYAML, (data) => {
-    const doc = parseDocument(data);
-    visit(doc, {
-      Pair: (key, node, path) => {
-        const description = descriptionFromPath(props.schema!.object, [ ...path, node ]);
-        if (description) {
-          let end = node.value instanceof Scalar ?
-            node.value.range![1] : (node.key as Node).range![1];
-          tooltips.push({ range: [(node.key as Node).range![0], end], text: description });
-        }
-      },
-      Seq: (key, node, path) => {
-        const description = descriptionFromPath(props.schema!.object, [ ...path, node ]);
-        if (description) {
-          // the first - list mark
-          // TODO: locate other - list marks?
-          tooltips.push({ range: [node.range![0], node.range![0] + 1], text: description });
-        }
-      },
-    });
-  }, { immediate: true });
-}
+const tooltips = computed(() => {
+  if (!props.schema) {
+    return [];
+  }
+  const doc = parseDocument(dataAsYAML.value);
+  const tips: Tooltips = [];
+  visit(doc, {
+    Pair: (key, node, path) => {
+      const description = descriptionFromPath(props.schema!.object, [ ...path, node ]);
+      if (description) {
+        let end = node.value instanceof Scalar ?
+          node.value.range![1] : (node.key as Node).range![1];
+        tips.push({ range: [(node.key as Node).range![0], end], text: description });
+      }
+    },
+    Seq: (key, node, path) => {
+      const description = descriptionFromPath(props.schema!.object, [ ...path, node ]);
+      if (description) {
+        // the first - list mark
+        // TODO: locate other - list marks?
+        tips.push({ range: [node.range![0], node.range![0] + 1], text: description });
+      }
+    },
+  });
+  return tips;
+});
 
 const extensions = [ oneDark, StreamLanguage.define(yaml), indentFold, createTextTooltip(tooltips) ];
 </script>
