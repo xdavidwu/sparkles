@@ -132,9 +132,15 @@ const codemirrorReady = ({ view }: { view: EditorView }) => {
       // TODO Seq?
     });
   };
-  foldOnReady.forEach((path) => {
-    maybeFold(path);
-  })
+  // inital usage of parsedBackData is slow, either on:
+  //  - tooltips (called only on tooltip callback)
+  //  - maybeFold
+  // hack so that maybeFold does not block rendering
+  setTimeout(() => {
+    foldOnReady.forEach((path) => {
+      maybeFold(path);
+    });
+  }, 1);
 };
 
 const extensions = [ oneDark, StreamLanguage.define(yaml), indentFold, createTextTooltip(tooltips) ];
