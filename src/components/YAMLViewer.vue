@@ -115,11 +115,14 @@ const codemirrorReady = ({ view }: { view: EditorView }) => {
         if ((node.key as Scalar).value === target[findIndex].index) {
           findIndex++;
           if (findIndex === target.length) {
-            view.dispatch({effects: foldEffect.of(foldable(
+            const range = foldable(
               view.state,
               (node.key as Node).range![0],
               (node.key as Node).range![1],
-            )!)})
+            );
+            if (range) {
+              view.dispatch({effects: foldEffect.of(range)});
+            }
             return visit.BREAK;
           }
         } else {
