@@ -1,12 +1,30 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { Codemirror } from 'vue-codemirror';
+import type { EditorView } from '@codemirror/view';
 import { yaml } from '@codemirror/legacy-modes/mode/yaml';
-import { StreamLanguage } from '@codemirror/language';
+import { StreamLanguage, foldEffect, foldable } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { indentFold, createTextTooltip, type Tooltips } from '@/utils/codeMirror';
 import { stringify, parseDocument, visit, Pair, YAMLMap, YAMLSeq, Scalar, type Node } from 'yaml';
 import pointer from 'json-pointer';
+
+type pathHistoryItem = {
+  kind: 'YAMLMap' | 'YAMLSeq',
+  index: string | number,
+};
+
+const foldOnReady: Array<Array<pathHistoryItem>> = [
+  [
+    {kind: 'YAMLMap', index: 'metadata'},
+    {kind: 'YAMLMap', index: 'annotations'},
+    {kind: 'YAMLMap', index: 'kubectl.kubernetes.io/last-applied-configuration'},
+  ],
+  [
+    {kind: 'YAMLMap', index: 'metadata'},
+    {kind: 'YAMLMap', index: 'managedFields'},
+  ],
+];
 
 const props = defineProps<{
   data: Object,
@@ -17,6 +35,7 @@ const props = defineProps<{
 }>();
 
 const dataAsYAML = computed(() => stringify(props.data));
+const parsedBackData = computed(() => parseDocument(dataAsYAML.value));
 
 function descriptionFromPath(schema: any, path: Array<any>): string | null | undefined {
   if (schema.$ref) {
@@ -63,9 +82,8 @@ const tooltips = computed(() => {
   if (!props.schema) {
     return [];
   }
-  const doc = parseDocument(dataAsYAML.value);
   const tips: Tooltips = [];
-  visit(doc, {
+  visit(parsedBackData.value, {
     Pair: (key, node, path) => {
       const description = descriptionFromPath(props.schema!.object, [ ...path, node ]);
       if (description) {
@@ -86,9 +104,39 @@ const tooltips = computed(() => {
   return tips;
 });
 
+const codemirrorReady = ({ view }: { view: EditorView }) => {
+  const maybeFold = (target: Array<pathHistoryItem>) => {
+    let findIndex = 0;
+    visit(parsedBackData.value, {
+      Pair: (key, node) => {
+        if (target[findIndex].kind !== 'YAMLMap') {
+          return visit.SKIP;
+        }
+        if ((node.key as Scalar).value === target[findIndex].index) {
+          findIndex++;
+          if (findIndex === target.length) {
+            view.dispatch({effects: foldEffect.of(foldable(
+              view.state,
+              (node.key as Node).range![0],
+              (node.key as Node).range![1],
+            )!)})
+            return visit.BREAK;
+          }
+        } else {
+          return visit.SKIP;
+        }
+      },
+      // TODO Seq?
+    });
+  };
+  foldOnReady.forEach((path) => {
+    maybeFold(path);
+  })
+};
+
 const extensions = [ oneDark, StreamLanguage.define(yaml), indentFold, createTextTooltip(tooltips) ];
 </script>
 
 <template>
-  <Codemirror v-model="dataAsYAML" :extensions="extensions" disabled />
+  <Codemirror v-model="dataAsYAML" :extensions="extensions" @ready="codemirrorReady" disabled />
 </template>
