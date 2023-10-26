@@ -30,7 +30,7 @@ import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useRouter } from 'vue-router';
 import { useTitle } from '@vueuse/core';
 
-const brand = import.meta.env.VITE_APP_BRANDING ?? 'Kubernetes SPA Client';
+const brand = import.meta.env.VITE_APP_BRANDING ?? 'Sparkles';
 
 const { namespaces, selectedNamespace } = storeToRefs(useNamespaces());
 const { pendingError, pendingToast } = storeToRefs(useErrorPresentation());

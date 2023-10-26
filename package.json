@@ -1,6 +1,5 @@
 {
-  "name": "kubernetes-spa-playground",
-  "version": "0.0.0",
+  "private": "true",
   "scripts": {
     "wasm": "cd helm-wasm && env GOOS=js GOARCH=wasm go build -o ../public/helm.wasm",
     "dev": "npm run wasm && vite --port 8000",
