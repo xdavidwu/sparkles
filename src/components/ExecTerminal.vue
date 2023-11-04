@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import XTerm from '@/components/XTerm.vue';
+import { onUnmounted } from 'vue';
 import type { Terminal } from 'xterm';
 import { useApiConfig } from '@/stores/apiConfig';
 import { V1StatusFromJSON } from '@/kubernetes-api/src';
@@ -22,6 +23,8 @@ const emit = defineEmits<{
 
 const findShell = 'for i in /bin/bash /bin/sh; do if [ -x "$i" ]; then "$i"; break; fi; done';
 
+let socket: WebSocket | null = null;
+
 let commandOpts = '';
 for (const i of props.command ?? ['/bin/sh', '-c', findShell]) {
   commandOpts = `${commandOpts}&command=${encodeURIComponent(i)}`;
@@ -41,8 +44,8 @@ const display = async (terminal: Terminal) => {
     .replace(/^http:\/\//, 'ws://');
   const fullUrl = `${socketBase}${url}`;
 
-  // https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/cri/streaming/remotecommand/websocket.go
-  const socket = new WebSocket(fullUrl, token ? [
+  // https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/pkg/cri/streaming/remotecommand/websocket.go
+  socket = new WebSocket(fullUrl, token ? [
     // https://github.com/kubernetes/kubernetes/pull/47740
     'v4.channel.k8s.io',
     `base64url.bearer.authorization.k8s.io.${base64url(token)}`
@@ -54,7 +57,7 @@ const display = async (terminal: Terminal) => {
   };
 
   const resize = (t: { cols: number, rows: number }) => {
-    socket.send(`\x04{"Width":${t.cols},"Height":${t.rows}}\n`);
+    socket!.send(`\x04{"Width":${t.cols},"Height":${t.rows}}\n`);
   };
 
   const CSI = '\x1b[';
@@ -62,7 +65,7 @@ const display = async (terminal: Terminal) => {
     resize(terminal);
     terminal.write(`${CSI}2J${CSI}H`); // clear all, reset cursor
     terminal.onData((data) => {
-      socket.send(`\x00${data}`);
+      socket!.send(`\x00${data}`);
     });
     terminal.onResize(resize);
   };
@@ -72,7 +75,7 @@ const display = async (terminal: Terminal) => {
     if (stream === 1 || stream === 2) {
       terminal.write(data.subarray(1));
     } else if (stream === 3) {
-      // https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/cri/streaming/remotecommand/httpstream.go
+      // https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/pkg/cri/streaming/remotecommand/httpstream.go
       const status = V1StatusFromJSON(JSON.parse(
         new TextDecoder().decode(data.subarray(1))
       ));
@@ -87,10 +90,23 @@ const display = async (terminal: Terminal) => {
       }
       terminal.write(`${CSI}?25l`); // unset mode: cursor visible
 
-      socket.close();
+      socket!.close();
     }
   };
 };
+
+onUnmounted(() => {
+  if (socket) {
+    // should we ^D to stdin here?
+
+    // TODO v5.channel.k8s.io added support for closing streams (stdin)
+    // https://github.com/kubernetes/kubernetes/pull/119157
+    // which should land in 1.29
+    // we will likely also need protocol negotiation
+
+    socket.close();
+  }
+});
 </script>
 
 <template>
