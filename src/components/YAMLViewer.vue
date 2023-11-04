@@ -5,7 +5,7 @@ import type { EditorView } from '@codemirror/view';
 import { yaml } from '@codemirror/legacy-modes/mode/yaml';
 import { StreamLanguage, foldEffect, foldable } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { indentFold, createTextTooltip, type Tooltips } from '@/utils/codeMirror';
+import { indentFold, createTextTooltip, type Tooltip } from '@/utils/codeMirror';
 import { stringify, parseDocument, visit, Pair, YAMLMap, YAMLSeq, Scalar, type Node } from 'yaml';
 import pointer from 'json-pointer';
 
@@ -82,7 +82,7 @@ const tooltips = computed(() => {
   if (!props.schema) {
     return [];
   }
-  const tips: Tooltips = [];
+  const tips: Array<Tooltip> = [];
   visit(parsedBackData.value, {
     Pair: (key, node, path) => {
       const description = descriptionFromPath(props.schema!.object, [ ...path, node ]);

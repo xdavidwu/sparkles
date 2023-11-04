@@ -32,11 +32,12 @@ export const indentFold = foldService.of(
   }
 );
 
-type Range = [number, number];
-type Tooltip = { range: Range, text: string };
-export type Tooltips = Array<Tooltip>;
+export interface Tooltip {
+  range: [number, number],
+  text: string,
+}
 
-export const createTextTooltip = (tooltips: Ref<Tooltips>) => hoverTooltip((view, pos) => {
+export const createTextTooltip = (tooltips: Ref<Array<Tooltip>>) => hoverTooltip((view, pos) => {
   for (const tooltip of tooltips.value) {
     if (pos >= tooltip.range[0] && pos <= tooltip.range[1]) {
       return {

@@ -26,15 +26,15 @@ import type { OpenAPIV3 } from 'openapi-types';
 import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndWatchTable } from '@/utils/watch';
 
-type ResponseSchema = {
+interface ResponseSchema {
   root: OpenAPIV3.Document,
   object: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject,
-};
+}
 
-type ObjectRecord = {
+interface ObjectRecord {
   schema?: ResponseSchema,
   object: any,
-};
+}
 
 const LOADING = '(loading)';
 const NS_ALL_NAMESPACES = '(all)';
