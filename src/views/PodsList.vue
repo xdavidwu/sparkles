@@ -13,7 +13,8 @@ import ExecTerminal from '@/components/ExecTerminal.vue';
 import KeyValueBadge from '@/components/KeyValueBadge.vue';
 import LogViewer from '@/components/LogViewer.vue';
 import LinkedImage from '@/components/LinkedImage.vue';
-import { ref, watch, onUnmounted } from 'vue';
+import { ref, watch } from 'vue';
+import { useAbortController } from '@/composables/abortController';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -49,21 +50,18 @@ const tab = ref('table');
 const tabs = ref<Array<ExecTab | LogTab>>([]);
 const pods = ref<Array<V1Pod>>([]);
 
-let abortController: AbortController | null = null;
+const { abort: abortRequests, signal } = useAbortController();
 
 watch(selectedNamespace, async (namespace) => {
   if (!namespace || namespace.length === 0) {
     pods.value = [];
     return;
   }
-  if (abortController) {
-    abortController.abort();
-  }
-  abortController = new AbortController();
+  abortRequests();
 
   const api = new CoreV1Api(await useApiConfig().getConfig());
   listAndWatch(pods, V1PodFromJSON,
-    (opt) => api.listNamespacedPodRaw(opt, { signal: abortController!.signal }),
+    (opt) => api.listNamespacedPodRaw(opt, { signal: signal.value }),
     { namespace })
       .catch((e) => useErrorPresentation().pendingError = e);
 }, { immediate: true });
@@ -98,12 +96,6 @@ const bell = (index: number) => {
     }
   }, 1000);
 };
-
-onUnmounted(() => {
-  if (abortController) {
-    abortController.abort();
-  }
-})
 </script>
 
 <template>

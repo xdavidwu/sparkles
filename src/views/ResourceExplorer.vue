@@ -12,7 +12,8 @@ import {
   VWindowItem,
 } from 'vuetify/components';
 import YAMLViewer from '@/components/YAMLViewer.vue';
-import { computed, watch, ref, onUnmounted } from 'vue';
+import { computed, watch, ref } from 'vue';
+import { useAbortController } from '@/composables/abortController';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -62,6 +63,8 @@ const tab = ref('explore');
 const inspectedObjects = ref<Array<ObjectRecord>>([]);
 const verbosity = ref('minimal');
 
+const { abort: abortRequests, signal } = useAbortController();
+
 const getTypes = async () => {
   if (targetGroup.value.preferredVersion!.groupVersion === LOADING) {
     return;
@@ -79,12 +82,8 @@ const getTypes = async () => {
   targetType.value = types.value[0] ?? null;
 };
 
-let abortController: AbortController | null = null;
 const listObjects = async () => {
-  if (abortController) {
-    abortController.abort();
-  }
-  abortController = new AbortController();
+  abortRequests();
 
   if (targetType.value === null) {
     objects.value = EMPTY_V1_TABLE;
@@ -102,13 +101,13 @@ const listObjects = async () => {
     if (listNamespaced) {
       listAndWatchTable(
         objects,
-        (opt) => anyApi.listNamespacedCustomObjectAsTableRaw(opt, { signal: abortController!.signal }),
+        (opt) => anyApi.listNamespacedCustomObjectAsTableRaw(opt, { signal: signal.value }),
         { ...sharedOptions, namespace: targetNamespace.value },
       ).catch((e) => useErrorPresentation().pendingError = e);
     } else {
       listAndWatchTable(
         objects,
-        (opt) => anyApi.listClusterCustomObjectAsTableRaw(opt, { signal: abortController!.signal }),
+        (opt) => anyApi.listClusterCustomObjectAsTableRaw(opt, { signal: signal.value }),
         sharedOptions,
       ).catch((e) => useErrorPresentation().pendingError = e);
     }
@@ -186,12 +185,6 @@ watch(groups, (groups) => {
 watch(targetGroup, getTypes, { immediate: true });
 watch(targetType, listObjects);
 watch(targetNamespace, listObjects);
-
-onUnmounted(() => {
-  if (abortController) {
-    abortController.abort();
-  }
-})
 </script>
 
 <template>

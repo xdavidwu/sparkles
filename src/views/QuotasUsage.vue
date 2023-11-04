@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { VCard, VCardText } from 'vuetify/components';
 import QuotaDoughnut from '@/components/QuotaDoughnut.vue';
-import { computed, ref, watch, onUnmounted } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useAbortController } from '@/composables/abortController';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -44,35 +45,26 @@ const podsResourceUsage = computed(() => {
   return res;
 });
 
-let abortController: AbortController | null = null;
+const { abort: abortRequests, signal } = useAbortController();
 
 watch(selectedNamespace, async (namespace) => {
   if (!namespace || namespace.length === 0) {
     quotas.value = [];
     return;
   }
-  if (abortController) {
-    abortController.abort();
-  }
-  abortController = new AbortController();
+  abortRequests();
 
   const api = new CoreV1Api(await useApiConfig().getConfig());
   listAndWatch(quotas, V1ResourceQuotaFromJSON,
-    (opt) => api.listNamespacedResourceQuotaRaw(opt, { signal: abortController!.signal }),
+    (opt) => api.listNamespacedResourceQuotaRaw(opt, { signal: signal.value }),
     { namespace })
       .catch((e) => useErrorPresentation().pendingError = e);
 
   listAndWatch(pods, V1PodFromJSON,
-    (opt) => api.listNamespacedPodRaw(opt, { signal: abortController!.signal }),
+    (opt) => api.listNamespacedPodRaw(opt, { signal: signal.value }),
     { namespace })
       .catch((e) => useErrorPresentation().pendingError = e);
 }, { immediate: true });
-
-onUnmounted(() => {
-  if (abortController) {
-    abortController.abort();
-  }
-})
 </script>
 
 <template>
