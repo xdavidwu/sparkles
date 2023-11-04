@@ -1,6 +1,6 @@
 // @ts-expect-error Missing type definitions
 import actualColors from 'vuetify/lib/util/colors';
-import { paramCase } from 'param-case';
+import { kebabCase } from 'change-case';
 
 export enum BaseColor {
   Red = 'red',
@@ -60,7 +60,7 @@ export const hashColor = (str: string, baseColors: Array<BaseColor>,
 };
 
 export const colorToClass = (color: Color): string => 
-  color.variant === ColorVariant.Base ? paramCase(color.color) :
-    `${paramCase(color.color)}-${paramCase(color.variant, { splitRegexp: /([a-z])([0-9])/ })}`;
+  color.variant === ColorVariant.Base ? kebabCase(color.color) :
+    `${kebabCase(color.color)}-${color.variant.replace(/\d/, '-$&')}`;
 
 export const colorToCode = (color: Color): string => actualColors[color.color][color.variant];
