@@ -35,7 +35,7 @@ export const usePermissions = defineStore('permission', () => {
   };
 
   const check = async (namespace: string, group: string, resource: string,
-      name: string, verb: string) => {
+      name: string, verb: string, costy: boolean = false) => {
     const review = await ensureReview(namespace);
 
     const ruleMatch = review.resourceRules.some((rule) => {
@@ -76,14 +76,37 @@ export const usePermissions = defineStore('permission', () => {
       return PermissionStatus.Denied;
     }
 
-    // TODO fallback to selfsubjectaccessreview
-    console.log('incomplete rules');
-    return PermissionStatus.Unknown;
+    if (!costy) {
+      return PermissionStatus.Unknown;
+    }
+    const parts = resource.split('/');
+    const resourceParam = parts.length === 1 ? { resource } :
+      { resource: parts[0], subresource: parts[1] };
+    const config = await useApiConfig().getConfig();
+    const response = await (new AuthorizationV1Api(config)).createSelfSubjectAccessReview({
+      body: {
+        spec: {
+          resourceAttributes: {
+            namespace,
+            name,
+            verb,
+            group,
+            version: '*', // XXX: should we support versioning?
+            ...resourceParam,
+          },
+        },
+      },
+    });
+    if (response.status!.evaluationError) {
+      console.log(`SelfSubjectAccessReview evaluation error: ${response.status!.evaluationError}`);
+    }
+    return response.status!.allowed ? PermissionStatus.Allowed :
+        (response.status!.denied ? PermissionStatus.Denied : PermissionStatus.Unknown);
   };
 
   const mayAllows = async (namespace: string, group: string, resource: string,
-      name: string, verb: string) => {
-    const res = await check(namespace, group, resource, name, verb);
+      name: string, verb: string, costy: boolean = false) => {
+    const res = await check(namespace, group, resource, name, verb, costy);
     return res === PermissionStatus.Allowed || res === PermissionStatus.Unknown;
   }
 
