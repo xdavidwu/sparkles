@@ -27,7 +27,12 @@ const display = async (terminal: Terminal) => {
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    const { value, done } = await response.read();
+    const { value, done } = await response.read().catch((e) => {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        return { value: new Uint8Array(), done: true };
+      }
+      throw e;
+    });
 
     if (done) {
       break;
