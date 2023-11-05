@@ -12,6 +12,7 @@ import { ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
+import { PresentedError } from '@/utils/PresentedError';
 import '@/vendor/wasm_exec';
 
 interface ValuesTab {
@@ -69,7 +70,14 @@ watch(selectedNamespace, async (namespace) => {
     return;
   }
   await setupGo();
-  releases.value = JSON.parse(await listReleasesForNamespace(namespace));
+  try {
+    releases.value = JSON.parse(await listReleasesForNamespace(namespace));
+  } catch (e) {
+    if (e instanceof Error) {
+      throw new PresentedError(e.message);
+    }
+    throw e;
+  }
 }, { immediate: true });
 </script>
 
