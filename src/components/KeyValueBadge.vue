@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<{
 
 const baseColors = Object.values(BaseColor);
 
-const variants = [ ColorVariant.Darken2, ColorVariant.Darken4 ];
+const variants = [ ColorVariant.Darken4 ];
 
 const title = computed(() => `${props.k}: ${props.v}`);
 
