@@ -52,6 +52,7 @@ div {
   font-weight: normal;
   font-size: 0.75em;
   margin: 0.2em;
+  opacity: 0.9;
 }
 
 .key {
