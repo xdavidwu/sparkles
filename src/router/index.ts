@@ -35,7 +35,7 @@ const router = createRouter({
       name: 'metrics',
       component: () => import('@/views/NodesMetrics.vue'),
       meta: { name: 'Nodes Metrics', unsupported: computed(() => {
-        if (!useApisDiscovery().groups.find((g) => g.name === 'metrics.k8s.io')) {
+        if (!useApisDiscovery().groups.some((g) => g.name === 'metrics.k8s.io')) {
           return 'Metrics not supported by cluster';
         }
         return undefined;

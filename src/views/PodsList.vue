@@ -92,7 +92,7 @@ const closeTab = (index: number) => {
 
 const createTab = (type: 'exec' | 'log', pod: string, container: string) => {
   const id = `${type}-${pod}/${container}`;
-  if (!tabs.value.find((t) => t.id === id)) {
+  if (!tabs.value.some((t) => t.id === id)) {
     if (type === 'exec') {
       tabs.value.push({ type, id, spec: { pod, container }, alerting: false });
     } else {

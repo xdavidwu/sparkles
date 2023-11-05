@@ -50,7 +50,7 @@ const setupGo = async () => {
 
 const createTab = (release: any) => {
   const id = `${release.name}/${release.version}`;
-  if (!tabs.value.find((t) => t.id === id)) {
+  if (!tabs.value.some((t) => t.id === id)) {
     tabs.value.push({
       id,
       schema: release.chart.schema ? JSON.parse(atob(release.chart.schema)) : undefined,
