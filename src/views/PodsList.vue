@@ -14,11 +14,13 @@ import KeyValueBadge from '@/components/KeyValueBadge.vue';
 import LogViewer from '@/components/LogViewer.vue';
 import LinkedImage from '@/components/LinkedImage.vue';
 import { ref, watch } from 'vue';
+import { computedAsync } from '@vueuse/core';
 import { useAbortController } from '@/composables/abortController';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
+import { usePermissions } from '@/stores/permissions';
 import { CoreV1Api, type V1Pod, V1PodFromJSON } from '@/kubernetes-api/src';
 import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndWatch } from '@/utils/watch';
@@ -44,23 +46,40 @@ interface LogTab extends Tab {
   spec: ContainerSpec,
 }
 
+interface PodData extends V1Pod {
+  extra?: {
+    mayReadLogs: boolean,
+    mayExec: boolean,
+  },
+}
+
+const { mayAllows } = usePermissions();
+
 const { selectedNamespace } = storeToRefs(useNamespaces());
 
 const tab = ref('table');
 const tabs = ref<Array<ExecTab | LogTab>>([]);
-const pods = ref<Array<V1Pod>>([]);
+const _pods = ref<Array<V1Pod>>([]);
+// XXX: this updates once all settles
+const pods = computedAsync<Array<PodData>>(async () => Promise.all(_pods.value.map(async (p) => ({
+  ...p,
+  extra: {
+    mayReadLogs: await mayAllows(selectedNamespace.value, '', 'pods/log', p.metadata!.name!, 'get'),
+    mayExec: await mayAllows(selectedNamespace.value, '', 'pods/exec', p.metadata!.name!, 'create'),
+  },
+}))), _pods.value);
 
 const { abort: abortRequests, signal } = useAbortController();
 
 watch(selectedNamespace, async (namespace) => {
   if (!namespace || namespace.length === 0) {
-    pods.value = [];
+    _pods.value = [];
     return;
   }
   abortRequests();
 
   const api = new CoreV1Api(await useApiConfig().getConfig());
-  listAndWatch(pods, V1PodFromJSON,
+  listAndWatch(_pods, V1PodFromJSON,
     (opt) => api.listNamespacedPodRaw(opt, { signal: signal.value }),
     { namespace })
       .catch((e) => useErrorPresentation().pendingError = e);
@@ -152,10 +171,11 @@ const bell = (index: number) => {
               <td class="text-no-wrap">
                 <VBtn size="small" icon="mdi-console-line"
                   title="Terminal" variant="text"
-                  :disabled="!container.state!.running"
+                  :disabled="(!container.state!.running) || (pod.extra && !pod.extra.mayExec)"
                   @click="createTab('exec', pod.metadata!.name!, container.name)" />
                 <VBtn size="small" icon="mdi-file-document"
                   title="Log" variant="text"
+                  :disabled="pod.extra && !pod.extra.mayReadLogs"
                   @click="createTab('log', pod.metadata!.name!, container.name)" />
               </td>
             </tr>
