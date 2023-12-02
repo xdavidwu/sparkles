@@ -42,6 +42,11 @@ const podsResourceUsage = computed(() => {
       }
     });
   });
+
+  // aliases
+  // https://kubernetes.io/docs/concepts/policy/resource-quotas/#compute-resource-quota
+  res['cpu'] = res['requests.cpu'];
+  res['memory'] = res['requests.memory'];
   return res;
 });
 
