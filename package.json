@@ -1,5 +1,6 @@
 {
   "private": "true",
+  "type": "module",
   "scripts": {
     "wasm": "cd helm-wasm && env GOOS=js GOARCH=wasm go build -o ../public/helm.wasm",
     "dev": "npm run wasm && vite --port 8000",
@@ -46,7 +47,7 @@
     "eslint-plugin-vue": "^9.3.0",
     "typescript": "^5.2.2",
     "typescript-vue-plugin": "^1.8.8",
-    "vite": "^4.4.9",
+    "vite": "^5.0.4",
     "vue-tsc": "^1.8.8"
   }
 }
