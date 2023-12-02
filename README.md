@@ -14,7 +14,7 @@ Client-side only, with WebAssembly for Helm support
 ## Development/ Local setup
 
 ```sh
-echo VITE_KUBERNETES_API=http://localhost:8000/ > .env
+echo VITE_KUBERNETES_API= > .env
 # rejects endpoints like exec by default, reset it
 kubectl proxy --reject-paths=
 npm run dev
