@@ -58,9 +58,16 @@ const podsResourceUsage = computed(() => {
   });
 
   // aliases
-  // https://kubernetes.io/docs/concepts/policy/resource-quotas/#compute-resource-quota
+  // k8s.io/kubernetes/pkg/quota/v1/evaluator/core.podComputeUsageHelper()
   res['cpu'] = res['requests.cpu'];
   res['memory'] = res['requests.memory'];
+  res['ephemeral-storage'] = res['requests.ephemeral-storage'];
+
+  for (const quotaId in res) {
+    if (quotaId.startsWith('requests.hugepages-')) {
+      res[quotaId.substring(9)] = res[quotaId];
+    }
+  }
   return res;
 });
 
