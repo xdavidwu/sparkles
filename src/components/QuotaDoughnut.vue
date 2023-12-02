@@ -17,7 +17,7 @@ const color = computed(() => {
   if (Number(percentage.value) >= 90) {
     return colors['red']['darken1'];
   } else if (Number(percentage.value) >= 80) {
-    return colors['yellow']['darken1'];
+    return colors['yellow']['darken3'];
   }
   return colors['green']['darken1'];
 });
