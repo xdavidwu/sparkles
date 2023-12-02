@@ -3,9 +3,10 @@ import {
   VAutocomplete,
   VBtn,
   VCol,
+  VDataTable,
+  VDataTableRow,
   VRow,
   VSelect,
-  VTable,
   VTab,
   VTabs,
   VWindow,
@@ -22,7 +23,7 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import type { V1APIGroup, V1APIResource } from '@/kubernetes-api/src';
-import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
+import { AnyApi, type V1Table, type V1TableRow, type V1PartialObjectMetadata } from '@/utils/AnyApi';
 import type { OpenAPIV3 } from 'openapi-types';
 import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndWatchTable } from '@/utils/watch';
@@ -35,6 +36,11 @@ interface ResponseSchema {
 interface ObjectRecord {
   schema?: ResponseSchema,
   object: any,
+}
+
+enum Verbosity {
+  FULL = 'full',
+  MINIMAL = 'minimal',
 }
 
 const LOADING = '(loading)';
@@ -62,7 +68,7 @@ const targetType = ref<V1APIResource | null>({
 const objects = ref<V1Table>(EMPTY_V1_TABLE);
 const tab = ref('explore');
 const inspectedObjects = ref<Array<ObjectRecord>>([]);
-const verbosity = ref('minimal');
+const verbosity = ref(Verbosity.MINIMAL);
 
 const { abort: abortRequests, signal } = useAbortController();
 
@@ -124,6 +130,29 @@ const listObjects = async () => {
     }
   }
 };
+
+const columns = computed(() =>
+  ((targetType.value?.namespaced && targetNamespace.value === NS_ALL_NAMESPACES) ? [{
+    title: 'Namespace',
+    key: 'namespace',
+    // XXX: VDataTable makeDataTableProps does not use generic for headers yet
+    // https://github.com/vuetifyjs/vuetify/pull/18703
+    value: (r: Record<string, any>) => ((r as V1TableRow).object! as V1PartialObjectMetadata).metadata!.namespace!,
+    // https://github.com/vuetifyjs/vuetify/pull/18699
+    sortable: false,
+  }] : []).concat(
+    objects.value.columnDefinitions.map((c, i) => ({
+      priority: c.priority,
+      title: c.name,
+      key: c.name,
+      value: (r: Record<string, any>) => (r as V1TableRow).cells[i],
+      sortable: false,
+      headerProps: { // html title tooltip, TODO: roll our own a la YAMLViewer
+        title: c.description,
+      },
+    })).filter((c) => verbosity.value === Verbosity.FULL || c.priority === 0)
+  ),
+);
 
 const inspectObject = async (obj: V1PartialObjectMetadata) => {
   const anyApi = new AnyApi(await apiConfigStore.getConfig());
@@ -223,33 +252,17 @@ watch(targetNamespace, listObjects);
         </VCol>
         <VCol cols="6" md="2">
           <VSelect label="Verbosity" v-model="verbosity"
-            :items="['minimal', 'full']" hide-details />
+            :items="Object.values(Verbosity)" hide-details />
         </VCol>
       </VRow>
-      <VTable hover fixed-header height="calc(100vh - 224px)"
-        :class="{ 'show-all': verbosity === 'full' }">
-        <thead>
-          <tr>
-            <th v-if="targetType?.namespaced && targetNamespace === NS_ALL_NAMESPACES">Namespace</th>
-            <th v-for="column in objects.columnDefinitions" :key="column.name"
-              :class="{ 'low-priority': column.priority > 0 }"
-              :title="column.description">{{ column.name }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in objects.rows"
-            :key="uniqueKeyForObject(row.object as V1PartialObjectMetadata)"
-            @click="inspectObject(row.object as V1PartialObjectMetadata)"
-            style="cursor: pointer">
-            <td v-if="targetType?.namespaced && targetNamespace === NS_ALL_NAMESPACES">
-              {{ (row.object as V1PartialObjectMetadata).metadata!.namespace }}
-            </td>
-            <td v-for="(cell, index) in row.cells" :key="String(cell)"
-              :class="{ 'low-priority': objects.columnDefinitions[index].priority > 0 }"
-              >{{ cell }}</td>
-          </tr>
-        </tbody>
-      </VTable>
+      <VDataTable hover fixed-header class="data-table-auto" height="calc(100vh - 224px)"
+        items-per-page="-1"
+        :items="objects.rows" :headers="columns">
+        <template #item="{ props: itemProps }">
+          <VDataTableRow v-bind="itemProps" @click="inspectObject(itemProps.item.raw.object)" />
+        </template>
+        <template #bottom />
+      </VDataTable>
     </VWindowItem>
     <VWindowItem v-for="obj in inspectedObjects"
       :key="uniqueKeyForObject(obj.object)"
@@ -259,12 +272,8 @@ watch(targetNamespace, listObjects);
   </VWindow>
 </template>
 
-<style scoped>
-.low-priority {
-  display: none;
-}
-
-.show-all .low-priority {
-  display: table-cell;
+<style>
+.data-table-auto table {
+  table-layout: auto !important;
 }
 </style>

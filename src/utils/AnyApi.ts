@@ -76,7 +76,7 @@ export interface V1PartialObjectMetadata {
 }
 
 export interface V1TableRow {
-  cells: Array<object>;
+  cells: Array<string>;
   conditions?: object;
   object?: V1PartialObjectMetadata | object;
 }
