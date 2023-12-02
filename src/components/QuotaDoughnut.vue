@@ -22,15 +22,17 @@ const color = computed(() => {
   return colors['green']['darken1'];
 });
 
-const detailKeys = computed(() => Object.keys(props.details ?? {})
-  .sort((a, b) => props.details![a] - props.details![b]));
+const data = computed(() => props.details ?? { Used: props.used })
+
+const dataKeys = computed(() => Object.keys(data.value)
+  .sort((a, b) => data.value[a] - data.value[b]));
 
 const chartData = computed(() => ({
-  labels: detailKeys.value.concat(['Unused']),
+  labels: dataKeys.value.concat(['Unused']),
   datasets: [{
-    data: detailKeys.value.map((k) => props.details![k]).concat([props.total - props.used]),
-    backgroundColor: new Array(detailKeys.value.length).fill(color.value).concat(['#0000']),
-    borderColor: new Array(detailKeys.value.length).fill(['#fff7']).concat(['#fff1']),
+    data: dataKeys.value.map((k) => data.value[k]).concat([props.total - props.used]),
+    backgroundColor: new Array(dataKeys.value.length).fill(color.value).concat(['#0000']),
+    borderColor: new Array(dataKeys.value.length).fill(['#fff7']).concat(['#fff1']),
   }],
 }));
 
