@@ -13,13 +13,14 @@ import {
 } from 'vuetify/components';
 import YAMLViewer from '@/components/YAMLViewer.vue';
 import { computed, watch, ref } from 'vue';
+import { computedAsync } from '@vueuse/core';
+import { storeToRefs } from 'pinia';
 import { useAbortController } from '@/composables/abortController';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
-import { storeToRefs } from 'pinia';
 import type { V1APIGroup, V1APIResource } from '@/kubernetes-api/src';
 import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
 import type { OpenAPIV3 } from 'openapi-types';
@@ -48,7 +49,7 @@ const openAPISchemaDiscovery = useOpenAPISchemaDiscovery();
 const { namespaces } = storeToRefs(useNamespaces());
 const namespaceOptions = computed(() => [ '(all)', ...namespaces.value ]);
 const targetNamespace = ref(NS_ALL_NAMESPACES);
-const { groups } = storeToRefs(useApisDiscovery());
+const groups = computedAsync<Array<V1APIGroup>>(() => useApisDiscovery().getGroups(), []);
 const targetGroup = ref<V1APIGroup>({
   name: '', versions: [], preferredVersion: {
     groupVersion: LOADING, version: '',
