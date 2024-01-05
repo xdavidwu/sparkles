@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
-import { ApisApi, CoreApi, type V1APIGroup } from '@/kubernetes-api/src';
+import { ApisApi, CoreApi, VersionApi, type V1APIGroup, type VersionInfo } from '@/kubernetes-api/src';
 
 export const useApisDiscovery = defineStore('apisDiscovery', () => {
   const groups = ref<Array<V1APIGroup>>([]);
+  const versionInfo = ref<VersionInfo | null>(null);
 
   const getGroups = async () => {
     if (groups.value.length !== 0) {
@@ -30,5 +31,14 @@ export const useApisDiscovery = defineStore('apisDiscovery', () => {
     return groups.value;
   };
 
-  return { getGroups };
+  const getVersionInfo = async () => {
+    if (versionInfo.value !== null) {
+      return versionInfo.value;
+    }
+    const config = await useApiConfig().getConfig();
+    versionInfo.value = await new VersionApi(config).getCode();
+    return versionInfo.value;
+  };
+
+  return { getGroups, getVersionInfo };
 });
