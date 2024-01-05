@@ -2,9 +2,9 @@
 import {
   VBadge,
   VBtn,
+  VDataTable,
   VIcon,
   VTab,
-  VTable,
   VTabs,
   VWindow,
   VWindowItem
@@ -13,7 +13,7 @@ import ExecTerminal from '@/components/ExecTerminal.vue';
 import KeyValueBadge from '@/components/KeyValueBadge.vue';
 import LogViewer from '@/components/LogViewer.vue';
 import LinkedImage from '@/components/LinkedImage.vue';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { useAbortController } from '@/composables/abortController';
 import { storeToRefs } from 'pinia';
@@ -21,8 +21,7 @@ import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { usePermissions } from '@/stores/permissions';
-import { CoreV1Api, type V1Pod, V1PodFromJSON } from '@/kubernetes-api/src';
-import { uniqueKeyForObject } from '@/utils/objects';
+import { CoreV1Api, type V1Pod, V1PodFromJSON, type V1ContainerStatus } from '@/kubernetes-api/src';
 import { listAndWatch } from '@/utils/watch';
 
 interface ContainerSpec {
@@ -46,10 +45,11 @@ interface LogTab extends Tab {
   spec: ContainerSpec,
 }
 
-interface PodData extends V1Pod {
-  extra?: {
-    mayReadLogs: boolean,
-    mayExec: boolean,
+interface ContainerData extends V1ContainerStatus {
+  _extra: {
+    pod: V1Pod,
+    mayReadLogs?: boolean,
+    mayExec?: boolean,
   },
 }
 
@@ -60,14 +60,64 @@ const { selectedNamespace } = storeToRefs(useNamespaces());
 const tab = ref('table');
 const tabs = ref<Array<ExecTab | LogTab>>([]);
 const _pods = ref<Array<V1Pod>>([]);
+const _containers = computed<Array<ContainerData>>(() =>
+  _pods.value.reduce(
+    (a, v) => a.concat(v.status!.containerStatuses!.map((c) =>
+      ({ ...c, _extra: { pod: v } }))),
+    [] as Array<ContainerData>,
+  ));
 // XXX: this updates once all settles
-const pods = computedAsync<Array<PodData>>(async () => Promise.all(_pods.value.map(async (p) => ({
-  ...p,
-  extra: {
-    mayReadLogs: await mayAllows(selectedNamespace.value, '', 'pods/log', p.metadata!.name!, 'get'),
-    mayExec: await mayAllows(selectedNamespace.value, '', 'pods/exec', p.metadata!.name!, 'create'),
+const containers = computedAsync(async () => Promise.all(_containers.value.map(async (c) => ({
+  ...c,
+  _extra: {
+    pod: c._extra.pod,
+    mayReadLogs: await mayAllows(selectedNamespace.value, '', 'pods/log', c._extra.pod.metadata!.name!, 'get'),
+    mayExec: await mayAllows(selectedNamespace.value, '', 'pods/exec', c._extra.pod.metadata!.name!, 'create'),
   },
-}))), _pods.value);
+}))), _containers.value);
+
+
+const columns = [
+  {
+    title: 'Pod',
+    key: 'pod',
+    value: (r: Record<string, any>) => (r as ContainerData)._extra.pod.metadata!.name,
+    // XXX: reconsider this?
+    cellProps: ({ item }: { item: ContainerData }) => ({
+      rowspan: item._extra.pod.status!.containerStatuses!.length,
+      style: item.name === item._extra.pod.status!.containerStatuses![0].name ? '' : 'display: none',
+    }),
+    sortable: false,
+  },
+  {
+    title: 'Container',
+    key: 'name',
+    sortable: false,
+  },
+  {
+    title: 'Image',
+    key: 'image',
+    sortable: false,
+  },
+  {
+    title: 'Ready',
+    key: 'ready',
+    sortable: false,
+  },
+  {
+    title: 'Actions',
+    key: 'actions',
+    value: () => '',
+    sortable: false,
+    headerProps: {
+      class: ['text-center'],
+    },
+    cellProps: {
+      class: ['text-no-wrap'],
+      width: 0,
+    },
+  },
+];
 
 const { abort: abortRequests, signal } = useAbortController();
 
@@ -131,57 +181,39 @@ const bell = (index: number) => {
   </VTabs>
   <VWindow v-model="tab">
     <VWindowItem value="table">
-      <VTable hover>
-        <thead>
-          <tr>
-            <th>
-              Pod
-              <KeyValueBadge k="annotation" v="value" />
-              <KeyValueBadge k="label" v="value" pill />
-            </th>
-            <th>Container</th>
-            <th>Container image</th>
-            <th>Ready</th>
-            <th class="text-center">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <template v-for="pod in pods" :key="uniqueKeyForObject(pod)">
-            <tr v-for="(container, index) in pod.status!.containerStatuses"
-              :key="container.name">
-              <td v-if="index === 0" :rowspan="pod.status!.containerStatuses!.length">
-                {{ pod.metadata!.name }}
-                <br />
-                <KeyValueBadge v-for="(value, key) in pod.metadata!.annotations"
-                  :key="key" :k="key as string" :v="value" />
-                <br v-if="pod.metadata!.annotations" />
-                <KeyValueBadge v-for="(value, key) in pod.metadata!.labels"
-                  :key="key" :k="key as string" :v="value" pill />
-              </td>
-              <td>{{ container.name }}</td>
-              <td>
-                <LinkedImage :image="container.image"
-                  :title="container.imageID" />
-              </td>
-              <td>
-                <VIcon
-                  :icon="container.ready ? 'mdi-check' : 'mdi-close'"
-                  :color="container.ready ? '' : 'red'" />
-              </td>
-              <td class="text-no-wrap">
-                <VBtn size="small" icon="mdi-console-line"
-                  title="Terminal" variant="text"
-                  :disabled="(!container.state!.running) || (pod.extra && !pod.extra.mayExec)"
-                  @click="createTab('exec', pod.metadata!.name!, container.name)" />
-                <VBtn size="small" icon="mdi-file-document"
-                  title="Log" variant="text"
-                  :disabled="pod.extra && !pod.extra.mayReadLogs"
-                  @click="createTab('log', pod.metadata!.name!, container.name)" />
-              </td>
-            </tr>
-          </template>
-        </tbody>
-      </VTable>
+      <VDataTable hover :items="containers" :headers="columns">
+        <template #[`header.pod`]>
+          Pod
+          <KeyValueBadge k="annotation" v="value" />
+          <KeyValueBadge k="label" v="value" pill />
+        </template>
+        <template #[`header.actions`]>Actions</template>
+        <template #[`item.pod`]="{ item: { _extra: { pod } }, value }">
+          {{ value }}
+          <br />
+          <KeyValueBadge v-for="(value, key) in pod.metadata!.annotations"
+            :key="key" :k="key as string" :v="value" />
+          <br v-if="pod.metadata!.annotations" />
+          <KeyValueBadge v-for="(value, key) in pod.metadata!.labels"
+            :key="key" :k="key as string" :v="value" pill />
+        </template>
+        <template #[`item.image`]="{ item, value }">
+          <LinkedImage :image="value" :title="item.imageID" />
+        </template>
+        <template #[`item.ready`]="{ value }">
+          <VIcon v-if="value" icon="mdi-check" />
+          <VIcon v-else icon="mdi-close" color="red" />
+        </template>
+        <template #[`item.actions`]="{ item }">
+          <VBtn size="small" icon="mdi-console-line" title="Terminal" variant="text"
+            :disabled="!item.state!.running || (item._extra.mayExec !== undefined && !item._extra.mayExec)"
+            @click="createTab('exec', item._extra.pod.metadata!.name!, item.name)" />
+          <VBtn size="small" icon="mdi-file-document" title="Log" variant="text"
+            :disabled="item._extra.mayReadLogs !== undefined && !item._extra.mayReadLogs"
+            @click="createTab('log', item._extra.pod.metadata!.name!, item.name)" />
+        </template>
+        <template #bottom />
+      </VDataTable>
     </VWindowItem>
     <VWindowItem v-for="(tab, index) in tabs" :key="tab.id"
       :value="tab.id">
