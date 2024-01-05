@@ -40,8 +40,8 @@ const display = async (terminal: Terminal) => {
 
   const config = await useApiConfig().getConfig();
   const token = await useApiConfig().getBearerToken();
-  const socketBase = config.basePath.replace(/^https:\/\//, 'wss://')
-    .replace(/^http:\/\//, 'ws://');
+  const socketBase = (config.basePath === '' ? document.location.origin : config.basePath)
+    .replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://');
   const fullUrl = `${socketBase}${url}`;
 
   // https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/pkg/cri/streaming/remotecommand/websocket.go
