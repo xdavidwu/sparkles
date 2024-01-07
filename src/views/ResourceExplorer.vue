@@ -134,19 +134,12 @@ const listObjects = async () => {
 const columns = computed(() =>
   ((targetType.value?.namespaced && targetNamespace.value === NS_ALL_NAMESPACES) ? [{
     title: 'Namespace',
-    key: 'namespace',
-    // XXX: VDataTable makeDataTableProps does not use generic for headers yet
-    // https://github.com/vuetifyjs/vuetify/pull/18703
-    value: (r: Record<string, any>) => ((r as V1TableRow).object! as V1PartialObjectMetadata).metadata!.namespace!,
-    // https://github.com/vuetifyjs/vuetify/pull/18699
-    sortable: false,
+    key: 'object.metadata.namespace',
   }] : []).concat(
     objects.value.columnDefinitions.map((c, i) => ({
       priority: c.priority,
       title: c.name,
-      key: c.name,
-      value: (r: Record<string, any>) => (r as V1TableRow).cells[i],
-      sortable: false,
+      key: `cells.${i}`,
       headerProps: { // html title tooltip, TODO: roll our own a la YAMLViewer
         title: c.description,
       },

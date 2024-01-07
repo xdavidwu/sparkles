@@ -80,8 +80,7 @@ const containers = computedAsync(async () => Promise.all(_containers.value.map(a
 const columns = [
   {
     title: 'Pod',
-    key: 'pod',
-    value: (r: Record<string, any>) => (r as ContainerData)._extra.pod.metadata!.name,
+    key: '_extra.pod.metadata.name',
     // XXX: reconsider this?
     cellProps: ({ item }: { item: ContainerData }) => ({
       rowspan: item._extra.pod.status!.containerStatuses!.length,
@@ -188,7 +187,7 @@ const bell = (index: number) => {
           <KeyValueBadge k="label" v="value" pill />
         </template>
         <template #[`header.actions`]>Actions</template>
-        <template #[`item.pod`]="{ item: { _extra: { pod } }, value }">
+        <template #[`item._extra.pod.metadata.name`]="{ item: { _extra: { pod } }, value }">
           {{ value }}
           <br />
           <KeyValueBadge v-for="(value, key) in pod.metadata!.annotations"
