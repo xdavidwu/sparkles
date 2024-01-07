@@ -16,30 +16,22 @@ import {
 } from '@/kubernetes-api/src';
 import type { OpenAPIV3 } from 'openapi-types';
 
-export interface AnyApiGetAPIResourcesRequest
-      extends Omit<CustomObjectsApiGetAPIResourcesRequest, 'group'> {
-    group?: string;
-}
+type PartiallyRequired<T, C extends keyof T> = T & Required<Pick<T, C>>;
 
-export interface AnyApiGetClusterCustomObjectRequest
-      extends Omit<CustomObjectsApiGetClusterCustomObjectRequest, 'group'> {
-    group?: string;
-}
+export type AnyApiGetAPIResourcesRequest =
+  PartiallyRequired<CustomObjectsApiGetAPIResourcesRequest, 'group'>;
 
-export interface AnyApiGetNamespacedCustomObjectRequest
-      extends Omit<CustomObjectsApiGetNamespacedCustomObjectRequest, 'group'> {
-    group?: string;
-}
+export type AnyApiGetClusterCustomObjectRequest =
+  PartiallyRequired<CustomObjectsApiGetClusterCustomObjectRequest, 'group'>;
 
-export interface AnyApiListClusterCustomObjectRequest
-      extends Omit<CustomObjectsApiListClusterCustomObjectRequest, 'group'> {
-    group?: string;
-}
+export type AnyApiGetNamespacedCustomObjectRequest =
+  PartiallyRequired<CustomObjectsApiGetNamespacedCustomObjectRequest, 'group'>;
 
-export interface AnyApiListNamespacedCustomObjectRequest
-      extends Omit<CustomObjectsApiListNamespacedCustomObjectRequest, 'group'> {
-    group?: string;
-}
+export type AnyApiListClusterCustomObjectRequest =
+  PartiallyRequired<CustomObjectsApiListClusterCustomObjectRequest, 'group'>;
+
+export type AnyApiListNamespacedCustomObjectRequest =
+  PartiallyRequired<CustomObjectsApiListNamespacedCustomObjectRequest, 'group'>;
 
 export interface AnyApiGetOpenAPISchemaRequest {
   group?: string;
