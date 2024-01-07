@@ -86,7 +86,7 @@ export interface V1Table {
   kind?: string;
   metadata?: V1ListMeta;
   columnDefinitions: Array<V1TableColumnDefinition>;
-  rows: Array<V1TableRow>;
+  rows?: Array<V1TableRow>;
 }
 
 export class AnyApi extends CustomObjectsApi {

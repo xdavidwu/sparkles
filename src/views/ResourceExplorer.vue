@@ -250,7 +250,7 @@ watch(targetNamespace, listObjects);
       </VRow>
       <VDataTable hover fixed-header class="data-table-auto" height="calc(100vh - 224px)"
         items-per-page="-1"
-        :items="objects.rows" :headers="columns">
+        :items="objects.rows ?? []" :headers="columns">
         <template #item="{ props: itemProps }">
           <VDataTableRow v-bind="itemProps" @click="inspectObject(itemProps.item.raw.object)" />
         </template>
