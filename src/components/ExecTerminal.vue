@@ -22,6 +22,12 @@ const emit = defineEmits<{
 }>();
 
 const findShell = 'for i in /bin/bash /bin/sh; do if [ -x "$i" ]; then "$i"; break; fi; done';
+const wsstreamV4Channel = 'v4.channel.k8s.io';
+const wsstreamV5Channel = 'v5.channel.k8s.io';
+const supportedProtocols = [
+  wsstreamV5Channel,
+  wsstreamV4Channel,
+];
 
 let socket: WebSocket | null = null;
 
@@ -45,11 +51,10 @@ const display = async (terminal: Terminal) => {
   const fullUrl = `${socketBase}${url}`;
 
   // https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/pkg/cri/streaming/remotecommand/websocket.go
-  socket = new WebSocket(fullUrl, token ? [
+  socket = new WebSocket(fullUrl, token ? supportedProtocols.concat([
     // https://github.com/kubernetes/kubernetes/pull/47740
-    'v4.channel.k8s.io',
     `base64url.bearer.authorization.k8s.io.${base64url(token)}`
-  ] : 'v4.channel.k8s.io');
+  ]) : supportedProtocols);
   socket.binaryType = 'arraybuffer';
   socket.onerror = (event) => {
     useErrorPresentation().pendingError = new PresentedError(
@@ -97,12 +102,13 @@ const display = async (terminal: Terminal) => {
 
 onUnmounted(() => {
   if (socket) {
-    // should we ^D to stdin here?
-
     // TODO v5.channel.k8s.io added support for closing streams (stdin)
-    // https://github.com/kubernetes/kubernetes/pull/119157
-    // which should land in 1.29
-    // we will likely also need protocol negotiation
+    // https://github.com/kubernetes/kubernetes/pull/119157 landed v1.29
+    // but not actually wired up yet @ kubelet (https://github.com/kubernetes/kubernetes/issues/122263)
+    // thus this is not tested
+    if (socket.protocol === wsstreamV5Channel) {
+      socket.send("\xff\x00");
+    }
 
     socket.close();
   }
