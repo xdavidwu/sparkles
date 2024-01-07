@@ -2,6 +2,7 @@
 import {
   VBtn,
   VDataTable,
+  VDataTableRow,
   VTab,
   VTabs,
   VWindow,
@@ -29,23 +30,34 @@ const tabs = ref<Array<ValuesTab>>([]);
 const columns = [
   {
     title: 'Release',
-    key: 'name',
+    key: 'data-table-group',
+    value: (r: Record<string, any>) => r.name,
+    sortable: false,
   },
   {
     title: 'Chart',
     key: 'chart.metadata.name',
+    sortable: false,
   },
   {
     title: 'Version',
     key: 'chart.metadata.version',
+    sortable: false,
   },
   {
     title: 'App version',
     key: 'chart.metadata.appVersion',
+    sortable: false,
   },
   {
     title: 'Status',
     key: 'info.status',
+    sortable: false,
+  },
+  {
+    title: 'Revision',
+    key: 'version',
+    sortable: false,
   },
   {
     title: 'Actions',
@@ -61,6 +73,9 @@ const columns = [
     },
   },
 ];
+
+const latestRevision = (releases: ReadonlyArray<any>) => releases.reduce(
+  (a, v) => (v.raw.version > a.raw.version) ? v : a, releases[0]);
 
 let goInitialized = false;
 
@@ -85,7 +100,7 @@ const setupGo = async () => {
 };
 
 const createTab = (release: any) => {
-  const id = `${release.name}/${release.version}`;
+  const id = `${release.name}@${release.version}`;
   if (!tabs.value.some((t) => t.id === id)) {
     tabs.value.push({
       id,
@@ -127,9 +142,27 @@ watch(selectedNamespace, async (namespace) => {
   </VTabs>
   <VWindow v-model="tab">
     <VWindowItem value="table">
-      <VDataTable hover :items="releases" :headers="columns">
+      <VDataTable hover :items="releases" :headers="columns" :group-by="[{ key: 'name', order: 'asc'}]">
+        <template #group-header='groupProps'>
+          <VDataTableRow v-bind='{ ...groupProps, item: latestRevision(groupProps.item.items) }'>
+            <template #[`item.data-table-group`]='{ value }'>
+              <VBtn size="small" variant="text"
+                :icon="groupProps.isGroupOpen(groupProps.item) ? '$expand' : '$next'"
+                :disabled="groupProps.item.items.length == 1"
+                @click="groupProps.toggleGroup(groupProps.item)" />
+              {{ value }}
+            </template>
+            <template #[`item.actions`]='{ item }'>
+              <VBtn size="small" icon="mdi-file-document" title="Values" variant="text"
+                @click="createTab(item)" />
+            </template>
+          </VDataTableRow>
+        </template>
+        <template #[`item.data-table-group`]>
+          <VBtn size="small" variant="text" disabled icon="mdi-circle-small" />
+        </template>
         <template #[`item.actions`]='{ item }'>
-          <VBtn size="small" icon="mdi-cog" title="Values" variant="text"
+          <VBtn size="small" icon="mdi-file-document" title="Values" variant="text"
             @click="createTab(item)" />
         </template>
         <template #bottom />
