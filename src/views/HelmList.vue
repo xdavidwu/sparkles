@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import {
   VBtn,
+  VDataTable,
   VTab,
-  VTable,
   VTabs,
   VWindow,
   VWindowItem,
@@ -25,6 +25,42 @@ const { selectedNamespace } = storeToRefs(useNamespaces());
 const releases = ref<Array<any>>([]);
 const tab = ref('table');
 const tabs = ref<Array<ValuesTab>>([]);
+
+const columns = [
+  {
+    title: 'Release',
+    key: 'name',
+  },
+  {
+    title: 'Chart',
+    key: 'chart.metadata.name',
+  },
+  {
+    title: 'Version',
+    key: 'chart.metadata.version',
+  },
+  {
+    title: 'App version',
+    key: 'chart.metadata.appVersion',
+  },
+  {
+    title: 'Status',
+    key: 'info.status',
+  },
+  {
+    title: 'Actions',
+    key: 'actions',
+    value: () => '',
+    sortable: false,
+    headerProps: {
+      class: ['text-center'],
+    },
+    cellProps: {
+      class: ['text-no-wrap'],
+      width: 0,
+    },
+  },
+];
 
 let goInitialized = false;
 
@@ -91,32 +127,13 @@ watch(selectedNamespace, async (namespace) => {
   </VTabs>
   <VWindow v-model="tab">
     <VWindowItem value="table">
-      <VTable hover>
-        <thead>
-          <tr>
-            <th>Release</th>
-            <th>Chart</th>
-            <th>Version</th>
-            <th>App Version</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="release in releases" :key="release.name">
-            <td>{{ release.name }}</td>
-            <td>{{ release.chart.metadata.name }}</td>
-            <td>{{ release.chart.metadata.version }}</td>
-            <td>{{ release.chart.metadata.appVersion }}</td>
-            <td>{{ release.info.status }}</td>
-            <td class="text-no-wrap">
-              <VBtn size="small" icon="mdi-cog"
-                title="Values" variant="text"
-                @click="createTab(release)" />
-            </td>
-          </tr>
-        </tbody>
-      </VTable>
+      <VDataTable hover :items="releases" :headers="columns">
+        <template #[`item.actions`]='{ item }'>
+          <VBtn size="small" icon="mdi-cog" title="Values" variant="text"
+            @click="createTab(item)" />
+        </template>
+        <template #bottom />
+      </VDataTable>
     </VWindowItem>
     <VWindowItem v-for="tab in tabs" :key="tab.id" :value="tab.id">
       <YAMLViewer :data="tab.values" :schema="{ object: tab.schema }" />
