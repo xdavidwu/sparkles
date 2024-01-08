@@ -4,6 +4,7 @@ import { ref } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
+import { doSelfSubjectReview, errorIsTypeUnsupported } from '@/utils/api';
 
 const configStore = useApiConfig();
 
@@ -19,6 +20,18 @@ const kubernetesVersion = computedAsync(async () => {
   const info = await useApisDiscovery().getVersionInfo();
   return info.gitVersion;
 }, 'unknown');
+const review = computedAsync(async () => {
+  const config = await useApiConfig().getConfig();
+  try {
+    return await doSelfSubjectReview(config);
+  } catch (err) {
+    if (await errorIsTypeUnsupported(err)) {
+      console.log('No SelfSubjectReview support, cannot identify ourselves');
+    } else {
+      throw err;
+    }
+  }
+}, null);
 
 const apply = () => {
   configStore.$patch({
@@ -39,6 +52,8 @@ const apply = () => {
       <pre>
 {{ brand }} version: {{ version }}
 Kubernetes version: {{ kubernetesVersion }}
+<template v-if="review">User: {{ review.status!.userInfo!.username }}
+Groups: {{ review.status!.userInfo!.groups?.join(', ') }}</template>
       </pre>
     </VCol>
     <VCol col="6">
