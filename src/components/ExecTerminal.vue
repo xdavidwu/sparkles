@@ -16,11 +16,6 @@ const props = defineProps<{
   command?: Array<string>,
 }>();
 
-const emit = defineEmits<{
-  (e: 'titleChanged', title: string): void,
-  (e: 'bell'): void,
-}>();
-
 const findShell = 'for i in /bin/bash /bin/sh; do if [ -x "$i" ]; then "$i"; break; fi; done';
 const wsstreamV4Channel = 'v4.channel.k8s.io';
 const wsstreamV5Channel = 'v5.channel.k8s.io';
@@ -41,8 +36,6 @@ const base64url = (s: string) => btoa(s).replace(/=+$/g, '').replace(/\+/g, '-')
 const configStore = useApiConfig();
 
 const display = async (terminal: Terminal) => {
-  terminal.onTitleChange((title) => emit('titleChanged', title));
-  terminal.onBell(() => emit('bell'));
   terminal.write('Connecting...');
 
   const token = await configStore.getBearerToken();

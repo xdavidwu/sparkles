@@ -5,7 +5,9 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 
 const emit = defineEmits<{
+  (e: 'bell'): void,
   (e: 'ready', terminal: Terminal): void,
+  (e: 'titleChanged', title: string): void,
 }>();
 
 const div = ref<HTMLDivElement | null>(null);
@@ -18,6 +20,8 @@ onMounted(async () => {
   terminal.open(div.value!);
   fitAddon.fit();
   new ResizeObserver(() => fitAddon.fit()).observe(div.value!);
+  terminal.onBell(() => emit('bell'));
+  terminal.onTitleChange((title) => emit('titleChanged', title));
   emit('ready', terminal);
 });
 </script>
