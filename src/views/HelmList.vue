@@ -93,7 +93,7 @@ const setupGo = async () => {
   goInitialized = true;
 
   configConnection({
-    basePath: import.meta.env.VITE_KUBERNETES_API === '' ? document.location.origin : import.meta.env.VITE_KUBERNETES_API,
+    basePath: config.fullApiBasePath,
     accessToken: token,
     impersonation: config.impersonation,
   });

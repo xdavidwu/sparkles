@@ -38,15 +38,15 @@ for (const i of props.command ?? ['/bin/sh', '-c', findShell]) {
 const url = `/api/v1/namespaces/${props.containerSpec.namespace}/pods/${props.containerSpec.pod}/exec?container=${encodeURIComponent(props.containerSpec.container)}&stdout=true&stdin=true&tty=true${commandOpts}`;
 
 const base64url = (s: string) => btoa(s).replace(/=+$/g, '').replace(/\+/g, '-').replace(/\\/g, '_');
+const configStore = useApiConfig();
 
 const display = async (terminal: Terminal) => {
   terminal.onTitleChange((title) => emit('titleChanged', title));
   terminal.onBell(() => emit('bell'));
   terminal.write('Connecting...');
 
-  const config = await useApiConfig().getConfig();
-  const token = await useApiConfig().getBearerToken();
-  const socketBase = (config.basePath === '' ? document.location.origin : config.basePath)
+  const token = await configStore.getBearerToken();
+  const socketBase = configStore.fullApiBasePath
     .replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://');
   const fullUrl = `${socketBase}${url}`;
 

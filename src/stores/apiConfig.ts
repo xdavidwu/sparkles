@@ -74,4 +74,10 @@ export const useApiConfig = defineStore('api-config', {
       return new Configuration({ basePath: import.meta.env.VITE_KUBERNETES_API, headers });
     },
   },
+  getters: {
+    fullApiBasePath() {
+      return import.meta.env.VITE_KUBERNETES_API === '' ?
+        document.location.origin : import.meta.env.VITE_KUBERNETES_API;
+    },
+  },
 });
