@@ -1,6 +1,7 @@
 // @ts-expect-error Missing type definitions
 import actualColors from 'vuetify/lib/util/colors';
 import { kebabCase } from 'change-case';
+import { h32 } from 'xxhashjs';
 
 export enum BaseColor {
   Red = 'red',
@@ -37,15 +38,6 @@ export enum ColorVariant {
   Darken4 = 'darken4',
 }
 
-const fnv1 = (str: string) => {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    hash = hash * 0x01000193;
-    hash = Math.abs(hash ^ str.charCodeAt(i));
-  }
-  return hash;
-};
-
 export interface Color {
   color: BaseColor,
   variant: ColorVariant,
@@ -53,7 +45,7 @@ export interface Color {
 
 export const hashColor = (str: string, baseColors: Array<BaseColor>,
     variants: Array<ColorVariant>): Color => {
-  let hash = fnv1(str);
+  let hash = h32(str, 0xdeadbeef).toNumber();
   const base = baseColors[hash % baseColors.length];
   hash = Math.floor(hash / baseColors.length);
   return { color: base, variant: variants[hash % variants.length] };
