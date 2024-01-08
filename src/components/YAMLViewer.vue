@@ -149,3 +149,15 @@ const extensions = [ oneDark, StreamLanguage.define(yaml), indentFold, createTex
 <template>
   <Codemirror v-model="dataAsYAML" :extensions="extensions" @ready="codemirrorReady" disabled />
 </template>
+
+<style>
+.cm-tooltip {
+  z-index: 10000 !important;
+}
+
+@media(min-width: 960px) {
+  .cm-tooltip {
+    max-width: calc(100vw - 256px - 64px);
+  }
+}
+</style>
