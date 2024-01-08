@@ -24,7 +24,7 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import type { V1APIGroup, V1APIResource } from '@/kubernetes-api/src';
-import { AnyApi, type V1Table, type V1TableRow, type V1PartialObjectMetadata } from '@/utils/AnyApi';
+import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
 import type { OpenAPIV3 } from 'openapi-types';
 import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndWatchTable } from '@/utils/watch';
