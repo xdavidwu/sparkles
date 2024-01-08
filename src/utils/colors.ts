@@ -1,5 +1,4 @@
-// @ts-expect-error Missing type definitions
-import actualColors from 'vuetify/lib/util/colors';
+import actualColors from 'vuetify/util/colors';
 import { kebabCase } from 'change-case';
 import { h32 } from 'xxhashjs';
 
