@@ -54,7 +54,7 @@ const apiConfigStore = useApiConfig();
 const openAPISchemaDiscovery = useOpenAPISchemaDiscovery();
 
 const { namespaces } = storeToRefs(useNamespaces());
-const namespaceOptions = computed(() => [ '(all)', ...namespaces.value ]);
+const namespaceOptions = computed(() => [ NS_ALL_NAMESPACES, ...namespaces.value ]);
 const targetNamespace = ref(NS_ALL_NAMESPACES);
 const groups = computedAsync<Array<V1APIGroup>>(() => useApisDiscovery().getGroups(), []);
 const targetGroup = ref<V1APIGroup>({
@@ -87,7 +87,11 @@ const getTypes = async () => {
   types.value = response.resources.filter(
     (v) => (!v.name.includes('/') && v.verbs.includes('list'))
   );
-  targetType.value = types.value[0] ?? null;
+
+  const firstWithWatch = types.value.find(
+    (v) => v.verbs.includes('watch')
+  );
+  targetType.value = firstWithWatch ?? types.value[0] ?? null;
 };
 
 const listObjects = async () => {
@@ -120,7 +124,9 @@ const listObjects = async () => {
       ).catch((e) => useErrorPresentation().pendingError = e);
     }
   } else {
-    // TODO notify user table is not receiving updates
+    useErrorPresentation().pendingToast =
+      `${targetGroup.value.preferredVersion!.groupVersion} ${targetType.value.name}` +
+      ' does not support watch, updates will not be reflected without refreshing.';
     if (listNamespaced) {
       objects.value = await anyApi.listNamespacedCustomObjectAsTable({
         ...sharedOptions,
@@ -150,29 +156,24 @@ const columns = computed(() =>
 
 const inspectObject = async (obj: V1PartialObjectMetadata) => {
   const anyApi = new AnyApi(await apiConfigStore.getConfig());
-  const api = {
+  const sharedOptions = {
     group: targetGroup.value.name,
     version: targetGroup.value.preferredVersion!.version,
-  };
-  const sharedOptions = {
-    ...api,
     plural: targetType.value!.name,
     name: obj.metadata!.name!,
   };
-  let object;
+  const objectRecord: ObjectRecord = { object: {} };
   if (obj.metadata!.namespace) {
-    object = await anyApi.getNamespacedCustomObject({
+    objectRecord.object = await anyApi.getNamespacedCustomObject({
       ...sharedOptions,
       namespace: obj.metadata!.namespace!,
     });
   } else {
-    object = await anyApi.getClusterCustomObject(sharedOptions);
+    objectRecord.object = await anyApi.getClusterCustomObject(sharedOptions);
   }
 
-  const objectRecord: ObjectRecord = { object };
-
   try {
-    const root = await openAPISchemaDiscovery.getSchema(api);
+    const root = await openAPISchemaDiscovery.getSchema(sharedOptions);
 
     // XXX: is there a better place to place this?
     const apiBase = targetGroup.value.name ?
@@ -183,7 +184,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
       .content?.['application/json']?.schema;
 
     if (!object) {
-      console.log('Schema discoverd, but no response definition for: ', path);
+      console.log('Schema discovered, but no response definition for: ', path);
     } else {
       objectRecord.schema = { root, object };
     }
@@ -193,7 +194,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
   }
 
   inspectedObjects.value.push(objectRecord);
-  tab.value = uniqueKeyForObject(object);
+  tab.value = uniqueKeyForObject(objectRecord.object);
 };
 
 const closeTab = (idx: number) => {
