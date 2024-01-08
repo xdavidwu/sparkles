@@ -169,9 +169,9 @@ const bell = (index: number) => {
   <VWindow v-model="tab">
     <VWindowItem value="table">
       <VDataTable hover :items="containers" :headers="columns">
-        <template #[`header.pod`]>
+        <template #[`header._extra.pod.metadata.name`]>
           Pod
-          <KeyValueBadge k="annotation" v="value" />
+          <KeyValueBadge k="annotation" v="value" class="mr-1" />
           <KeyValueBadge k="label" v="value" pill />
         </template>
         <template #[`header.actions`]>Actions</template>
