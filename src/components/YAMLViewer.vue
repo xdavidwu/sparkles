@@ -9,12 +9,12 @@ import { indentFold, createTextTooltip, type Tooltip } from '@/utils/codeMirror'
 import { stringify, parseDocument, visit, Pair, YAMLMap, YAMLSeq, Scalar, type Node } from 'yaml';
 import pointer from 'json-pointer';
 
-type pathHistoryItem = {
+interface PathHistoryItem {
   kind: 'YAMLMap' | 'YAMLSeq',
   index: string | number,
-};
+}
 
-const foldOnReady: Array<Array<pathHistoryItem>> = [
+const foldOnReady: Array<Array<PathHistoryItem>> = [
   [
     {kind: 'YAMLMap', index: 'metadata'},
     {kind: 'YAMLMap', index: 'annotations'},
@@ -37,12 +37,13 @@ const props = defineProps<{
 const dataAsYAML = computed(() => stringify(props.data));
 const parsedBackData = computed(() => parseDocument(dataAsYAML.value));
 
-function descriptionFromPath(schema: any, path: Array<any>): string | null | undefined {
+const descriptionFromPath = (schema: any, path: Array<any>): string | undefined => {
   if (schema.$ref) {
     if (schema.$ref[0] === '#') {
       schema = pointer(props.schema!.root, schema.$ref.substring(1));
     } else {
       console.log('Unsupported non-local reference: ', schema.$ref);
+      return;
     }
   }
 
@@ -59,7 +60,7 @@ function descriptionFromPath(schema: any, path: Array<any>): string | null | und
     if (schema.properties?.[key]) {
       schema = schema.properties?.[key];
     } else {
-      return null
+      return;
     }
   } else if (path[0] instanceof YAMLMap) {
     // XXX: why kubernetes uses allOf everywhere?
@@ -71,7 +72,7 @@ function descriptionFromPath(schema: any, path: Array<any>): string | null | und
     if (schema.items) {
       schema = schema.items;
     } else {
-      return null;
+      return;
     }
   }
 
@@ -105,7 +106,7 @@ const tooltips = computed(() => {
 });
 
 const codemirrorReady = ({ view }: { view: EditorView }) => {
-  const maybeFold = (target: Array<pathHistoryItem>) => {
+  const maybeFold = (target: Array<PathHistoryItem>) => {
     let findIndex = 0;
     visit(parsedBackData.value, {
       Pair: (key, node) => {
