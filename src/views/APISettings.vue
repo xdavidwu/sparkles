@@ -37,8 +37,8 @@ const apply = () => {
   <VRow>
     <VCol col="6">
       <pre>
-        {{ brand }} version: {{ version }}
-        Kubernetes version: {{ kubernetesVersion }}
+{{ brand }} version: {{ version }}
+Kubernetes version: {{ kubernetesVersion }}
       </pre>
     </VCol>
     <VCol col="6">
