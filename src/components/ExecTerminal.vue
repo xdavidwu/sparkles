@@ -16,7 +16,7 @@ const props = defineProps<{
   command?: Array<string>,
 }>();
 
-const findShell = 'for i in /bin/bash /bin/sh; do if [ -x "$i" ]; then "$i"; break; fi; done';
+const findShell = 'for i in /bin/bash /bin/sh; do [ -x "$i" ] && exec "$i"; done';
 const wsstreamV4Channel = 'v4.channel.k8s.io';
 const wsstreamV5Channel = 'v5.channel.k8s.io';
 const supportedProtocols = [
@@ -26,10 +26,8 @@ const supportedProtocols = [
 
 let socket: WebSocket | null = null;
 
-let commandOpts = '';
-for (const i of props.command ?? ['/bin/sh', '-c', findShell]) {
-  commandOpts = `${commandOpts}&command=${encodeURIComponent(i)}`;
-}
+const commandOpts = (props.command ?? ['/bin/sh', '-c', findShell]).reduce(
+  (a, v) => `${a}&command=${encodeURIComponent(v)}`, '');
 const url = `/api/v1/namespaces/${props.containerSpec.namespace}/pods/${props.containerSpec.pod}/exec?container=${encodeURIComponent(props.containerSpec.container)}&stdout=true&stdin=true&tty=true${commandOpts}`;
 
 const base64url = (s: string) => btoa(s).replace(/=+$/g, '').replace(/\+/g, '-').replace(/\\/g, '_');
@@ -41,10 +39,9 @@ const display = async (terminal: Terminal) => {
   const token = await configStore.getBearerToken();
   const socketBase = configStore.fullApiBasePath
     .replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://');
-  const fullUrl = `${socketBase}${url}`;
 
   // https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/pkg/cri/streaming/remotecommand/websocket.go
-  socket = new WebSocket(fullUrl, token ? supportedProtocols.concat([
+  socket = new WebSocket(`${socketBase}${url}`, token ? supportedProtocols.concat([
     // https://github.com/kubernetes/kubernetes/pull/47740
     `base64url.bearer.authorization.k8s.io.${base64url(token)}`
   ]) : supportedProtocols);
