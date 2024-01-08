@@ -16,6 +16,7 @@ import YAMLViewer from '@/components/YAMLViewer.vue';
 import { computed, watch, ref } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
+import { useDisplay } from 'vuetify';
 import { useAbortController } from '@/composables/abortController';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
@@ -68,7 +69,7 @@ const targetType = ref<V1APIResource | null>({
 const objects = ref<V1Table>(EMPTY_V1_TABLE);
 const tab = ref('explore');
 const inspectedObjects = ref<Array<ObjectRecord>>([]);
-const verbosity = ref(Verbosity.MINIMAL);
+const verbosity = ref(useDisplay().xlAndUp.value ? Verbosity.FULL : Verbosity.MINIMAL);
 
 const { abort: abortRequests, signal } = useAbortController();
 
