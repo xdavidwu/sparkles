@@ -45,7 +45,7 @@ export const createTextTooltip = (tooltips: Ref<Array<Tooltip>>) => hoverTooltip
         end: tooltip.range[1],
         create: () => {
           const div = document.createElement('div');
-          div.classList.add('mx-4', 'my-2', 'text-pre-wrap');
+          div.classList.add('text-white', 'bg-grey-darken-3', 'px-2', 'py-1', 'text-caption');
           div.textContent = tooltip.text;
           div.innerHTML = div.innerHTML.replace(/((http:|https:)[^\s]+[\w])/g, (match) => {
             let url;
