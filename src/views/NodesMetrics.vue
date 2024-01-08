@@ -4,9 +4,11 @@ import { VCard, VCardText, VRow, VCol, VSwitch } from 'vuetify/components';
 import { Line } from 'vue-chartjs';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
+import { useAbortController } from '@/composables/abortController';
 import { CustomObjectsApi, CoreV1Api, ResponseError } from '@/kubernetes-api/src';
 import { useIntervalFn, type Pausable } from '@vueuse/core';
 import { BaseColor, ColorVariant, colorToCode, hashColor } from '@/utils/colors';
+import type { KubernetesList } from '@/utils/objects';
 import parseDuration from 'parse-duration';
 import { real } from '@ragnarpa/quantity';
 import { fromBytes } from '@tsmx/human-readable';
@@ -19,6 +21,7 @@ const samples = ref<Array<{
 const latestSample = ref(Math.floor(new Date().valueOf() / 1000));
 const capacityAvailable = ref(false);
 const stacked = ref(false);
+const { abort: abortRequests, signal } = useAbortController();
 
 const datasetMetadata = computed(() => Object.keys(nodes.value).reduce((r, n) => {
   let color = colorToCode(hashColor(n, Object.values(BaseColor), [ColorVariant.Base]));
@@ -69,8 +72,11 @@ onMounted(async () => {
   };
   const { pause } = useIntervalFn(() => {
     (async () => {
-      const sample = await api.listClusterCustomObject({ ...metricsApi, plural: 'nodes'}) as any;
-      sample.items.forEach((i: any) => {
+      abortRequests();
+      const response = await api.listClusterCustomObject(
+        { ...metricsApi, plural: 'nodes' },
+        { signal: signal.value }) as KubernetesList<any>;
+      response.items.forEach((i: any) => {
         const time = Math.floor(new Date(i.timestamp).valueOf() / 1000);
         let index = time - (latestSample.value - timeRange);
         if (index < 0) {
