@@ -51,17 +51,16 @@ const vColor = computed(() => colorToClass(hashColor(props.v, baseColors, varian
 div {
   font-weight: normal;
   font-size: 0.75em;
-  margin: 0.2em;
   opacity: 0.9;
 }
 
 .key {
   padding-left: 0.4em;
-  padding-right: 0.2em;
+  padding-right: 0.4em;
 }
 
 .value {
   padding-left: 0.4em;
-  padding-right: 0.5em;
+  padding-right: 0.4em;
 }
 </style>

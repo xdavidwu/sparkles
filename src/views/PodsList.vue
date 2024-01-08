@@ -179,9 +179,11 @@ const bell = (index: number) => {
           {{ value }}
           <br />
           <KeyValueBadge v-for="(value, key) in pod.metadata!.annotations"
+            class="mr-1 mb-1"
             :key="key" :k="key as string" :v="value" />
           <br v-if="pod.metadata!.annotations" />
           <KeyValueBadge v-for="(value, key) in pod.metadata!.labels"
+            class="mr-1 mb-1"
             :key="key" :k="key as string" :v="value" pill />
         </template>
         <template #[`item.image`]="{ item, value }">
