@@ -90,14 +90,8 @@ export const listAndWatch = async<ListOpt> (
   }
 };
 
-const isKubernetesObjectInRows = (a: V1TableRow, b: Array<V1TableRow>) => {
-  for (const v of b) {
-    if (isSameKubernetesObject(<V1PartialObjectMetadata> a.object, <V1PartialObjectMetadata> v.object)) {
-      return true;
-    }
-  }
-  return false;
-};
+const isKubernetesObjectInRows = (a: V1TableRow, b: Array<V1TableRow>) =>
+  b.some((v) => isSameKubernetesObject(<V1PartialObjectMetadata> a.object, <V1PartialObjectMetadata> v.object));
 
 export const listAndWatchTable = async<ListOpt> (
     dest: Ref<V1Table>,
