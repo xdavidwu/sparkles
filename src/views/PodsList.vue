@@ -35,7 +35,7 @@ interface Tab {
   spec: ContainerSpec,
   title?: string,
   alerting: boolean,
-  bellTimeoutID?: number,
+  bellTimeoutID?: ReturnType<typeof setTimeout>,
 }
 
 interface ContainerData extends V1ContainerStatus {
