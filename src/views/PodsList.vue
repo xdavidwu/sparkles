@@ -30,19 +30,12 @@ interface ContainerSpec {
 }
 
 interface Tab {
-  type: string,
+  type: 'exec' | 'log',
   id: string,
-}
-
-interface ExecTab extends Tab {
   spec: ContainerSpec,
   title?: string,
   alerting: boolean,
   bellTimeoutID?: number,
-}
-
-interface LogTab extends Tab {
-  spec: ContainerSpec,
 }
 
 interface ContainerData extends V1ContainerStatus {
@@ -58,7 +51,7 @@ const { mayAllows } = usePermissions();
 const { selectedNamespace } = storeToRefs(useNamespaces());
 
 const tab = ref('table');
-const tabs = ref<Array<ExecTab | LogTab>>([]);
+const tabs = ref<Array<Tab>>([]);
 const _pods = ref<Array<V1Pod>>([]);
 const _containers = computed<Array<ContainerData>>(() =>
   _pods.value.reduce(
@@ -142,17 +135,13 @@ const closeTab = (index: number) => {
 const createTab = (type: 'exec' | 'log', pod: string, container: string) => {
   const id = `${type}-${pod}/${container}`;
   if (!tabs.value.some((t) => t.id === id)) {
-    if (type === 'exec') {
-      tabs.value.push({ type, id, spec: { pod, container }, alerting: false });
-    } else {
-      tabs.value.push({ type, id, spec: { pod, container } });
-    }
+    tabs.value.push({ type, id, spec: { pod, container }, alerting: false });
   }
   tab.value = id;
 };
 
 const bell = (index: number) => {
-  const bellingTab = tabs.value[index] as ExecTab;
+  const bellingTab = tabs.value[index];
   if (bellingTab.bellTimeoutID) {
     clearTimeout(bellingTab.bellTimeoutID);
   }
@@ -170,11 +159,10 @@ const bell = (index: number) => {
   <VTabs v-model="tab">
     <VTab value="table">Pods</VTab>
     <VTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id"
-      @click="() => tab.type === 'exec' && ((tab as ExecTab).alerting = false)">
-      <VBadge v-if="tab.type === 'exec'" dot color="red" v-model="(tab as ExecTab).alerting">
-        {{ (tab as ExecTab).title ?? `Terminal: ${tab.spec.pod}/${tab.spec.container}` }}
+      @click="() => tab.alerting = false">
+      <VBadge dot color="red" v-model="tab.alerting">
+        {{ tab.title ?? `${tab.type === 'exec' ? 'Terminal' : 'Log'}: ${tab.spec.pod}/${tab.spec.container}` }}
       </VBadge>
-      <template v-else>{{ `Log: ${tab.spec.pod}/${tab.spec.container}` }}</template>
       <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
     </VTab>
   </VTabs>
@@ -216,13 +204,10 @@ const bell = (index: number) => {
     </VWindowItem>
     <VWindowItem v-for="(tab, index) in tabs" :key="tab.id"
       :value="tab.id">
-      <ExecTerminal v-if="tab.type === 'exec'"
+      <component :is="tab.type === 'exec' ? ExecTerminal : LogViewer"
         style="height: calc(100vh - 144px)"
-        @title-changed="(title) => (tab as ExecTab).title = title"
+        @title-changed="(title) => tab.title = title"
         @bell="() => bell(index)"
-        :container-spec="{ namespace: selectedNamespace, ...tab.spec}" />
-      <LogViewer v-if="tab.type === 'log'"
-        style="height: calc(100vh - 144px)"
         :container-spec="{ namespace: selectedNamespace, ...tab.spec}" />
     </VWindowItem>
   </VWindow>
