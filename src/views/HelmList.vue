@@ -9,11 +9,15 @@ import {
   VWindowItem,
 } from 'vuetify/components';
 import YAMLViewer from '@/components/YAMLViewer.vue';
-import { ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
+import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
-import { PresentedError } from '@/utils/PresentedError';
+import { useErrorPresentation } from '@/stores/errorPresentation';
+import { useAbortController } from '@/composables/abortController';
+import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
+import { listAndWatch } from '@/utils/watch';
 import '@/vendor/wasm_exec';
 
 interface ValuesTab {
@@ -23,9 +27,37 @@ interface ValuesTab {
 }
 
 const { selectedNamespace } = storeToRefs(useNamespaces());
-const releases = ref<Array<any>>([]);
+const secrets = ref<Array<V1Secret>>([]);
 const tab = ref('table');
 const tabs = ref<Array<ValuesTab>>([]);
+
+// helm.sh/helm/v3/pkg/storage/driver.Secrets.List
+const releases = computedAsync(() => Promise.all(secrets.value.map(async (s) => {
+  // TODO handle malformed secrets
+  const gzipped = Uint8Array.from(atob(atob(s.data?.release!)), (c) => c.codePointAt(0)!);
+  const gunzip = new DecompressionStream('gzip');
+  const w = gunzip.writable.getWriter();
+  const write = async () => {
+    await w.write(gzipped);
+    await w.close();
+  };
+  write();
+  const r = gunzip.readable.pipeThrough(new TextDecoderStream()).getReader();
+  let json = '';
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { value, done } = await r.read();
+
+    if (done) {
+      break;
+    }
+
+    json += value;
+  }
+  const release = JSON.parse(json);
+  release.labels = s.metadata!.labels;
+  return release;
+})), []);
 
 const columns = [
   {
@@ -77,6 +109,8 @@ const columns = [
 const latestRevision = (releases: ReadonlyArray<any>) => releases.reduce(
   (a, v) => (v.raw.version > a.raw.version) ? v : a, releases[0]);
 
+const { abort: abortRequests, signal } = useAbortController();
+
 let goInitialized = false;
 
 const setupGo = async () => {
@@ -120,16 +154,15 @@ watch(selectedNamespace, async (namespace) => {
   if (!namespace || namespace.length === 0) {
     return;
   }
-  await setupGo();
-  try {
-    releases.value = JSON.parse(await listReleasesForNamespace(namespace));
-  } catch (e) {
-    if (e instanceof Error) {
-      throw new PresentedError(e.message);
-    }
-    throw e;
-  }
+  abortRequests();
+  const api = new CoreV1Api(await useApiConfig().getConfig());
+  listAndWatch(secrets, V1SecretFromJSON,
+    (opt) => api.listNamespacedSecretRaw(opt, { signal: signal.value }),
+    { namespace, labelSelector: 'owner=helm' })
+      .catch((e) => useErrorPresentation().pendingError = e);
 }, { immediate: true });
+
+onMounted(setupGo);
 </script>
 
 <template>
