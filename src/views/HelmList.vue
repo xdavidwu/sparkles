@@ -185,6 +185,12 @@ onMounted(setupGo);
                 @click="groupProps.toggleGroup(groupProps.item)" />
               {{ value }}
             </template>
+            <template #[`item.chart.metadata.name`]='{ item, value }'>
+              <div :title="(item as any).chart.metadata.description" class="d-flex align-center">
+                <img :src="(item as any).chart.metadata.icon" class="chart-icon mr-2" />
+                {{ value }}
+              </div>
+            </template>
             <template #[`item.actions`]='{ item }'>
               <VBtn size="small" icon="mdi-file-document" title="Values" variant="text"
                 @click="createTab(item)" />
@@ -193,6 +199,12 @@ onMounted(setupGo);
         </template>
         <template #[`item.data-table-group`]>
           <VBtn size="small" variant="text" disabled icon="mdi-circle-small" />
+        </template>
+        <template #[`item.chart.metadata.name`]='{ item, value }'>
+          <div :title="(item as any).chart.metadata.description" class="d-flex align-center">
+            <img :src="(item as any).chart.metadata.icon" class="chart-icon mr-2" />
+            {{ value }}
+          </div>
         </template>
         <template #[`item.actions`]='{ item }'>
           <VBtn size="small" icon="mdi-file-document" title="Values" variant="text"
@@ -206,3 +218,9 @@ onMounted(setupGo);
     </VWindowItem>
   </VWindow>
 </template>
+
+<style scoped>
+.chart-icon {
+  height: 2em;
+}
+</style>
