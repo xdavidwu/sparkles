@@ -28,3 +28,4 @@ coverage
 *.sw?
 .env
 /public/helm.wasm
+/public/charts
