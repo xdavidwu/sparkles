@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<{
 
 const baseColors = Object.values(BaseColor);
 
-const variants = [ ColorVariant.Darken4 ];
+const variants = [ ColorVariant.Lighten2 ];
 
 const title = computed(() => `${props.k}: ${props.v}`);
 
@@ -38,10 +38,12 @@ const vColor = computed(() => colorToClass(hashColor(props.v, baseColors, varian
 
 <template>
   <div class="d-inline-block" :title="title">
-    <span :class="[`rounded-s-${pill ? 'pill' : 'sm'}`, `bg-${kColor}`, 'key']">
+    <span :class="[`text-${kColor}`, 'kv']">
+      <span :class="[`rounded-s-${pill ? 'pill' : 'sm'}`, 'underlay']" />
       {{ shortK }}
     </span>
-    <span :class="[`rounded-e-${pill ? 'pill' : 'sm'}`, `bg-${vColor}`, 'value']">
+    <span :class="[`text-${vColor}`, 'kv']">
+      <span :class="[`rounded-e-${pill ? 'pill' : 'sm'}`, 'underlay']" />
       {{ shortV }}
     </span>
   </div>
@@ -51,16 +53,21 @@ const vColor = computed(() => colorToClass(hashColor(props.v, baseColors, varian
 div {
   font-weight: normal;
   font-size: 0.75em;
-  opacity: 0.9;
 }
 
-.key {
+.kv {
   padding-left: 0.4em;
   padding-right: 0.4em;
+  position: relative;
 }
 
-.value {
-  padding-left: 0.4em;
-  padding-right: 0.4em;
+.underlay {
+  opacity: var(--v-activated-opacity);
+  background-color: currentColor;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
 }
 </style>
