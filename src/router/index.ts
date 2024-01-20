@@ -25,6 +25,12 @@ const router = createRouter({
       meta: { name: 'OIDC Auth', hidden: true },
     },
     {
+      path: '/helm/repo',
+      name: 'helm_repo',
+      component: () => import('@/components/HelmRepository.vue'),
+      meta: { name: 'Helm repo', hidden: true },
+    },
+    {
       path: '/explore',
       name: 'explore',
       component: () => import('@/views/ResourceExplorer.vue'),
