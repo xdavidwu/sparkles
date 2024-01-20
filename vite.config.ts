@@ -9,6 +9,8 @@ const getVersion = () => execSync('git describe --always --dirty').toString().tr
 
 let version = getVersion();
 
+const modulesWithVersions = new Map();
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
@@ -19,12 +21,21 @@ export default defineConfig({
         const v = getVersion();
         if (version !== v) {
           version = v;
-          // XXX: hackish
-          server.restart();
+          [...modulesWithVersions.keys()].forEach((id) => {
+            const module = server.moduleGraph.idToModuleMap.get(id);
+            if (module) {
+              server.reloadModule(module);
+            } else {
+              modulesWithVersions.delete(id);
+            }
+          });
         }
       },
-      transform: (code) => ({
-        code: code.replace(/__version_placeholder__/g, version),
+      transform: (code, id) => ({
+        code: code.replace(/__version_placeholder__/g, () => {
+          modulesWithVersions.set(id, null);
+          return version;
+        }),
         map: null,
       }),
     },
