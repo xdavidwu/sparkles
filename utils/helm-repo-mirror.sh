@@ -36,9 +36,9 @@ for i in $(echo "$INDEX" | yq '.entries.*[0].urls[0]' -r); do
 done
 
 if [ -f "$PATH/index.yaml" ]; then
-	helm repo index --url "$URL" --merge "$OUTPUT/index.yaml" -- "$TEMPDIR"
+	helm repo index --url "$URL" --json --merge "$OUTPUT/index.yaml" -- "$TEMPDIR"
 else
-	helm repo index --url "$URL" -- "$TEMPDIR"
+	helm repo index --url "$URL" --json -- "$TEMPDIR"
 fi
 
 mv "$TEMPDIR"/* "$OUTPUT"
