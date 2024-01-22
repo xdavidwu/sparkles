@@ -17,11 +17,17 @@ const chipColor = (s: string) => colorToClass(hashColor(s, baseColors, variants)
 
 onMounted(async () => {
   const response = await fetch(useProxy ? `https://corsproxy.io?${encodeURIComponent(indexURL)}` : indexURL);
-  const index = parse(await response.text());
+  const text = await response.text();
+  let index: any;
+  try {
+    index = JSON.parse(text);
+  } catch {
+    index = parse(text);
+  }
   charts.value = Object.keys(index.entries)
-  .map((key) => index.entries[key][0])
-  .filter((c: any) => c.type !== 'library')
-  .filter((c: any) => c.deprecated !== true);
+    .map((key) => index.entries[key][0])
+    .filter((c: any) => c.type !== 'library')
+    .filter((c: any) => c.deprecated !== true);
   // TODO check kubeVersion, figure out what condition and tags are
 })
 </script>
