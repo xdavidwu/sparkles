@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { VCard, VCardText, VCardTitle, VChip } from 'vuetify/components';
 import { ref, onMounted } from 'vue';
+import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { parse } from 'yaml';
+import { satisfies } from 'semver';
 import { BaseColor, ColorVariant, colorToClass, hashColor } from '@/utils/colors';
 
 const repo = '/charts';
@@ -24,11 +26,13 @@ onMounted(async () => {
   } catch {
     index = parse(text);
   }
+
+  const versionInfo = await useApisDiscovery().getVersionInfo();
   charts.value = Object.keys(index.entries)
     .map((key) => index.entries[key][0])
     .filter((c: any) => c.type !== 'library')
-    .filter((c: any) => c.deprecated !== true);
-  // TODO check kubeVersion, figure out what condition and tags are
+    .filter((c: any) => c.deprecated !== true)
+    .filter((c: any) => c.kubeVersion ? satisfies(versionInfo.gitVersion, c.kubeVersion): true);
 })
 </script>
 
