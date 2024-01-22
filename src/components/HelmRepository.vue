@@ -28,11 +28,15 @@ onMounted(async () => {
   }
 
   const versionInfo = await useApisDiscovery().getVersionInfo();
-  charts.value = Object.keys(index.entries)
+  const repoCharts = Object.keys(index.entries)
     .map((key) => index.entries[key][0])
     .filter((c: any) => c.type !== 'library')
     .filter((c: any) => c.deprecated !== true)
     .filter((c: any) => c.kubeVersion ? satisfies(versionInfo.gitVersion, c.kubeVersion): true);
+  repoCharts.forEach((c: any) => {
+    c.keywords?.sort();
+  })
+  charts.value = repoCharts;
 })
 </script>
 
