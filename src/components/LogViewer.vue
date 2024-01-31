@@ -38,6 +38,7 @@ const display = async (terminal: Terminal) => {
       break;
     }
 
+    // termios(3) c_oflag=OPOST|ONLCR
     terminal.write(decoder.decode(value!).replace(/\n/g, '\r\n'));
   }
 };
