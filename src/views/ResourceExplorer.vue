@@ -14,7 +14,6 @@ import {
 } from 'vuetify/components';
 import YAMLViewer from '@/components/YAMLViewer.vue';
 import { computed, watch, ref } from 'vue';
-import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { useDisplay } from 'vuetify';
 import { useAbortController } from '@/composables/abortController';
@@ -23,7 +22,6 @@ import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
-import type { V1APIGroup, V1APIResource } from '@/kubernetes-api/src';
 import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
 import type { OpenAPIV3 } from 'openapi-types';
 import { uniqueKeyForObject } from '@/utils/objects';
@@ -44,55 +42,49 @@ enum Verbosity {
   MINIMAL = 'minimal',
 }
 
-const LOADING = '(loading)';
 const NS_ALL_NAMESPACES = '(all)';
-const EMPTY_V1_TABLE = {
+const EMPTY_V1_TABLE: V1Table = {
   columnDefinitions: [],
   rows: [],
 };
 const apiConfigStore = useApiConfig();
 const openAPISchemaDiscovery = useOpenAPISchemaDiscovery();
+const anyApi = new AnyApi(await apiConfigStore.getConfig());
 
 const { namespaces } = storeToRefs(useNamespaces());
 const namespaceOptions = computed(() => [ NS_ALL_NAMESPACES, ...namespaces.value ]);
 const targetNamespace = ref(NS_ALL_NAMESPACES);
-const groups = computedAsync<Array<V1APIGroup>>(() => useApisDiscovery().getGroups(), []);
-const targetGroup = ref<V1APIGroup>({
-  name: '', versions: [], preferredVersion: {
-    groupVersion: LOADING, version: '',
-  },
-});
-const types = ref<Array<V1APIResource>>([]);
-const targetType = ref<V1APIResource | null>({
-  kind: '', name: LOADING, namespaced: false, singularName: '', verbs: [],
-});
-const objects = ref<V1Table>(EMPTY_V1_TABLE);
-const tab = ref('explore');
-const inspectedObjects = ref<Array<ObjectRecord>>([]);
-const verbosity = ref(useDisplay().xlAndUp.value ? Verbosity.FULL : Verbosity.MINIMAL);
-
-const { abort: abortRequests, signal } = useAbortController();
+const groups = await useApisDiscovery().getGroups();
+const targetGroup = ref(groups[0]);
 
 const getTypes = async () => {
-  if (targetGroup.value.preferredVersion!.groupVersion === LOADING) {
-    return;
-  }
-  const anyApi = new AnyApi(await apiConfigStore.getConfig());
   const response = await anyApi.getAPIResources({
     group: targetGroup.value.name,
     version: targetGroup.value.preferredVersion!.version,
   });
 
   // filter out subresources, unlistables
-  types.value = response.resources.filter(
+  return response.resources.filter(
     (v) => (!v.name.includes('/') && v.verbs.includes('list'))
   );
+};
 
+const types = ref(await getTypes());
+
+const defaultTargetType = () => {
   const firstWithWatch = types.value.find(
     (v) => v.verbs.includes('watch')
   );
-  targetType.value = firstWithWatch ?? types.value[0] ?? null;
+  return firstWithWatch ?? types.value[0] ?? null;
 };
+
+const targetType = ref(defaultTargetType());
+const objects = ref(EMPTY_V1_TABLE);
+const tab = ref('explore');
+const inspectedObjects = ref<Array<ObjectRecord>>([]);
+const verbosity = ref(useDisplay().xlAndUp.value ? Verbosity.FULL : Verbosity.MINIMAL);
+
+const { abort: abortRequests, signal } = useAbortController();
 
 const listObjects = async () => {
   abortRequests();
@@ -102,39 +94,25 @@ const listObjects = async () => {
     return;
   }
 
-  const anyApi = new AnyApi(await apiConfigStore.getConfig());
-  const sharedOptions = {
+  const options = {
     group: targetGroup.value.name,
     version: targetGroup.value.preferredVersion!.version,
     plural: targetType.value.name,
+    namespace: targetNamespace.value,
   };
-  const listNamespaced = targetType.value.namespaced && targetNamespace.value !== NS_ALL_NAMESPACES;
+  const listType = (targetType.value.namespaced && targetNamespace.value !== NS_ALL_NAMESPACES) ?
+    'Namespaced' : 'Cluster';
   if (targetType.value.verbs.includes('watch')) {
-    if (listNamespaced) {
-      listAndWatchTable(
-        objects,
-        (opt) => anyApi.listNamespacedCustomObjectAsTableRaw(opt, { signal: signal.value }),
-        { ...sharedOptions, namespace: targetNamespace.value },
-      ).catch((e) => useErrorPresentation().pendingError = e);
-    } else {
-      listAndWatchTable(
-        objects,
-        (opt) => anyApi.listClusterCustomObjectAsTableRaw(opt, { signal: signal.value }),
-        sharedOptions,
-      ).catch((e) => useErrorPresentation().pendingError = e);
-    }
+    listAndWatchTable(
+      objects,
+      (opt) => anyApi[`list${listType}CustomObjectAsTableRaw`](opt, { signal: signal.value }),
+      options,
+    ).catch((e) => useErrorPresentation().pendingError = e);
   } else {
     useErrorPresentation().pendingToast =
       `${targetGroup.value.preferredVersion!.groupVersion} ${targetType.value.name}` +
       ' does not support watch, updates will not be reflected without refreshing.';
-    if (listNamespaced) {
-      objects.value = await anyApi.listNamespacedCustomObjectAsTable({
-        ...sharedOptions,
-        namespace: targetNamespace.value,
-      });
-    } else {
-      objects.value = await anyApi.listClusterCustomObjectAsTable(sharedOptions);
-    }
+    objects.value = await anyApi[`list${listType}CustomObjectAsTable`](options);
   }
 };
 
@@ -143,19 +121,19 @@ const columns = computed(() =>
     title: 'Namespace',
     key: 'object.metadata.namespace',
   }] : []).concat(
-    objects.value.columnDefinitions.map((c, i) => ({
-      priority: c.priority,
-      title: c.name,
-      key: `cells.${i}`,
-      headerProps: { // html title tooltip, TODO: roll our own a la YAMLViewer
-        title: c.description,
-      },
-    })).filter((c) => verbosity.value === Verbosity.FULL || c.priority === 0)
+    objects.value.columnDefinitions
+      .filter((c) => verbosity.value === Verbosity.FULL || c.priority === 0)
+      .map((c, i) => ({
+        title: c.name,
+        key: `cells.${i}`,
+        headerProps: { // html title tooltip, TODO: roll our own a la YAMLViewer
+          title: c.description,
+        },
+      }))
   ),
 );
 
 const inspectObject = async (obj: V1PartialObjectMetadata) => {
-  const anyApi = new AnyApi(await apiConfigStore.getConfig());
   const sharedOptions = {
     group: targetGroup.value.name,
     version: targetGroup.value.preferredVersion!.version,
@@ -201,14 +179,11 @@ const closeTab = (idx: number) => {
   tab.value = 'explore';
   inspectedObjects.value.splice(idx, 1);
 };
-
-watch(groups, (groups) => {
-  if (groups.length) {
-    targetGroup.value = groups[0];
-  }
-}, { immediate: true });
-watch(targetGroup, getTypes, { immediate: true });
-watch(targetType, listObjects);
+watch(targetGroup, async () => {
+  types.value = await getTypes();
+  targetType.value = defaultTargetType();
+});
+watch(targetType, listObjects, { immediate: true });
 watch(targetNamespace, listObjects);
 </script>
 

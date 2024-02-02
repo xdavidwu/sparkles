@@ -151,11 +151,18 @@ watch(pendingToast, (toast) => {
     </VDialog>
     <VMain>
       <VContainer fluid>
-        <RouterView />
+        <RouterView #="{ Component }">
+          <Suspense>
+            <component :is="Component" />
+            <template #fallback><!-- XXX: does not seems to work? -->
+              Loading...
+            </template>
+          </Suspense>
+        </RouterView>
       </VContainer>
       <VSnackbar v-model="showsSnackbar">
         {{ snackbarMessage }}
-        <template v-slot:actions>
+        <template #actions>
           <VBtn variant="text" @click="showsSnackbar = false">Close</VBtn>
         </template>
       </VSnackbar>
