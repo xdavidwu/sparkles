@@ -22,7 +22,7 @@
     "change-case": "^5.1.2",
     "chartjs-adapter-date-std": "^0.1.8",
     "json-pointer": "^0.6.2",
-    "oidc-client-ts": "^2.0.6",
+    "oidc-client-ts": "^3.0.0",
     "openapi-types": "^12.1.0",
     "parse-duration": "^1.0.2",
     "pinia": "^2.0.21",
