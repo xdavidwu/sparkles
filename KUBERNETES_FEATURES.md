@@ -6,6 +6,8 @@ Notes:
 
 ## Required
 
+- User should always have permission as in `system:discovery` ClusterRoleBinding (default behavior of Kubernetes)
+
 ## Optional
 
 - metrics.k8s.io v1beta1
