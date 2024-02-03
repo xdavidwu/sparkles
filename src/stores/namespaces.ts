@@ -26,7 +26,7 @@ export const useNamespaces = defineStore('namespace', () => {
   const selectedNamespace = ref('');
 
   watchArray(namespaces, (newNamespaces, old, added, removed) => {
-    if (old.length === 0 || removed.indexOf(selectedNamespace.value) === -1) {
+    if (old.length === 0 || removed.indexOf(selectedNamespace.value) !== -1) {
       // TODO fire a notification on removed?
       if (newNamespaces.length) {
         if (newNamespaces.indexOf('default') !== -1) {
