@@ -55,6 +55,7 @@ const url = computed(() => {
     case 'quay.io':
     case 'gcr.io':
     case 'ghcr.io':
+    case 'cgr.dev': // to source code, not an image catalog
     case host.match(/.-docker\.pkg\.dev$/)?.input:
       return `https://${host}/${image}${tagTail}`;
     default:
