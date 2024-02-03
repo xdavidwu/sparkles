@@ -16,7 +16,9 @@ import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndWatch } from '@/utils/watch';
 import { real } from '@ragnarpa/quantity';
 
-const { selectedNamespace } = storeToRefs(useNamespaces());
+const namespacesStore = useNamespaces();
+await namespacesStore.ensureNamespaces();
+const { selectedNamespace } = storeToRefs(namespacesStore);
 
 const quotas = ref<Array<V1ResourceQuota>>([]);
 const pods = ref<Array<V1Pod>>([]);
@@ -74,7 +76,7 @@ const podsResourceUsage = computed(() => {
 const { abort: abortRequests, signal } = useAbortController();
 
 watch(selectedNamespace, async (namespace) => {
-  if (!namespace || namespace.length === 0) {
+  if (namespace === '') {
     quotas.value = [];
     return;
   }

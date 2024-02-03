@@ -26,7 +26,9 @@ interface ValuesTab {
   schema?: object,
 }
 
-const { selectedNamespace } = storeToRefs(useNamespaces());
+const namespacesStore = useNamespaces();
+await namespacesStore.ensureNamespaces();
+const { selectedNamespace } = storeToRefs(namespacesStore);
 const secrets = ref<Array<V1Secret>>([]);
 const tab = ref('table');
 const tabs = ref<Array<ValuesTab>>([]);
@@ -151,7 +153,7 @@ const closeTab = (idx: number) => {
 };
 
 watch(selectedNamespace, async (namespace) => {
-  if (!namespace || namespace.length === 0) {
+  if (namespace === '') {
     return;
   }
   abortRequests();

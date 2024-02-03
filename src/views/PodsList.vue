@@ -48,7 +48,9 @@ interface ContainerData extends V1ContainerStatus {
 
 const { mayAllows } = usePermissions();
 
-const { selectedNamespace } = storeToRefs(useNamespaces());
+const namespacesStore = useNamespaces();
+await namespacesStore.ensureNamespaces();
+const { selectedNamespace } = storeToRefs(namespacesStore);
 
 const tab = ref('table');
 const tabs = ref<Array<Tab>>([]);
@@ -114,7 +116,7 @@ const columns = [
 const { abort: abortRequests, signal } = useAbortController();
 
 watch(selectedNamespace, async (namespace) => {
-  if (!namespace || namespace.length === 0) {
+  if (namespace === '') {
     _pods.value = [];
     return;
   }
