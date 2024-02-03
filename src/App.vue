@@ -17,6 +17,7 @@ import {
   VListSubheader,
   VMain,
   VNavigationDrawer,
+  VProgressCircular,
   VToolbarTitle,
   VSnackbar,
 } from 'vuetify/components';
@@ -152,10 +153,13 @@ watch(pendingToast, (toast) => {
     <VMain>
       <VContainer fluid>
         <RouterView #="{ Component }">
-          <Suspense>
+          <Suspense timeout="16">
             <component v-if="Component" :is="Component" />
-            <template #fallback><!-- XXX: does not seems to work? -->
-              Loading...
+            <template #fallback>
+              <div class="d-flex justify-center align-center flex-column full-height">
+                <VProgressCircular indeterminate class="mb-4" />
+                Loading...
+              </div>
             </template>
           </Suspense>
         </RouterView>
@@ -169,3 +173,9 @@ watch(pendingToast, (toast) => {
     </VMain>
   </VApp>
 </template>
+
+<style scoped>
+.full-height {
+  height: calc(100vh - 96px);
+}
+</style>
