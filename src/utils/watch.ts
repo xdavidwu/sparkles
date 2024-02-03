@@ -50,32 +50,24 @@ export async function* rawResponseToWatchEvents<T>(raw: ApiResponse<T>,
   }
 }
 
-export const listAndWatch = async<ListOpt> (
+export const watch = async (
     dest: Ref<Array<KubernetesObject>>,
     transformer: (obj: any) => KubernetesObject,
-    lister: (opt: ListOpt) => Promise<ApiResponse<KubernetesList>>,
-    opt: ListOpt,
-    expectAbortOnWatch: boolean = true,
+    watcher: () => Promise<ApiResponse<KubernetesList>>,
+    expectAbort: boolean = true,
   ) => {
-  const listResponse = await (await lister(opt)).value();
-  dest.value = listResponse.items;
-
   let updates: ApiResponse<KubernetesList> | null = null;
   try {
-    updates = await lister({
-      ...opt,
-      resourceVersion: listResponse.metadata!.resourceVersion,
-      watch: true
-    });
+    updates = await watcher();
   } catch (e) {
-    if (expectAbortOnWatch && e instanceof FetchError &&
+    if (expectAbort && e instanceof FetchError &&
         e.cause instanceof DOMException && e.cause.name === 'AbortError') {
       return;
     }
     throw e;
   }
 
-  for await (const event of rawResponseToWatchEvents(updates!, expectAbortOnWatch)) {
+  for await (const event of rawResponseToWatchEvents(updates!, expectAbort)) {
     if (event.type === 'ADDED') {
       const obj = transformer(event.object);
       dest.value.push(obj);
@@ -88,6 +80,24 @@ export const listAndWatch = async<ListOpt> (
       dest.value[index] = obj;
     }
   }
+};
+
+export const listAndWatch = async<ListOpt> (
+    dest: Ref<Array<KubernetesObject>>,
+    transformer: (obj: any) => KubernetesObject,
+    lister: (opt: ListOpt) => Promise<ApiResponse<KubernetesList>>,
+    opt: ListOpt,
+    expectAbortOnWatch: boolean = true,
+  ) => {
+  const listResponse = await (await lister(opt)).value();
+  dest.value = listResponse.items;
+
+  await watch(
+    dest,
+    transformer,
+    () => lister({ ...opt, resourceVersion: listResponse.metadata!.resourceVersion, watch: true }),
+    expectAbortOnWatch,
+  );
 };
 
 const isKubernetesObjectInRows = (a: V1TableRow, b: Array<V1TableRow>) =>
