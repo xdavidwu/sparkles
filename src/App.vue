@@ -153,7 +153,7 @@ watch(pendingToast, (toast) => {
       <VContainer fluid>
         <RouterView #="{ Component }">
           <Suspense>
-            <component :is="Component" />
+            <component v-if="Component" :is="Component" />
             <template #fallback><!-- XXX: does not seems to work? -->
               Loading...
             </template>
