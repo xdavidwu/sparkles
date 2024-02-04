@@ -100,6 +100,25 @@ export const listAndWatch = async<ListOpt> (
   );
 };
 
+export const listAndUnwaitedWatch = async<ListOpt> (
+    dest: Ref<Array<KubernetesObject>>,
+    transformer: (obj: any) => KubernetesObject,
+    lister: (opt: ListOpt) => Promise<ApiResponse<KubernetesList>>,
+    opt: ListOpt,
+    catcher: Parameters<Promise<void>['catch']>[0],
+    expectAbortOnWatch: boolean = true,
+  ) => {
+  const listResponse = await (await lister(opt)).value();
+  dest.value = listResponse.items;
+
+  watch(
+    dest,
+    transformer,
+    () => lister({ ...opt, resourceVersion: listResponse.metadata!.resourceVersion, watch: true }),
+    expectAbortOnWatch,
+  ).catch(catcher);
+};
+
 const isKubernetesObjectInRows = (a: V1TableRow, b: Array<V1TableRow>) =>
   b.some((v) => isSameKubernetesObject(<V1PartialObjectMetadata> a.object, <V1PartialObjectMetadata> v.object));
 

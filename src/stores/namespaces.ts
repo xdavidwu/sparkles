@@ -4,7 +4,7 @@ import { watchArray } from '@vueuse/core';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api, type V1Namespace, V1NamespaceFromJSON } from '@/kubernetes-api/src';
-import { watch as kubernetesWatch } from '@/utils/watch';
+import { listAndUnwaitedWatch } from '@/utils/watch';
 
 export const useNamespaces = defineStore('namespace', () => {
   const _namespaces = ref<Array<V1Namespace>>([]);
@@ -29,15 +29,14 @@ export const useNamespaces = defineStore('namespace', () => {
       _updatePromise = (async () => {
         const config = await useApiConfig().getConfig();
         const api = new CoreV1Api(config);
-        const res = await api.listNamespace();
-        _namespaces.value = res.items;
-        setDefaultNamespace(namespaces.value);
-
-        kubernetesWatch(
+        await listAndUnwaitedWatch(
           _namespaces,
           V1NamespaceFromJSON,
-          () => api.listNamespaceRaw({ resourceVersion: res.metadata!.resourceVersion, watch: true }),
-        ).catch((e) => useErrorPresentation().pendingError = e);
+          (opt) => api.listNamespaceRaw(opt),
+          {},
+          (e) => useErrorPresentation().pendingError = e,
+        )
+        setDefaultNamespace(namespaces.value);
       })().catch((e) => useErrorPresentation().pendingError = e);
     }
     return _updatePromise;
