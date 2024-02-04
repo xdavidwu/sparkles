@@ -37,7 +37,7 @@ const tab = ref('table');
 const tabs = ref<Array<ValuesTab>>([]);
 
 // helm.sh/helm/v3/pkg/storage/driver.Secrets.List
-const releases = computedAsync(() => Promise.all(secrets.value.map(async (s) => {
+const releases = computedAsync(async () => (await Promise.all(secrets.value.map(async (s) => {
   // TODO handle malformed secrets
   const gzipped = Uint8Array.from(atob(atob(s.data?.release!)), (c) => c.codePointAt(0)!);
   const gunzip = new DecompressionStream('gzip');
@@ -62,7 +62,12 @@ const releases = computedAsync(() => Promise.all(secrets.value.map(async (s) => 
   const release = JSON.parse(json);
   release.labels = s.metadata!.labels;
   return release;
-})), []);
+}))).sort((a: any, b: any) => {
+  if (a.chart.metadata.name !== b.chart.metadata.name) {
+    return a.chart.metadata.name.localeCompare(b.chart.metadata.name);
+  }
+  return b.version - a.version;
+}), []);
 
 const columns = [
   {
