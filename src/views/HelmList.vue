@@ -225,6 +225,7 @@ onMounted(setupGo);
 
 <style scoped>
 .chart-icon {
-  height: 2em;
+  max-height: 2em;
+  max-width: 2em;
 }
 </style>
