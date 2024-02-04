@@ -39,12 +39,10 @@ const vColor = computed(() => colorToClass(hashColor(props.v, baseColors, varian
 <template>
   <div class="d-inline-block" :title="title">
     <span :class="[`text-${kColor}`, 'kv']">
-      <span :class="[`rounded-s-${pill ? 'pill' : 'sm'}`, 'underlay']" />
-      {{ shortK }}
+      {{ shortK }}<span :class="[`rounded-s-${pill ? 'pill' : 'sm'}`, 'underlay']" />
     </span>
     <span :class="[`text-${vColor}`, 'kv']">
-      <span :class="[`rounded-e-${pill ? 'pill' : 'sm'}`, 'underlay']" />
-      {{ shortV }}
+      {{ shortV }}<span :class="[`rounded-e-${pill ? 'pill' : 'sm'}`, 'underlay']" />
     </span>
   </div>
 </template>
