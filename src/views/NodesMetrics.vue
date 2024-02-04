@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onUnmounted, computed } from 'vue';
 import { VCard, VCardText, VRow, VCol, VSwitch } from 'vuetify/components';
 import { Line } from 'vue-chartjs';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
 import { CustomObjectsApi, CoreV1Api, ResponseError } from '@/kubernetes-api/src';
-import { useIntervalFn, type Pausable } from '@vueuse/core';
+import { useIntervalFn } from '@vueuse/core';
 import { BaseColor, ColorVariant, colorToCode, hashColor } from '@/utils/colors';
 import type { KubernetesList } from '@/utils/objects';
 import parseDuration from 'parse-duration';
@@ -48,80 +48,75 @@ const chartData = computed(() => ({
   })),
 }));
 
-let stopUpdating: Pausable['pause'] | null = null;
-
-onMounted(async () => {
-  try {
-    (await coreApi.listNode()).items.forEach((n) => {
-      nodes.value[n.metadata!.name!] = {
-        cpu: real(n.status!.capacity!.cpu)!,
-        mem: real(n.status!.capacity!.memory)!,
-      };
-    });
-    capacityAvailable.value = true;
-  } catch (e) {
-    if (e instanceof ResponseError && e.response.status === 403) {
-      useErrorPresentation().pendingToast = 'Percentage graphs unavailable: Permission denied on nodes info.';
-    } else {
-      throw e;
-    }
+try {
+  (await coreApi.listNode()).items.forEach((n) => {
+    nodes.value[n.metadata!.name!] = {
+      cpu: real(n.status!.capacity!.cpu)!,
+      mem: real(n.status!.capacity!.memory)!,
+    };
+  });
+  capacityAvailable.value = true;
+} catch (e) {
+  if (e instanceof ResponseError && e.response.status === 403) {
+    useErrorPresentation().pendingToast = 'Percentage graphs unavailable: Permission denied on nodes info.';
+  } else {
+    throw e;
   }
+}
 
-  const metricsApi = {
-    group: 'metrics.k8s.io',
-    version: 'v1beta1',
-  };
-  const { pause } = useIntervalFn(() => {
-    (async () => {
-      abortRequests();
-      const response = await api.listClusterCustomObject(
-        { ...metricsApi, plural: 'nodes' },
-        { signal: signal.value }) as KubernetesList<any>;
-      response.items.forEach((i: any) => {
-        const time = Math.floor(new Date(i.timestamp).valueOf() / 1000);
-        let index = time - (latestSample.value - timeRange);
+const metricsApi = {
+  group: 'metrics.k8s.io',
+  version: 'v1beta1',
+};
+const { pause } = useIntervalFn(() => {
+  (async () => {
+    abortRequests();
+    const response = await api.listClusterCustomObject(
+      { ...metricsApi, plural: 'nodes' },
+      { signal: signal.value }) as KubernetesList<any>;
+    response.items.forEach((i: any) => {
+      const time = Math.floor(new Date(i.timestamp).valueOf() / 1000);
+      let index = time - (latestSample.value - timeRange);
+      if (index < 0) {
+        return;
+      }
+
+      if (index >= timeRange) {
+        const room = index - timeRange + 1;
+        for (let i = 0; i < room; i++) {
+          samples.value.shift();
+          samples.value.push({});
+        }
+        latestSample.value += room;
+        index = time - (latestSample.value - timeRange);
+      }
+
+      const cpu = real(i.usage.cpu)!, mem = real(i.usage.memory)!;
+      const metrics = capacityAvailable.value ? {
+        cpu,
+        mem,
+        cpuPercentage: cpu / nodes.value[i.metadata.name].cpu! * 100,
+        memPercentage: mem / nodes.value[i.metadata.name].mem! * 100,
+      } : { cpu, mem };
+      nodes.value[i.metadata.name] ??= {};
+      samples.value[index][i.metadata.name] = metrics;
+
+      const d = parseDuration(i.window, 's')!;
+      for (let j = 1; j < d; j++) {
+        index -= 1;
         if (index < 0) {
           return;
         }
-
-        if (index >= timeRange) {
-          const room = index - timeRange + 1;
-          for (let i = 0; i < room; i++) {
-            samples.value.shift();
-            samples.value.push({});
-          }
-          latestSample.value += room;
-          index = time - (latestSample.value - timeRange);
-        }
-
-        const cpu = real(i.usage.cpu)!, mem = real(i.usage.memory)!;
-        const metrics = capacityAvailable.value ? {
-          cpu,
-          mem,
-          cpuPercentage: cpu / nodes.value[i.metadata.name].cpu! * 100,
-          memPercentage: mem / nodes.value[i.metadata.name].mem! * 100,
-        } : { cpu, mem };
-        nodes.value[i.metadata.name] ??= {};
         samples.value[index][i.metadata.name] = metrics;
-
-        const d = parseDuration(i.window, 's')!;
-        for (let j = 1; j < d; j++) {
-          index -= 1;
-          if (index < 0) {
-            return;
-          }
-          samples.value[index][i.metadata.name] = metrics;
-        }
-      });
-    })().catch((e) => {
-      useErrorPresentation().pendingError = e;
-      pause();
+      }
     });
-  }, 5000, { immediateCallback: true });
-  stopUpdating = pause;
-});
+  })().catch((e) => {
+    useErrorPresentation().pendingError = e;
+    pause();
+  });
+}, 5000, { immediateCallback: true });
 
-onUnmounted(() => stopUpdating!());
+onUnmounted(pause);
 </script>
 
 <template>
