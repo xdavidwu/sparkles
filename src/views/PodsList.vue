@@ -52,6 +52,8 @@ const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces();
 const { selectedNamespace } = storeToRefs(namespacesStore);
 
+const api = new CoreV1Api(await useApiConfig().getConfig());
+
 const tab = ref('table');
 const tabs = ref<Array<Tab>>([]);
 const _pods = ref<Array<V1Pod>>([]);
@@ -122,7 +124,6 @@ watch(selectedNamespace, async (namespace) => {
   }
   abortRequests();
 
-  const api = new CoreV1Api(await useApiConfig().getConfig());
   listAndWatch(_pods, V1PodFromJSON,
     (opt) => api.listNamespacedPodRaw(opt, { signal: signal.value }),
     { namespace })

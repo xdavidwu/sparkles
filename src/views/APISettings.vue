@@ -7,6 +7,7 @@ import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { doSelfSubjectReview, errorIsTypeUnsupported } from '@/utils/api';
 
 const configStore = useApiConfig();
+const config = await configStore.getConfig();
 
 const schemes = Object.entries(AuthScheme).filter((i) => isNaN(Number(i[0])));
 const scheme = ref(configStore.authScheme);
@@ -21,7 +22,6 @@ const kubernetesVersion = computedAsync(async () => {
   return info.gitVersion;
 }, 'unknown');
 const review = computedAsync(async () => {
-  const config = await useApiConfig().getConfig();
   try {
     return await doSelfSubjectReview(config);
   } catch (err) {

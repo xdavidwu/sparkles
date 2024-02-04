@@ -29,6 +29,9 @@ interface ValuesTab {
 const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces();
 const { selectedNamespace } = storeToRefs(namespacesStore);
+
+const api = new CoreV1Api(await useApiConfig().getConfig());
+
 const secrets = ref<Array<V1Secret>>([]);
 const tab = ref('table');
 const tabs = ref<Array<ValuesTab>>([]);
@@ -157,7 +160,6 @@ watch(selectedNamespace, async (namespace) => {
     return;
   }
   abortRequests();
-  const api = new CoreV1Api(await useApiConfig().getConfig());
   listAndWatch(secrets, V1SecretFromJSON,
     (opt) => api.listNamespacedSecretRaw(opt, { signal: signal.value }),
     { namespace, labelSelector: 'owner=helm' })

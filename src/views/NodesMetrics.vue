@@ -13,6 +13,10 @@ import parseDuration from 'parse-duration';
 import { real } from '@ragnarpa/quantity';
 import { fromBytes } from '@tsmx/human-readable';
 
+const config = await useApiConfig().getConfig();
+const coreApi = new CoreV1Api(config);
+const api = new CustomObjectsApi(config);
+
 const timeRange = 600;
 const nodes = ref<{ [key: string]: { cpu?: number, mem?: number } }>({});
 const samples = ref<Array<{
@@ -47,8 +51,6 @@ const chartData = computed(() => ({
 let stopUpdating: Pausable['pause'] | null = null;
 
 onMounted(async () => {
-  const config = await useApiConfig().getConfig();
-  const coreApi = new CoreV1Api(config);
   try {
     (await coreApi.listNode()).items.forEach((n) => {
       nodes.value[n.metadata!.name!] = {
@@ -65,7 +67,6 @@ onMounted(async () => {
     }
   }
 
-  const api = new CustomObjectsApi(config);
   const metricsApi = {
     group: 'metrics.k8s.io',
     version: 'v1beta1',

@@ -20,6 +20,8 @@ const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces();
 const { selectedNamespace } = storeToRefs(namespacesStore);
 
+const api = new CoreV1Api(await useApiConfig().getConfig());
+
 const quotas = ref<Array<V1ResourceQuota>>([]);
 const pods = ref<Array<V1Pod>>([]);
 // k8s.io/kubernetes/pkg/quota/v1/evaluator/core.QuotaV1Pod()
@@ -82,7 +84,6 @@ watch(selectedNamespace, async (namespace) => {
   }
   abortRequests();
 
-  const api = new CoreV1Api(await useApiConfig().getConfig());
   listAndWatch(quotas, V1ResourceQuotaFromJSON,
     (opt) => api.listNamespacedResourceQuotaRaw(opt, { signal: signal.value }),
     { namespace })
