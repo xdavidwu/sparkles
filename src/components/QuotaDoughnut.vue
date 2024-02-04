@@ -67,11 +67,12 @@ const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
           <div v-for="(title, i) in tooltip?.title" :key="i">
             <div>{{ title }}</div>
             <div class="d-flex align-center">
-              <div class="legend d-inline-block mr-1"
-                :style="{
+              <div class="d-inline-block mr-1 legend-bg">
+                <div class="legend" :style="{
                   'background-color': tooltip?.labelColors[i].backgroundColor as string,
                   'border-color': tooltip?.labelColors[i].borderColor as string,
-                }"></div>
+                }" />
+              </div>
               {{ tooltip?.body[i].lines.join('') }}
             </div>
           </div>
@@ -125,6 +126,10 @@ const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
   height: 12px;
   border-width: 1px;
   border-style: solid;
+}
+
+.legend-bg {
+  background-color: rgb(var(--v-theme-surface));
 }
 </style>
 
