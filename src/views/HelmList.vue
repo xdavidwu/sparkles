@@ -186,7 +186,7 @@ onMounted(setupGo);
     <VWindowItem value="table">
       <VDataTable hover :items="releases" :headers="columns" :group-by="[{ key: 'name', order: 'asc'}]">
         <template #group-header='groupProps'>
-          <VDataTableRow v-bind='{ ...groupProps, item: latestRevision(groupProps.item.items) }'>
+          <VDataTableRow v-bind='{ ...groupProps, item: latestRevision(groupProps.item.items) }' class="group-header">
             <template #[`item.data-table-group`]='{ value }'>
               <VBtn size="small" variant="text"
                 :icon="groupProps.isGroupOpen(groupProps.item) ? '$expand' : '$next'"
@@ -232,5 +232,13 @@ onMounted(setupGo);
 .chart-icon {
   max-height: 2em;
   max-width: 2em;
+}
+
+:deep(tr) {
+  opacity: var(--v-medium-emphasis-opacity);
+}
+
+tr.group-header {
+  opacity: 1;
 }
 </style>
