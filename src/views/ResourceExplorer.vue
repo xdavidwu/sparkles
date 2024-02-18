@@ -51,7 +51,9 @@ const apiConfigStore = useApiConfig();
 const openAPISchemaDiscovery = useOpenAPISchemaDiscovery();
 const anyApi = new AnyApi(await apiConfigStore.getConfig());
 
-const { namespaces } = storeToRefs(useNamespaces());
+const namespacesStore = useNamespaces();
+await namespacesStore.ensureNamespaces();
+const { namespaces } = storeToRefs(namespacesStore);
 const namespaceOptions = computed(() => [ NS_ALL_NAMESPACES, ...namespaces.value ]);
 const targetNamespace = ref(NS_ALL_NAMESPACES);
 const groups = await useApisDiscovery().getGroups();
