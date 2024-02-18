@@ -4,10 +4,10 @@ import {
   VDataTable,
   VDataTableRow,
   VTab,
-  VTabs,
   VWindow,
   VWindowItem,
 } from 'vuetify/components';
+import AppTabs from '@/components/AppTabs.vue';
 import YAMLViewer from '@/components/YAMLViewer.vue';
 import { onMounted, ref, watch } from 'vue';
 import { computedAsync } from '@vueuse/core';
@@ -175,13 +175,13 @@ onMounted(setupGo);
 </script>
 
 <template>
-  <VTabs v-model="tab">
+  <AppTabs v-model="tab">
     <VTab value="table">Releases</VTab>
     <VTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id">
       Values: {{ tab.id }}
       <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
     </VTab>
-  </VTabs>
+  </AppTabs>
   <VWindow v-model="tab">
     <VWindowItem value="table">
       <VDataTable hover :items="releases" :headers="columns" :group-by="[{ key: 'name', order: 'asc'}]">

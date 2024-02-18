@@ -5,10 +5,10 @@ import {
   VDataTable,
   VIcon,
   VTab,
-  VTabs,
   VWindow,
   VWindowItem
 } from 'vuetify/components';
+import AppTabs from '@/components/AppTabs.vue';
 import ExecTerminal from '@/components/ExecTerminal.vue';
 import KeyValueBadge from '@/components/KeyValueBadge.vue';
 import LogViewer from '@/components/LogViewer.vue';
@@ -159,7 +159,7 @@ const bell = (index: number) => {
 </script>
 
 <template>
-  <VTabs v-model="tab">
+  <AppTabs v-model="tab">
     <VTab value="table">Pods</VTab>
     <VTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id"
       @click="() => tab.alerting = false">
@@ -168,7 +168,7 @@ const bell = (index: number) => {
       </VBadge>
       <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
     </VTab>
-  </VTabs>
+  </AppTabs>
   <VWindow v-model="tab">
     <VWindowItem value="table">
       <VDataTable hover :items="containers" :headers="columns">

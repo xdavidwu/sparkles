@@ -30,6 +30,7 @@ import { PresentedError } from '@/utils/PresentedError';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useRouter } from 'vue-router';
 import { useTitle } from '@vueuse/core';
+import { useDisplay } from 'vuetify';
 
 const brand = import.meta.env.VITE_APP_BRANDING ?? 'Sparkles';
 
@@ -37,6 +38,7 @@ const { namespaces, selectedNamespace, loading: namespacesLoading } = storeToRef
 const { pendingError, pendingToast } = storeToRefs(useErrorPresentation());
 
 const drawer = ref<boolean | null>(null);
+const { xs: expandAppBar } = useDisplay();
 const showsDialog = ref(false);
 const showsSnackbar = ref(false);
 const snackbarMessage = ref('');
@@ -103,14 +105,21 @@ watch(pendingToast, (toast) => {
     pendingToast.value = null;
   }
 });
+
+// XXX: find a way to re-teleport?
+watch(expandAppBar, () => window.location.reload());
 </script>
 
 <template>
   <VApp>
     <VAppBar>
       <VAppBarNavIcon @click="drawer = !drawer" />
-      <VAppBarTitle>{{ brand }}</VAppBarTitle>
-      <IdentityIndicator class="mr-6" />
+      <VAppBarTitle style="max-width: calc(256px - 64px - 10px)">{{ brand }}</VAppBarTitle>
+      <template v-if="expandAppBar" #extension>
+        <div id="appbar-tabs" />
+      </template>
+      <div v-if="!expandAppBar" id="appbar-tabs" style="height: 64px; width: calc(100vw - 256px)"
+        class="flex-0-1 d-flex flex-column justify-end" />
     </VAppBar>
     <VNavigationDrawer v-model="drawer">
       <VList>
@@ -131,6 +140,7 @@ watch(pendingToast, (toast) => {
           {{ route.meta.name }}
         </VListItem>
       </VList>
+      <IdentityIndicator class="px-4 bottom-auth-line text-caption pb-4" />
     </VNavigationDrawer>
     <VDialog v-model="showsDialog">
       <VCard title="Request failed">
@@ -177,5 +187,10 @@ watch(pendingToast, (toast) => {
 <style scoped>
 .full-height {
   height: calc(100vh - 96px);
+}
+
+.bottom-auth-line {
+  position: absolute;
+  bottom: 0;
 }
 </style>

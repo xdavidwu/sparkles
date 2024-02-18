@@ -8,10 +8,10 @@ import {
   VRow,
   VSelect,
   VTab,
-  VTabs,
   VWindow,
   VWindowItem,
 } from 'vuetify/components';
+import AppTabs from '@/components/AppTabs.vue';
 import YAMLViewer from '@/components/YAMLViewer.vue';
 import { computed, watch, ref } from 'vue';
 import { storeToRefs } from 'pinia';
@@ -196,7 +196,7 @@ watch(targetNamespace, listObjects);
 </script>
 
 <template>
-  <VTabs v-model="tab">
+  <AppTabs v-model="tab">
     <VTab value="explore">Explore</VTab>
     <VTab v-for="(obj, index) in inspectedObjects"
       :key="uniqueKeyForObject(obj.object)"
@@ -209,7 +209,7 @@ watch(targetNamespace, listObjects);
       </template>
       <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
     </VTab>
-  </VTabs>
+  </AppTabs>
   <VWindow v-model="tab">
     <VWindowItem value="explore">
       <VRow class="mb-1">
@@ -233,7 +233,7 @@ watch(targetNamespace, listObjects);
             :items="Object.values(Verbosity)" hide-details />
         </VCol>
       </VRow>
-      <VDataTable hover fixed-header class="data-table-auto" height="calc(100vh - 224px)"
+      <VDataTable hover fixed-header class="data-table-auto"
         items-per-page="-1"
         :items="objects.rows ?? []" :headers="columns" :loading="objectsLoading">
         <template #item="{ props: itemProps }">
