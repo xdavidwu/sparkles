@@ -25,7 +25,7 @@ import { useErrorPresentation } from '@/stores/errorPresentation';
 import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
 import type { OpenAPIV3 } from 'openapi-types';
 import { uniqueKeyForObject } from '@/utils/objects';
-import { listAndWatchTable } from '@/utils/watch';
+import { listAndUnwaitedWatchTable } from '@/utils/watch';
 
 interface ResponseSchema {
   root: OpenAPIV3.Document,
@@ -59,18 +59,20 @@ const targetNamespace = ref(NS_ALL_NAMESPACES);
 const groups = await useApisDiscovery().getGroups();
 const targetGroup = ref(groups[0]);
 
+const typesLoading = ref(false);
 const getTypes = async () => {
+  typesLoading.value = true;
   const response = await anyApi.getAPIResources({
     group: targetGroup.value.name,
     version: targetGroup.value.preferredVersion!.version,
   });
+  typesLoading.value = false;
 
   // filter out subresources, unlistables
   return response.resources.filter(
     (v) => (!v.name.includes('/') && v.verbs.includes('list'))
   );
 };
-
 const types = ref(await getTypes());
 
 const defaultTargetType = () => {
@@ -82,6 +84,7 @@ const defaultTargetType = () => {
 
 const targetType = ref(defaultTargetType());
 const objects = ref(EMPTY_V1_TABLE);
+const objectsLoading = ref(false);
 const tab = ref('explore');
 const inspectedObjects = ref<Array<ObjectRecord>>([]);
 const verbosity = ref(useDisplay().xlAndUp.value ? Verbosity.FULL : Verbosity.MINIMAL);
@@ -96,6 +99,7 @@ const listObjects = async () => {
     return;
   }
 
+  objectsLoading.value = true;
   const options = {
     group: targetGroup.value.name,
     version: targetGroup.value.preferredVersion!.version,
@@ -105,17 +109,19 @@ const listObjects = async () => {
   const listType = (targetType.value.namespaced && targetNamespace.value !== NS_ALL_NAMESPACES) ?
     'Namespaced' : 'Cluster';
   if (targetType.value.verbs.includes('watch')) {
-    listAndWatchTable(
+    await listAndUnwaitedWatchTable(
       objects,
       (opt) => anyApi[`list${listType}CustomObjectAsTableRaw`](opt, { signal: signal.value }),
       options,
-    ).catch((e) => useErrorPresentation().pendingError = e);
+      (e) => useErrorPresentation().pendingError = e,
+    );
   } else {
     useErrorPresentation().pendingToast =
       `${targetGroup.value.preferredVersion!.groupVersion} ${targetType.value.name}` +
       ' does not support watch, updates will not be reflected without refreshing.';
     objects.value = await anyApi[`list${listType}CustomObjectAsTable`](options);
   }
+  objectsLoading.value = false;
 };
 
 const columns = computed(() =>
@@ -214,7 +220,7 @@ watch(targetNamespace, listObjects);
         </VCol>
         <VCol cols="6" md="">
           <VAutocomplete label="Type" v-model="targetType" :items="types"
-            return-object hide-details item-title="name" />
+            return-object hide-details item-title="name" :loading="typesLoading" />
         </VCol>
         <VCol cols="6" md="">
           <VAutocomplete v-if="targetType?.namespaced" label="Namespace"
@@ -229,7 +235,7 @@ watch(targetNamespace, listObjects);
       </VRow>
       <VDataTable hover fixed-header class="data-table-auto" height="calc(100vh - 224px)"
         items-per-page="-1"
-        :items="objects.rows ?? []" :headers="columns">
+        :items="objects.rows ?? []" :headers="columns" :loading="objectsLoading">
         <template #item="{ props: itemProps }">
           <VDataTableRow v-bind="itemProps" @click="inspectObject(itemProps.item.raw.object)" />
         </template>

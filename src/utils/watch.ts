@@ -124,10 +124,11 @@ const isKubernetesObjectInRows = (
   b: Array<V1TableRow<V1PartialObjectMetadata>>,
 ) => b.some((v) => isSameKubernetesObject(a.object, v.object));
 
-export const listAndWatchTable = async<ListOpt> (
+export const listAndUnwaitedWatchTable = async<ListOpt> (
     dest: Ref<V1Table<V1PartialObjectMetadata>>,
     lister: (opt: ListOpt) => Promise<ApiResponse<V1Table<V1PartialObjectMetadata>>>,
     opt: ListOpt,
+    catcher: Parameters<Promise<void>['catch']>[0],
     expectAbortOnWatch: boolean = true,
   ) => {
   const listResponse = await (await lister(opt)).value();
@@ -136,34 +137,36 @@ export const listAndWatchTable = async<ListOpt> (
   }
   dest.value = listResponse;
 
-  let updates: ApiResponse<V1Table> | null = null;
-  try {
-    updates = await lister({
-      ...opt,
-      resourceVersion: listResponse.metadata!.resourceVersion,
-      watch: true
-    });
-  } catch (e) {
-    if (expectAbortOnWatch && e instanceof FetchError &&
-        e.cause instanceof DOMException && e.cause.name === 'AbortError') {
-      return;
+  (async () => {
+    let updates: ApiResponse<V1Table> | null = null;
+    try {
+      updates = await lister({
+        ...opt,
+        resourceVersion: listResponse.metadata!.resourceVersion,
+        watch: true
+      });
+    } catch (e) {
+      if (expectAbortOnWatch && e instanceof FetchError &&
+          e.cause instanceof DOMException && e.cause.name === 'AbortError') {
+        return;
+      }
+      throw e;
     }
-    throw e;
-  }
 
-  for await (const event of rawResponseToWatchEvents(updates!, expectAbortOnWatch)) {
-    const obj = <V1Table<V1PartialObjectMetadata>> event.object;
-    if (event.type === 'ADDED') {
-      dest.value.rows!.push(...obj.rows!);
-    } else if (event.type === 'DELETED') {
-      dest.value.rows = dest.value.rows!.filter((v) => !isKubernetesObjectInRows(v, obj.rows!));
-    } else if (event.type === 'MODIFIED') {
-      for (const r of obj.rows!) {
-        const index = dest.value.rows!.findIndex(
-          (v) => isSameKubernetesObject(v.object, r.object)
-        );
-        dest.value.rows![index] = r;
+    for await (const event of rawResponseToWatchEvents(updates!, expectAbortOnWatch)) {
+      const obj = <V1Table<V1PartialObjectMetadata>> event.object;
+      if (event.type === 'ADDED') {
+        dest.value.rows!.push(...obj.rows!);
+      } else if (event.type === 'DELETED') {
+        dest.value.rows = dest.value.rows!.filter((v) => !isKubernetesObjectInRows(v, obj.rows!));
+      } else if (event.type === 'MODIFIED') {
+        for (const r of obj.rows!) {
+          const index = dest.value.rows!.findIndex(
+            (v) => isSameKubernetesObject(v.object, r.object)
+          );
+          dest.value.rows![index] = r;
+        }
       }
     }
-  }
+  })().catch(catcher);
 };
