@@ -4,6 +4,7 @@ import {
   VApp,
   VAppBar,
   VAppBarNavIcon,
+  VAppBarTitle,
   VAutocomplete,
   VBtn,
   VCard,
@@ -18,7 +19,6 @@ import {
   VMain,
   VNavigationDrawer,
   VProgressCircular,
-  VToolbarTitle,
   VSnackbar,
 } from 'vuetify/components';
 import IdentityIndicator from '@/components/IdentityIndicator.vue';
@@ -109,7 +109,7 @@ watch(pendingToast, (toast) => {
   <VApp>
     <VAppBar>
       <VAppBarNavIcon @click="drawer = !drawer" />
-      <VToolbarTitle>{{ brand }}</VToolbarTitle>
+      <VAppBarTitle>{{ brand }}</VAppBarTitle>
       <IdentityIndicator class="mr-6" />
     </VAppBar>
     <VNavigationDrawer v-model="drawer">
