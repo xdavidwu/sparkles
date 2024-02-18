@@ -33,7 +33,7 @@ import { useTitle } from '@vueuse/core';
 
 const brand = import.meta.env.VITE_APP_BRANDING ?? 'Sparkles';
 
-const { namespaces, selectedNamespace } = storeToRefs(useNamespaces());
+const { namespaces, selectedNamespace, loading: namespacesLoading } = storeToRefs(useNamespaces());
 const { pendingError, pendingToast } = storeToRefs(useErrorPresentation());
 
 const drawer = ref<boolean | null>(null);
@@ -115,7 +115,7 @@ watch(pendingToast, (toast) => {
     <VNavigationDrawer v-model="drawer">
       <VList>
         <VAutocomplete label="Namespace" variant="solo" :items="namespaces"
-          v-model="selectedNamespace" hide-details />
+          v-model="selectedNamespace" hide-details :loading="namespacesLoading" />
         <VListItem v-for="route in namespacedRoutes"
           :key="route.meta.name as string" :to="route">
           {{ route.meta.name }}

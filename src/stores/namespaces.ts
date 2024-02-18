@@ -11,6 +11,7 @@ export const useNamespaces = defineStore('namespace', () => {
   let _updatePromise: Promise<void> | null = null;
   const namespaces = computed(() => _namespaces.value.map((v) => v.metadata!.name!));
   const selectedNamespace = ref('');
+  const loading = ref(true);
 
   const setDefaultNamespace = (namespaces: Array<string>) => {
     if (namespaces.length) {
@@ -37,6 +38,7 @@ export const useNamespaces = defineStore('namespace', () => {
           (e) => useErrorPresentation().pendingError = e,
         )
         setDefaultNamespace(namespaces.value);
+        loading.value = false;
       })().catch((e) => useErrorPresentation().pendingError = e);
     }
     return _updatePromise;
@@ -51,5 +53,5 @@ export const useNamespaces = defineStore('namespace', () => {
     }
   });
 
-  return { namespaces, selectedNamespace, ensureNamespaces };
+  return { namespaces, selectedNamespace, loading, ensureNamespaces };
 });
