@@ -15,6 +15,7 @@ import {
   type InitOverrideFunction,
 } from '@/kubernetes-api/src';
 import type { OpenAPIV3 } from 'openapi-types';
+import type { KubernetesObject } from '@/utils/objects';
 
 type PartiallyRequired<T, C extends keyof T> = T & Required<Pick<T, C>>;
 
@@ -67,18 +68,22 @@ export interface V1PartialObjectMetadata {
   metadata?: V1ObjectMeta;
 }
 
-export interface V1TableRow {
+export interface V1TableRow<
+  ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
+> {
   cells: Array<string>;
   conditions?: object;
-  object?: V1PartialObjectMetadata | object;
+  object: ObjectType;
 }
 
-export interface V1Table {
+export interface V1Table<
+  ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
+> {
   apiVersion?: string;
   kind?: string;
   metadata?: V1ListMeta;
   columnDefinitions: Array<V1TableColumnDefinition>;
-  rows?: Array<V1TableRow>;
+  rows?: Array<V1TableRow<ObjectType>>;
 }
 
 export class AnyApi extends CustomObjectsApi {
@@ -144,35 +149,43 @@ export class AnyApi extends CustomObjectsApi {
     return await response.value();
   }
 
-  async listClusterCustomObjectAsTableRaw(
+  async listClusterCustomObjectAsTableRaw<
+      ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
+    >(
       requestParameters: AnyApiListClusterCustomObjectRequest,
       initOverrides?: RequestInit
-      ): Promise<ApiResponse<V1Table>> {
-    return <ApiResponse<V1Table>> await this.withPreMiddleware(asTable)
+      ): Promise<ApiResponse<V1Table<ObjectType>>> {
+    return <ApiResponse<V1Table<ObjectType>>> await this.withPreMiddleware(asTable)
       .listClusterCustomObjectRaw(requestParameters, initOverrides);
   }
 
-  async listNamespacedCustomObjectAsTableRaw(
+  async listNamespacedCustomObjectAsTableRaw<
+      ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
+    >(
       requestParameters: AnyApiListNamespacedCustomObjectRequest,
       initOverrides?: RequestInit
-      ): Promise<ApiResponse<V1Table>> {
-    return <ApiResponse<V1Table>> await this.withPreMiddleware(asTable)
+      ): Promise<ApiResponse<V1Table<ObjectType>>> {
+    return <ApiResponse<V1Table<ObjectType>>> await this.withPreMiddleware(asTable)
       .listNamespacedCustomObjectRaw(requestParameters, initOverrides);
   }
 
-  async listClusterCustomObjectAsTable(
+  async listClusterCustomObjectAsTable<
+      ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
+    >(
       requestParameters: AnyApiListClusterCustomObjectRequest,
       initOverrides?: RequestInit
-      ): Promise<V1Table> {
-    const response = await this.listClusterCustomObjectAsTableRaw(requestParameters, initOverrides);
+      ): Promise<V1Table<ObjectType>> {
+    const response = await this.listClusterCustomObjectAsTableRaw<ObjectType>(requestParameters, initOverrides);
     return await response.value();
   }
 
-  async listNamespacedCustomObjectAsTable(
+  async listNamespacedCustomObjectAsTable<
+      ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
+    >(
         requestParameters: AnyApiListNamespacedCustomObjectRequest,
         initOverrides?: RequestInit
-        ): Promise<V1Table> {
-    const response = await this.listNamespacedCustomObjectAsTableRaw(requestParameters, initOverrides);
+        ): Promise<V1Table<ObjectType>> {
+    const response = await this.listNamespacedCustomObjectAsTableRaw<ObjectType>(requestParameters, initOverrides);
     return await response.value();
   }
 

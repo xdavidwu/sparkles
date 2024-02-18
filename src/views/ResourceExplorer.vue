@@ -43,7 +43,7 @@ enum Verbosity {
 }
 
 const NS_ALL_NAMESPACES = '(all)';
-const EMPTY_V1_TABLE: V1Table = {
+const EMPTY_V1_TABLE: V1Table<V1PartialObjectMetadata> = {
   columnDefinitions: [],
   rows: [],
 };

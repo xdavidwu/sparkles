@@ -119,12 +119,14 @@ export const listAndUnwaitedWatch = async<ListOpt> (
   ).catch(catcher);
 };
 
-const isKubernetesObjectInRows = (a: V1TableRow, b: Array<V1TableRow>) =>
-  b.some((v) => isSameKubernetesObject(<V1PartialObjectMetadata> a.object, <V1PartialObjectMetadata> v.object));
+const isKubernetesObjectInRows = (
+  a: V1TableRow<V1PartialObjectMetadata>,
+  b: Array<V1TableRow<V1PartialObjectMetadata>>,
+) => b.some((v) => isSameKubernetesObject(a.object, v.object));
 
 export const listAndWatchTable = async<ListOpt> (
-    dest: Ref<V1Table>,
-    lister: (opt: ListOpt) => Promise<ApiResponse<V1Table>>,
+    dest: Ref<V1Table<V1PartialObjectMetadata>>,
+    lister: (opt: ListOpt) => Promise<ApiResponse<V1Table<V1PartialObjectMetadata>>>,
     opt: ListOpt,
     expectAbortOnWatch: boolean = true,
   ) => {
@@ -150,7 +152,7 @@ export const listAndWatchTable = async<ListOpt> (
   }
 
   for await (const event of rawResponseToWatchEvents(updates!, expectAbortOnWatch)) {
-    const obj = <V1Table> event.object;
+    const obj = <V1Table<V1PartialObjectMetadata>> event.object;
     if (event.type === 'ADDED') {
       dest.value.rows!.push(...obj.rows!);
     } else if (event.type === 'DELETED') {
@@ -158,7 +160,7 @@ export const listAndWatchTable = async<ListOpt> (
     } else if (event.type === 'MODIFIED') {
       for (const r of obj.rows!) {
         const index = dest.value.rows!.findIndex(
-          (v) => isSameKubernetesObject(<V1PartialObjectMetadata> v.object, <V1PartialObjectMetadata> r.object)
+          (v) => isSameKubernetesObject(v.object, r.object)
         );
         dest.value.rows![index] = r;
       }
