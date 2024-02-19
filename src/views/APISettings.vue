@@ -8,6 +8,7 @@ import { doSelfSubjectReview, errorIsTypeUnsupported } from '@/utils/api';
 
 const configStore = useApiConfig();
 const config = await configStore.getConfig();
+const configurable = import.meta.env.VITE_RUNTIME_AUTH_CONFIG === 'true';
 
 const schemes = Object.entries(AuthScheme).filter((i) => isNaN(Number(i[0])));
 const scheme = ref(configStore.authScheme);
@@ -48,7 +49,7 @@ const apply = () => {
 
 <template>
   <VRow>
-    <VCol col="6">
+    <VCol :col="configurable ? 6 : 12">
       <pre>
 {{ brand }} version: {{ version }}
 Kubernetes version: {{ kubernetesVersion }}
@@ -56,7 +57,7 @@ Kubernetes version: {{ kubernetesVersion }}
 Groups: {{ review.status!.userInfo!.groups?.join(', ') }}</template>
       </pre>
     </VCol>
-    <VCol col="6">
+    <VCol col="6" v-if="configurable">
       <VSelect label="Authentication method" v-model="scheme" :items="schemes"
         item-value="1" item-title="0" />
       <VTextField v-if="scheme === AuthScheme.AccessToken" label="Bearer token"

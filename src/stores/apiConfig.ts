@@ -6,9 +6,9 @@ import { UserManager } from 'oidc-client-ts';
 import router from '@/router';
 
 export enum AuthScheme {
-  OIDC,
-  AccessToken,
-  None,
+  OIDC = 'oidc',
+  AccessToken = 'aceess_token',
+  None = 'none',
 }
 
 // XXX: fetch and openapi-generator/typescript-fetch does not seems to support
@@ -28,7 +28,7 @@ interface State {
 
 export const useApiConfig = defineStore('api-config', {
   state: (): State => ({
-    authScheme: useLocalStorage<AuthScheme>('auth-scheme', AuthScheme.None),
+    authScheme: useLocalStorage<AuthScheme>('auth-scheme', import.meta.env.VITE_AUTH_METHOD),
     accessToken: useLocalStorage('access-token', ''),
     impersonation: useLocalStorage('impersonation', { asUser: '', asGroup: '' }),
     userManager: new UserManager({
