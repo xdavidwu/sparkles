@@ -19,12 +19,6 @@ const router = createRouter({
       meta: { name: 'Settings' },
     },
     {
-      path: '/oidc/callback',
-      name: 'oidc_callback',
-      component: () => import('@/views/OIDCCallback.vue'),
-      meta: { name: 'OIDC Auth', hidden: true },
-    },
-    {
       path: '/helm/repo',
       name: 'helm_repo',
       component: () => import('@/components/HelmRepository.vue'),

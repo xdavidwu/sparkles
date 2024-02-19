@@ -18,7 +18,7 @@ import {
 } from 'chart.js';
 import { StdDateAdapter } from 'chartjs-adapter-date-std';
 
-import App from '@/App.vue';
+import App from '@/OIDCApp.vue';
 import router from '@/router';
 
 import 'vuetify/styles';

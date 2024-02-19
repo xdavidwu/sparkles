@@ -35,7 +35,7 @@ export const useApiConfig = defineStore('api-config', {
       authority: import.meta.env.VITE_OIDC_PROVIDER,
       client_id: import.meta.env.VITE_OIDC_CLIENT_ID,
       client_secret: import.meta.env.VITE_OIDC_CLIENT_SECRET,
-      redirect_uri: window.location.origin + router.resolve({name: 'oidc_callback'}).href,
+      redirect_uri: window.location.origin + router.resolve('/oidc/callback').href,
       scope: import.meta.env.VITE_OIDC_SCOPES,
     }),
   }),
