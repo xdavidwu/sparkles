@@ -48,18 +48,27 @@ export const useApiConfig = defineStore('api-config', {
   }),
   actions: {
     async getBearerToken() {
-      let user;
       switch (this.authScheme) {
         case AuthScheme.AccessToken:
           return this.accessToken;
-        case AuthScheme.OIDC:
-          user = await this.userManager.getUser();
-          if (user === null) {
+        case AuthScheme.OIDC: return await (async () => {
+          let user = await this.userManager.getUser();
+          const idTokenExpired = () => (user?.profile.exp && new Date(user.profile.exp * 1000) < new Date());
+          if ((user?.expired || idTokenExpired()) && user?.refresh_token) {
+            try {
+              user = await this.userManager.signinSilent();
+            } catch (e) {
+              //
+            }
+          }
+
+          if (user === null || user.expired || idTokenExpired()) {
             await this.userManager.signinRedirect({ state: window.location.pathname });
             throw new Error('OIDC redirect failed');
           } else {
             return user.id_token;
           }
+        })();
       }
       return null;
     },
