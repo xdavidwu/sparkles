@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { Configuration, type HTTPHeaders } from '@/kubernetes-api/src';
 import { useLocalStorage } from '@vueuse/core';
-import type { RemovableRef } from '@vueuse/shared';
+import { computed, type Ref } from 'vue';
 import { UserManager } from 'oidc-client-ts';
 import router from '@/router';
 
@@ -20,17 +20,24 @@ interface ImpersonationConfig {
 }
 
 interface State {
-  authScheme: RemovableRef<AuthScheme>,
-  accessToken: RemovableRef<string>,
-  impersonation: RemovableRef<ImpersonationConfig>,
+  authScheme: Ref<AuthScheme>,
+  accessToken: Ref<string>,
+  impersonation: Ref<ImpersonationConfig>,
   userManager: UserManager,
 }
 
+const maybeUseLocalStorage = <T>(key: string, initial: T) =>
+  import.meta.env.VITE_RUNTIME_AUTH_CONFIG === 'true' ?
+  useLocalStorage<T>(key, initial) : computed<T>({
+    get: () => initial,
+    set: () => {throw new Error(`unexpected setting of ${key}`)},
+  });
+
 export const useApiConfig = defineStore('api-config', {
   state: (): State => ({
-    authScheme: useLocalStorage<AuthScheme>('auth-scheme', import.meta.env.VITE_AUTH_METHOD),
-    accessToken: useLocalStorage('access-token', ''),
-    impersonation: useLocalStorage('impersonation', { asUser: '', asGroup: '' }),
+    authScheme: maybeUseLocalStorage<AuthScheme>('auth-scheme', import.meta.env.VITE_AUTH_METHOD),
+    accessToken: maybeUseLocalStorage('access-token', ''),
+    impersonation: maybeUseLocalStorage('impersonation', { asUser: '', asGroup: '' }),
     userManager: new UserManager({
       authority: import.meta.env.VITE_OIDC_PROVIDER,
       client_id: import.meta.env.VITE_OIDC_CLIENT_ID,
