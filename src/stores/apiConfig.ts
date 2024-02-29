@@ -6,7 +6,7 @@ import {
 } from '@/kubernetes-api/src';
 import { useLocalStorage } from '@vueuse/core';
 import { computed, type Ref } from 'vue';
-import { UserManager } from 'oidc-client-ts';
+import { UserManager, WebStorageStateStore } from 'oidc-client-ts';
 import router from '@/router';
 
 export enum AuthScheme {
@@ -48,6 +48,7 @@ export const useApiConfig = defineStore('api-config', {
       client_secret: import.meta.env.VITE_OIDC_CLIENT_SECRET,
       redirect_uri: window.location.origin + router.resolve('/oidc/callback').href,
       scope: import.meta.env.VITE_OIDC_SCOPES,
+      userStore: new WebStorageStateStore({ store: window.localStorage }),
     }),
   }),
   actions: {
