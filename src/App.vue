@@ -28,6 +28,7 @@ import { computed, ref, onErrorCaptured, watch } from 'vue';
 import { ResponseError, FetchError, V1StatusFromJSON } from '@/kubernetes-api/src';
 import { PresentedError } from '@/utils/PresentedError';
 import { useErrorPresentation } from '@/stores/errorPresentation';
+import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
 import { useRouter } from 'vue-router';
 import { useTitle } from '@vueuse/core';
 import { useDisplay } from 'vuetify';
@@ -56,6 +57,9 @@ const namespacedRoutes = computed(() => routes.value.filter(r => r.meta.namespac
 const globalRoutes = computed(() => routes.value.filter(r => !r.meta.namespaced));
 const title = computed(() => `${route.value.meta.name} - ${brand}`);
 useTitle(title);
+const { authScheme } = storeToRefs(useApiConfig());
+const isOIDC = computed(() => authScheme.value === AuthScheme.OIDC);
+const logoutHref = router.resolve('/oidc/logout').href;
 
 const handleError = (err: any) => {
   if (err instanceof ResponseError) {
@@ -140,7 +144,14 @@ watch(expandAppBar, () => window.location.reload());
           {{ route.meta.name }}
         </VListItem>
       </VList>
-      <IdentityIndicator class="px-4 bottom-auth-line text-caption pb-4" />
+      <template #append>
+        <div class="px-4 bottom-auth-line text-caption py-1 w-100">
+          <IdentityIndicator />
+          <VBtn v-if="isOIDC"
+            class="float-right" variant="text" size="x-small" color="primary"
+            :href="logoutHref">Log out</VBtn>
+        </div>
+      </template>
     </VNavigationDrawer>
     <VDialog v-model="showsDialog">
       <VCard title="Request failed">
@@ -190,7 +201,7 @@ watch(expandAppBar, () => window.location.reload());
 }
 
 .bottom-auth-line {
-  position: absolute;
-  bottom: 0;
+  background-color: rgb(var(--v-theme-surface-light));
+  color: rgb(var(--v-theme-on-surface-light));
 }
 </style>

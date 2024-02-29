@@ -4,26 +4,33 @@ import { ref, onMounted } from 'vue';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
 
 const oidcCompleted = ref(false);
+const message = ref('Handling OIDC authentication...');
 const apiConfigStore = useApiConfig();
 
 onMounted(async () => {
-  if (apiConfigStore.authScheme === AuthScheme.OIDC) {
-    const base = (new URL(import.meta.env.BASE_URL, window.location.origin)).pathname.replace(/\/$/, '');
-    const path = window.location.pathname.replace(base, '');
-    if (path === '/oidc/callback') {
-      const user = await apiConfigStore.userManager.signinRedirectCallback();
-      window.location.replace(user.state as string);
-    } else {
-      await apiConfigStore.getIdToken();
-    }
+  if (apiConfigStore.authScheme !== AuthScheme.OIDC) {
+    oidcCompleted.value = true;
+    return;
   }
-  oidcCompleted.value = true;
+
+  const base = (new URL(import.meta.env.BASE_URL, window.location.origin)).pathname.replace(/\/$/, '');
+  const path = window.location.pathname.replace(base, '');
+  if (path === '/oidc/callback') {
+    const user = await apiConfigStore.userManager.signinRedirectCallback();
+    window.location.replace(user.state as string);
+  } else if (path === '/oidc/logout') {
+    apiConfigStore.userManager.removeUser();
+    message.value = 'Logged out';
+  } else {
+    await apiConfigStore.getIdToken();
+    oidcCompleted.value = true;
+  }
 });
 </script>
 
 <template>
   <App v-if="oidcCompleted" />
   <div v-else>
-    Handling OIDC authentication...
+    {{ message }}
   </div>
 </template>
