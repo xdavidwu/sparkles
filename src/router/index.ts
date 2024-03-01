@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { computedAsync } from '@vueuse/core';
-import AboutView from '@/views/AboutView.vue';
+import HomeView from '@/views/HomeView.vue';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 
 const router = createRouter({
@@ -9,8 +9,8 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: AboutView,
-      meta: { name: 'Home' },
+      component: HomeView,
+      meta: { name: 'Home', hidden: true },
     },
     {
       path: '/about',
