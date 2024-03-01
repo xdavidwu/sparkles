@@ -172,7 +172,7 @@ watch(expandAppBar, () => window.location.reload());
       </VCard>
     </VDialog>
     <VMain>
-      <VContainer fluid>
+      <VContainer fluid class="overflow-y-auto">
         <RouterView #="{ Component }">
           <Suspense timeout="16">
             <component v-if="Component" :is="Component" />
