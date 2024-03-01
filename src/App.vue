@@ -58,7 +58,7 @@ const namespacedRoutes = computed(() => routes.value.filter(r => r.meta.namespac
 const globalRoutes = computed(() => routes.value.filter(r => !r.meta.namespaced));
 const title = computed(() => `${route.value.meta.name} - ${brand}`);
 useTitle(title);
-const { authScheme } = storeToRefs(useApiConfig());
+const { authScheme, configurable } = storeToRefs(useApiConfig());
 const isOIDC = computed(() => authScheme.value === AuthScheme.OIDC);
 const logoutHref = router.resolve('/oidc/logout').href;
 
@@ -165,7 +165,7 @@ watch(expandAppBar, () => window.location.reload());
         </VCardText>
         <VCardActions>
           <VSpacer />
-          <VBtn color="primary"
+          <VBtn v-if="configurable" color="primary"
             @click="showsDialog = false; router.push({ name: 'settings' })">
             Settings
           </VBtn>

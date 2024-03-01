@@ -28,6 +28,7 @@ interface State {
   accessToken: Ref<string>,
   impersonation: Ref<ImpersonationConfig>,
   userManager: UserManager,
+  configurable: boolean,
 }
 
 const maybeUseLocalStorage = <T>(key: string, initial: T) =>
@@ -50,6 +51,7 @@ export const useApiConfig = defineStore('api-config', {
       scope: import.meta.env.VITE_OIDC_SCOPES,
       userStore: new WebStorageStateStore({ store: window.localStorage }),
     }),
+    configurable: import.meta.env.VITE_RUNTIME_AUTH_CONFIG === 'true',
   }),
   actions: {
     async getIdToken() {

@@ -8,7 +8,7 @@ import { doSelfSubjectReview, errorIsTypeUnsupported } from '@/utils/api';
 
 const configStore = useApiConfig();
 const config = await configStore.getConfig();
-const configurable = import.meta.env.VITE_RUNTIME_AUTH_CONFIG === 'true';
+const { configurable } = configStore;
 
 const schemes = Object.entries(AuthScheme).filter((i) => isNaN(Number(i[0])));
 const scheme = ref(configStore.authScheme);
