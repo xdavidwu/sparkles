@@ -20,6 +20,7 @@ import {
   VNavigationDrawer,
   VProgressCircular,
   VSnackbar,
+  VSpacer,
 } from 'vuetify/components';
 import IdentityIndicator from '@/components/IdentityIndicator.vue';
 import { useNamespaces } from '@/stores/namespaces';
@@ -163,11 +164,12 @@ watch(expandAppBar, () => window.location.reload());
           <pre class="text-wrap">{{ failedResponseText }}</pre>
         </VCardText>
         <VCardActions>
+          <VSpacer />
           <VBtn color="primary"
             @click="showsDialog = false; router.push({ name: 'settings' })">
-            Go to settings
+            Settings
           </VBtn>
-          <VBtn @click="showsDialog = false">Close</VBtn>
+          <VBtn color="primary" @click="showsDialog = false">Close</VBtn>
         </VCardActions>
       </VCard>
     </VDialog>
