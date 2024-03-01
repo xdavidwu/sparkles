@@ -155,13 +155,15 @@ watch(expandAppBar, () => window.location.reload());
       </template>
     </VNavigationDrawer>
     <VDialog v-model="showsDialog">
-      <VCard title="Request failed">
+      <VCard title="Operation failed">
         <VCardText>
-          <template v-if="failedResponse">
-            <div>{{ failedResponse.url }}</div>
-            <div>{{ failedResponse.status }} {{ failedResponse.statusText }}</div>
-          </template>
-          <pre class="text-wrap">{{ failedResponseText }}</pre>
+          <p v-if="failedResponse" class="mb-1">
+            Cannot perform request to Kubernetes:<br>
+            {{ failedResponse.status }} {{ failedResponse.statusText }}
+            <span class="text-caption text-medium-emphasis">at {{ failedResponse.url }}</span>
+            <br>
+          </p>
+          <p>{{ failedResponseText }}</p>
         </VCardText>
         <VCardActions>
           <VSpacer />
