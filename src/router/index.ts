@@ -13,10 +13,10 @@ const router = createRouter({
       meta: { name: 'Home' },
     },
     {
-      path: '/settings',
-      name: 'settings',
+      path: '/about',
+      name: 'about',
       component: () => import('@/views/APISettings.vue'),
-      meta: { name: 'Settings' },
+      meta: { name: 'About' },
     },
     {
       path: '/helm/repo',
