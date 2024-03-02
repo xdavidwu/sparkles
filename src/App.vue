@@ -155,7 +155,7 @@ watch(pendingToast, (toast) => {
       <VCard title="Operation failed">
         <VCardText>
           <p v-if="failedResponse" class="mb-1">
-            Cannot perform request to Kubernetes:<br>
+            Kubernetes returned error:<br>
             {{ failedResponse.status }} {{ failedResponse.statusText }}
             <span class="text-caption text-medium-emphasis">at {{ failedResponse.url }}</span>
             <br>
