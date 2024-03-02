@@ -18,7 +18,7 @@ watch(expandAppBar, async () => {
 
 <template>
   <Teleport v-if="render" to="#appbar-tabs">
-    <VTabs v-bind="$attrs">
+    <VTabs v-bind="$attrs" show-arrows>
       <slot />
     </VTabs>
   </Teleport>
