@@ -110,9 +110,6 @@ watch(pendingToast, (toast) => {
     pendingToast.value = null;
   }
 });
-
-// XXX: find a way to re-teleport?
-watch(expandAppBar, () => window.location.reload());
 </script>
 
 <template>
