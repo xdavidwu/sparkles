@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import XTerm from '@/components/XTerm.vue';
-import type { Terminal } from 'xterm';
+import type { Terminal } from '@xterm/xterm';
 import { useAbortController } from '@/composables/abortController';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api } from '@/kubernetes-api/src';

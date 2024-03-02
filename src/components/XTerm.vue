@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import 'xterm/css/xterm.css';
+import '@xterm/xterm/css/xterm.css';
 import { ref, onMounted } from 'vue';
-import { Terminal } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
+import { Terminal } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
 
 const emit = defineEmits<{
   (e: 'bell'): void,

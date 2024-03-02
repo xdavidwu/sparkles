@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import XTerm from '@/components/XTerm.vue';
 import { onUnmounted } from 'vue';
-import type { Terminal } from 'xterm';
+import type { Terminal } from '@xterm/xterm';
 import { useApiConfig } from '@/stores/apiConfig';
 import { V1StatusFromJSON } from '@/kubernetes-api/src';
 import { PresentedError } from '@/utils/PresentedError';
