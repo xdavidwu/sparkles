@@ -33,6 +33,5 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div ref="div">
-  </div>
+  <div ref="div" style="touch-action: pan-x pinch-zoom" />
 </template>
