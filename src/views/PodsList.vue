@@ -141,7 +141,7 @@ const closeTab = (index: number) => {
 };
 
 const createTab = (type: 'exec' | 'log', pod: string, container: string) => {
-  const id = `${type}-${pod}/${container}`;
+  const id = type === 'log' ? `${pod}/${container}` : crypto.randomUUID();
   if (!tabs.value.some((t) => t.id === id)) {
     tabs.value.push({ type, id, spec: { pod, container }, alerting: false });
   }
