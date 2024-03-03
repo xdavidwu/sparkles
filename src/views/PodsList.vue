@@ -215,7 +215,7 @@ const bell = (index: number) => {
     <VWindowItem v-for="(tab, index) in tabs" :key="tab.id"
       :value="tab.id">
       <component :is="tab.type === 'exec' ? ExecTerminal : LogViewer"
-        :style="`height: calc(100vh - ${appBarHeightPX}px - 32px)`"
+        :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
         @title-changed="(title) => tab.title = title"
         @bell="() => bell(index)"
         :container-spec="{ namespace: selectedNamespace, ...tab.spec}" />

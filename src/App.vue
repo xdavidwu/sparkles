@@ -198,7 +198,7 @@ watch(pendingToast, (toast) => {
 
 <style scoped>
 .full-height {
-  height: calc(100vh - 96px);
+  height: calc(100dvh - 96px);
 }
 
 .bottom-auth-line {
