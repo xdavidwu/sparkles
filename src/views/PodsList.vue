@@ -16,6 +16,7 @@ import LinkedImage from '@/components/LinkedImage.vue';
 import { computed, ref, watch } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { useAbortController } from '@/composables/abortController';
+import { useAppTabs } from '@/composables/appTabs';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -73,6 +74,7 @@ const containers = computedAsync(async () => Promise.all(_containers.value.map(a
   },
 }))), _containers.value);
 
+const { appBarHeightPX } = useAppTabs();
 
 const columns = [
   {
@@ -210,7 +212,7 @@ const bell = (index: number) => {
     <VWindowItem v-for="(tab, index) in tabs" :key="tab.id"
       :value="tab.id">
       <component :is="tab.type === 'exec' ? ExecTerminal : LogViewer"
-        style="height: calc(100vh - 144px)"
+        :style="`height: calc(100vh - ${appBarHeightPX}px - 32px)`"
         @title-changed="(title) => tab.title = title"
         @bell="() => bell(index)"
         :container-spec="{ namespace: selectedNamespace, ...tab.spec}" />

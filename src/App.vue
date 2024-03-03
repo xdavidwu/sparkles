@@ -30,9 +30,9 @@ import { ResponseError, FetchError, V1StatusFromJSON } from '@/kubernetes-api/sr
 import { PresentedError } from '@/utils/PresentedError';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
+import { useAppTabs } from '@/composables/appTabs';
 import { useRouter } from 'vue-router';
 import { useTitle } from '@vueuse/core';
-import { useDisplay } from 'vuetify';
 
 const brand = import.meta.env.VITE_APP_BRANDING ?? 'Sparkles';
 
@@ -40,7 +40,7 @@ const { namespaces, selectedNamespace, loading: namespacesLoading } = storeToRef
 const { pendingError, pendingToast } = storeToRefs(useErrorPresentation());
 
 const drawer = ref<boolean | null>(null);
-const { xs: expandAppBar } = useDisplay();
+const { expandAppBar } = useAppTabs();
 const showsDialog = ref(false);
 const showsSnackbar = ref(false);
 const snackbarMessage = ref('');

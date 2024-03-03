@@ -1,19 +1,10 @@
 <script setup lang="ts">
 import { VTabs } from 'vuetify/components';
-import { ref, nextTick, watch } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useAppTabs } from '@/composables/appTabs';
 
 defineOptions({ inheritAttrs: false });
 
-const render = ref(true);
-
-const { xs: expandAppBar } = useDisplay();
-
-watch(expandAppBar, async () => {
-  render.value = false;
-  await nextTick();
-  render.value = true;
-});
+const { render } = useAppTabs();
 </script>
 
 <template>
