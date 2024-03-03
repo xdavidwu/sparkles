@@ -3,6 +3,7 @@ import '@xterm/xterm/css/xterm.css';
 import { ref, onMounted } from 'vue';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
 
 const props = defineProps<{
   xtermOptions?: ConstructorParameters<typeof Terminal>[0],
@@ -19,6 +20,7 @@ const terminal = new Terminal(props.xtermOptions);
 const fitAddon = new FitAddon();
 
 terminal.loadAddon(fitAddon);
+terminal.loadAddon(new WebLinksAddon());
 
 onMounted(async () => {
   terminal.open(div.value!);
