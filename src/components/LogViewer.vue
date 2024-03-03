@@ -21,6 +21,7 @@ const decoder = new TextDecoder();
 const { signal } = useAbortController();
 
 const display = async (terminal: Terminal) => {
+  terminal.textarea!.disabled = true;
   const config = await useApiConfig().getConfig();
   const response = (await new CoreV1Api(config).readNamespacedPodLogRaw({
     namespace: props.containerSpec.namespace,
