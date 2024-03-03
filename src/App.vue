@@ -116,12 +116,12 @@ watch(pendingToast, (toast) => {
   <VApp>
     <VAppBar>
       <VAppBarNavIcon @click="drawer = !drawer" />
-      <VAppBarTitle style="max-width: calc(256px - 64px - 10px)">{{ brand }}</VAppBarTitle>
+      <VAppBarTitle>{{ brand }}</VAppBarTitle>
       <template v-if="expandAppBar" #extension>
         <div id="appbar-tabs" />
       </template>
-      <div v-if="!expandAppBar" id="appbar-tabs" style="height: 64px; width: calc(100vw - 256px)"
-        class="flex-0-1 d-flex flex-column justify-end" />
+      <div v-if="!expandAppBar" id="appbar-tabs" style="left: 256px; bottom: 0"
+        class="position-absolute flex-0-1 d-flex flex-column justify-end" />
     </VAppBar>
     <VNavigationDrawer v-model="drawer">
       <VList>
