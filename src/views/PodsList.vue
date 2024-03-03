@@ -117,6 +117,9 @@ const columns = [
   },
 ];
 
+const shortenTail = (s: string) =>
+  s.length > 8 ? `...${s.substring(s.length - 5)}` : s;
+
 const { abort: abortRequests, signal } = useAbortController();
 
 watch(selectedNamespace, async (namespace) => {
@@ -166,7 +169,7 @@ const bell = (index: number) => {
     <VTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id"
       @click="() => tab.alerting = false">
       <VBadge dot color="red" v-model="tab.alerting">
-        {{ tab.title ?? `${tab.type === 'exec' ? 'Terminal' : 'Log'}: ${tab.spec.pod}/${tab.spec.container}` }}
+        {{ tab.title ?? `${tab.type === 'exec' ? 'Terminal' : 'Log'}: ${shortenTail(tab.spec.pod)}/${tab.spec.container}` }}
       </VBadge>
       <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
     </VTab>
