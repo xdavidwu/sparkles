@@ -13,6 +13,10 @@ const props = defineProps<{
   },
 }>();
 
+const opts = {
+  disableStdin: true,
+};
+
 const decoder = new TextDecoder();
 const { signal } = useAbortController();
 
@@ -45,5 +49,5 @@ const display = async (terminal: Terminal) => {
 </script>
 
 <template>
-  <XTerm @ready="display" />
+  <XTerm :xterm-options="opts" @ready="display" />
 </template>

@@ -4,6 +4,10 @@ import { ref, onMounted } from 'vue';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 
+const props = defineProps<{
+  xtermOptions?: ConstructorParameters<typeof Terminal>[0],
+}>();
+
 const emit = defineEmits<{
   (e: 'bell'): void,
   (e: 'ready', terminal: Terminal): void,
@@ -11,7 +15,7 @@ const emit = defineEmits<{
 }>();
 
 const div = ref<HTMLDivElement | null>(null);
-const terminal = new Terminal();
+const terminal = new Terminal(props.xtermOptions);
 const fitAddon = new FitAddon();
 
 terminal.loadAddon(fitAddon);
