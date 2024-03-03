@@ -6,24 +6,26 @@ import { useApisDiscovery } from '@/stores/apisDiscovery';
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    // namespaced
     {
-      path: '/',
-      name: 'home',
-      component: HomeView,
-      meta: { name: 'Home', hidden: true },
+      path: '/pods',
+      name: 'pods',
+      component: () => import('@/views/PodsList.vue'),
+      meta: { name: 'Pods', namespaced: true },
     },
     {
-      path: '/about',
-      name: 'about',
-      component: () => import('@/views/APISettings.vue'),
-      meta: { name: 'About' },
+      path: '/quotas',
+      name: 'quotas',
+      component: () => import('@/views/QuotasUsage.vue'),
+      meta: { name: 'Quotas', namespaced: true },
     },
     {
-      path: '/helm/repo',
-      name: 'helm_repo',
-      component: () => import('@/components/HelmRepository.vue'),
-      meta: { name: 'Helm repo', hidden: true },
+      path: '/helm',
+      name: 'helm',
+      component: () => import('@/views/HelmList.vue'),
+      meta: { name: 'Helm', namespaced: true },
     },
+    // global
     {
       path: '/explore',
       name: 'explore',
@@ -43,22 +45,23 @@ const router = createRouter({
       }, undefined, { lazy: true }) },
     },
     {
-      path: '/quotas',
-      name: 'quotas',
-      component: () => import('@/views/QuotasUsage.vue'),
-      meta: { name: 'Quotas', namespaced: true },
+      path: '/about',
+      name: 'about',
+      component: () => import('@/views/APISettings.vue'),
+      meta: { name: 'About' },
+    },
+    // hidden
+    {
+      path: '/',
+      name: 'home',
+      component: HomeView,
+      meta: { name: 'Home', hidden: true },
     },
     {
-      path: '/pods',
-      name: 'pods',
-      component: () => import('@/views/PodsList.vue'),
-      meta: { name: 'Pods', namespaced: true },
-    },
-    {
-      path: '/helm',
-      name: 'helm',
-      component: () => import('@/views/HelmList.vue'),
-      meta: { name: 'Helm', namespaced: true },
+      path: '/helm/repo',
+      name: 'helm_repo',
+      component: () => import('@/components/HelmRepository.vue'),
+      meta: { name: 'Helm repo', hidden: true },
     },
   ]
 });
