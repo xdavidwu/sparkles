@@ -141,12 +141,16 @@ const closeTab = (index: number) => {
   tabs.value.splice(index, 1);
 };
 
-const createTab = (type: 'exec' | 'log', pod: string, container: string) => {
+const createTab = (type: 'exec' | 'log', target: ContainerData) => {
+  const pod = target._extra.pod.metadata!.name!;
+  const container = target.name;
   const id = type === 'log' ? `${pod}/${container}` : crypto.randomUUID();
   if (!tabs.value.some((t) => t.id === id)) {
+    const isOnlyContainer = target._extra.pod.status!.containerStatuses!.length === 1;
+    const name = isOnlyContainer ? shortenTail(pod) : `${shortenTail(pod)}/${container}`;
     tabs.value.push({
       type, id, spec: { pod, container }, alerting: false,
-      defaultTitle: `${type === 'exec' ? 'Terminal' : 'Log'}: ${shortenTail(pod)}/${container}`,
+      defaultTitle: `${type === 'exec' ? 'Terminal' : 'Log'}: ${name}`,
     });
   }
   tab.value = id;
@@ -208,10 +212,10 @@ const bell = (index: number) => {
         <template #[`item.actions`]="{ item }">
           <VBtn size="small" icon="mdi-console-line" title="Terminal" variant="text"
             :disabled="!item.state!.running || (item._extra.mayExec !== undefined && !item._extra.mayExec)"
-            @click="createTab('exec', item._extra.pod.metadata!.name!, item.name)" />
+            @click="createTab('exec', item)" />
           <VBtn size="small" icon="mdi-file-document" title="Log" variant="text"
             :disabled="item._extra.mayReadLogs !== undefined && !item._extra.mayReadLogs"
-            @click="createTab('log', item._extra.pod.metadata!.name!, item.name)" />
+            @click="createTab('log', item)" />
         </template>
         <template #bottom />
       </VDataTable>
