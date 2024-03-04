@@ -118,9 +118,10 @@ watch(pendingToast, (toast) => {
       <VAppBarNavIcon @click="drawer = !drawer" />
       <VAppBarTitle>{{ brand }}</VAppBarTitle>
       <template v-if="expandAppBar" #extension>
-        <div id="appbar-tabs" />
+        <div id="appbar-tabs" class="w-100" />
       </template>
-      <div v-if="!expandAppBar" id="appbar-tabs" style="left: 256px; bottom: 0"
+      <div v-if="!expandAppBar" id="appbar-tabs"
+        style="left: 256px; bottom: 0; width: calc(100vw - 256px)"
         class="position-absolute flex-0-1 d-flex flex-column justify-end" />
     </VAppBar>
     <VNavigationDrawer v-model="drawer">
