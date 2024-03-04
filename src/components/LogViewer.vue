@@ -17,7 +17,6 @@ const opts = {
   disableStdin: true,
 };
 
-const decoder = new TextDecoder();
 const { signal } = useAbortController();
 
 const display = async (terminal: Terminal) => {
@@ -28,13 +27,13 @@ const display = async (terminal: Terminal) => {
     name: props.containerSpec.pod,
     container: props.containerSpec.container,
     follow: true,
-  }, { signal: signal.value })).raw.body!.getReader();
+  }, { signal: signal.value })).raw.body!.pipeThrough(new TextDecoderStream()).getReader();
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const { value, done } = await response.read().catch((e) => {
       if (e instanceof DOMException && e.name === 'AbortError') {
-        return { value: new Uint8Array(), done: true };
+        return { value: '', done: true };
       }
       throw e;
     });
@@ -44,7 +43,7 @@ const display = async (terminal: Terminal) => {
     }
 
     // termios(3) c_oflag=OPOST|ONLCR
-    terminal.write(decoder.decode(value!).replace(/\n/g, '\r\n'));
+    terminal.write(value.replace(/\n/g, '\r\n'));
   }
 };
 </script>
