@@ -35,6 +35,7 @@ interface Tab {
   id: string,
   spec: ContainerSpec,
   title?: string,
+  defaultTitle: string,
   alerting: boolean,
   bellTimeoutID?: ReturnType<typeof setTimeout>,
 }
@@ -143,7 +144,10 @@ const closeTab = (index: number) => {
 const createTab = (type: 'exec' | 'log', pod: string, container: string) => {
   const id = type === 'log' ? `${pod}/${container}` : crypto.randomUUID();
   if (!tabs.value.some((t) => t.id === id)) {
-    tabs.value.push({ type, id, spec: { pod, container }, alerting: false });
+    tabs.value.push({
+      type, id, spec: { pod, container }, alerting: false,
+      defaultTitle: `${type === 'exec' ? 'Terminal' : 'Log'}: ${shortenTail(pod)}/${container}`,
+    });
   }
   tab.value = id;
 };
@@ -169,7 +173,7 @@ const bell = (index: number) => {
     <VTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id"
       @click="() => tab.alerting = false">
       <VBadge dot color="red" v-model="tab.alerting">
-        {{ tab.title ?? `${tab.type === 'exec' ? 'Terminal' : 'Log'}: ${shortenTail(tab.spec.pod)}/${tab.spec.container}` }}
+        {{ tab.title ?? tab.defaultTitle }}
       </VBadge>
       <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
     </VTab>
