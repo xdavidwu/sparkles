@@ -63,6 +63,19 @@ const router = createRouter({
       component: () => import('@/components/HelmRepository.vue'),
       meta: { name: 'Helm repo', hidden: true },
     },
+    // handled @ @/OIDCApp.vue, should not be rendered by router
+    {
+      path: '/oidc/callback',
+      name: 'oidc_callback',
+      component: () => { throw new Error('unexpected OIDC route visit, misconfiguration?'); },
+      meta: { name: 'OIDC Callback', hidden: true },
+    },
+    {
+      path: '/oidc/logout',
+      name: 'oidc_logout',
+      component: () => { throw new Error('unexpected OIDC route visit, misconfiguration?'); },
+      meta: { name: 'OIDC Logout', hidden: true },
+    },
   ]
 });
 
