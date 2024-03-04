@@ -35,3 +35,9 @@ onMounted(async () => {
 <template>
   <div ref="div" style="touch-action: pan-x pinch-zoom" />
 </template>
+
+<style>
+.xterm-rows span {
+  pointer-events: none;
+}
+</style>
