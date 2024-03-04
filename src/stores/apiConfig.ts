@@ -56,7 +56,7 @@ export const useApiConfig = defineStore('api-config', {
   actions: {
     async getIdToken() {
       let user = await this.userManager.getUser();
-      const idTokenExpired = () => (user?.profile.exp && new Date(user.profile.exp * 1000) < new Date());
+      const idTokenExpired = () => (user?.profile.exp && new Date((user.profile.exp - 5) * 1000) < new Date());
       if ((user?.expired || idTokenExpired()) && user?.refresh_token) {
         try {
           user = await this.userManager.signinSilent();
