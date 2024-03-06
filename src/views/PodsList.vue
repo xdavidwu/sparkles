@@ -182,7 +182,7 @@ const bell = (index: number) => {
       <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
     </VTab>
   </AppTabs>
-  <VWindow v-model="tab">
+  <VWindow v-model="tab" :touch="false">
     <VWindowItem value="table">
       <VDataTable hover :items="containers" :headers="columns">
         <template #[`header._extra.pod.metadata.name`]>

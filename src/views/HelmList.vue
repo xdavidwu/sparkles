@@ -182,7 +182,7 @@ onMounted(setupGo);
       <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
     </VTab>
   </AppTabs>
-  <VWindow v-model="tab">
+  <VWindow v-model="tab" :touch="false">
     <VWindowItem value="table">
       <VDataTable hover :items="releases" :headers="columns" :group-by="[{ key: 'name', order: 'asc'}]">
         <template #group-header='groupProps'>

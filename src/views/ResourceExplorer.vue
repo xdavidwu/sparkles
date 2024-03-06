@@ -210,7 +210,7 @@ watch(targetNamespace, listObjects);
       <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
     </VTab>
   </AppTabs>
-  <VWindow v-model="tab">
+  <VWindow v-model="tab" :touch="false">
     <VWindowItem value="explore">
       <VRow class="mb-1">
         <VCol cols="6" md="">
