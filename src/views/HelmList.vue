@@ -132,7 +132,7 @@ const setupGo = async () => {
 
   const go = new Go();
   const wasm = await WebAssembly.instantiateStreaming(
-    fetch(`${import.meta.env.BASE_URL}helm.wasm`), go.importObject);
+    fetch(`${window.__base_url}helm.wasm`), go.importObject);
   go.run(wasm.instance);
   goInitialized = true;
 

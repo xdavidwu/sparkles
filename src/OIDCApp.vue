@@ -13,7 +13,7 @@ onMounted(async () => {
     return;
   }
 
-  const base = (new URL(import.meta.env.BASE_URL, window.location.origin)).pathname.replace(/\/$/, '');
+  const base = (new URL(window.__base_url, window.location.origin)).pathname.replace(/\/$/, '');
   const path = window.location.pathname.replace(base, '');
   if (path === '/oidc/callback') {
     const user = await apiConfigStore.userManager.signinRedirectCallback();

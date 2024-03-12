@@ -3,8 +3,22 @@ import { computedAsync } from '@vueuse/core';
 import HomeView from '@/views/HomeView.vue';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 
+declare global {
+  interface Window {
+    __base_url: string;
+  }
+}
+
+const dns1123LabelFmt = '[a-z0-9]([-a-z0-9]*[a-z0-9])?';
+const dns1123SubdomainFmt = `${dns1123LabelFmt}(\\.${dns1123LabelFmt})*`;
+// TODO IANA_SVC_NAME/integer validation
+const schemeNamePort = `((https?|):)?${dns1123SubdomainFmt}(:[^:/]*)?`;
+const apiserverProxyRegex = new RegExp(`^/api/v1/namespaces/${dns1123SubdomainFmt}/(pods|services)/${schemeNamePort}/proxy/`);
+const m = window.location.pathname.match(apiserverProxyRegex);
+window.__base_url = m === null ? import.meta.env.BASE_URL : m[0];
+
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(window.__base_url),
   routes: [
     // namespaced
     {

@@ -6,7 +6,7 @@ import { parse } from 'yaml';
 import { satisfies } from 'semver';
 import { BaseColor, ColorVariant, colorToClass, hashColor } from '@/utils/colors';
 
-const repo = `${import.meta.env.BASE_URL}charts`;
+const repo = `${window.__base_url}charts`;
 const useProxy = false;
 const indexURL = `${repo}/index.yaml`;
 

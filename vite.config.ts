@@ -48,6 +48,15 @@ export default defineConfig({
   build: {
     target: 'es2022',
   },
+  experimental: {
+    renderBuiltUrl: (filename: string, { hostType }: { hostType: 'js' | 'css' | 'html' }) => {
+      if (hostType === 'js') {
+        return { runtime: `window.__base_url + ${JSON.stringify(filename)}` };
+      } else {
+        return { relative: true };
+      }
+    },
+  },
   server: {
     proxy: {
       '/openapi': KUBECTL_PROXY,
