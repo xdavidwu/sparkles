@@ -36,6 +36,7 @@ interface Tab {
   spec: ContainerSpec,
   title?: string,
   defaultTitle: string,
+  description: string,
   alerting: boolean,
   bellTimeoutID?: ReturnType<typeof setTimeout>,
 }
@@ -148,9 +149,11 @@ const createTab = (type: 'exec' | 'log', target: ContainerData) => {
   if (!tabs.value.some((t) => t.id === id)) {
     const isOnlyContainer = target._extra.pod.status!.containerStatuses!.length === 1;
     const name = isOnlyContainer ? shortenTail(pod) : `${shortenTail(pod)}/${container}`;
+    const fullName = `${pod}/${container}`;
     tabs.value.push({
       type, id, spec: { pod, container }, alerting: false,
       defaultTitle: `${type === 'exec' ? 'Terminal' : 'Log'}: ${name}`,
+      description: `${type === 'exec' ? 'Terminal' : 'Log'}: ${fullName}`,
     });
   }
   tab.value = id;
@@ -176,9 +179,11 @@ const bell = (index: number) => {
     <VTab value="table">Pods</VTab>
     <VTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id"
       @click="() => tab.alerting = false">
-      <VBadge dot color="red" v-model="tab.alerting">
-        {{ tab.title ?? tab.defaultTitle }}
-      </VBadge>
+      <div :title="tab.description">
+        <VBadge dot color="red" v-model="tab.alerting">
+          {{ tab.title ?? tab.defaultTitle }}
+        </VBadge>
+      </div>
       <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
     </VTab>
   </AppTabs>
