@@ -7,6 +7,7 @@ RUN npm ci
 COPY helm-wasm/go.mod helm-wasm/go.sum helm-wasm/
 RUN cd helm-wasm && go mod download
 COPY . .
+RUN cp .env.apiserver-proxy .env
 RUN npm run build
 # RUN find dist -type f \( -name '*.css' -or -name '*.js' -or -name '*.wasm' \) -exec gzip -9k {} \;
 # RUN find dist -type f \( -name '*.css' -or -name '*.js' -or -name '*.wasm' \) -exec brotli -k -q 11 {} \;
