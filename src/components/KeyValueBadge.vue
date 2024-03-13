@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { BaseColor, ColorVariant, colorToClass, hashColor } from '@/utils/colors';
+import { truncate, truncateStart } from '@/utils/text';
 
 const props = withDefaults(defineProps<{
   k: string,
@@ -21,16 +22,12 @@ const title = computed(() => `${props.k}: ${props.v}`);
 const shortK = computed(() => {
   const index = props.k.lastIndexOf('/');
   if (index === -1) {
-    return props.k.length > 10 ?
-      `...${props.k.substring(props.k.length - 7)}` :
-      props.k;
+    return truncateStart(props.k, 10);
   } else {
     return `...${props.k.substring(index + 1)}`;
   }
 });
-
-const shortV = computed(() => props.v.length > 10 ?
-  `${props.v.substring(0, 7)}...` : props.v);
+const shortV = computed(() => truncate(props.v, 10));
 
 const kColor = computed(() => colorToClass(hashColor(props.k, baseColors, variants)));
 const vColor = computed(() => colorToClass(hashColor(props.v, baseColors, variants)));

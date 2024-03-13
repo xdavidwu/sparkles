@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import {
-  VBadge,
   VBtn,
   VDataTable,
   VIcon,
@@ -9,6 +8,7 @@ import {
   VWindowItem
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
+import DynamicTab from '@/components/DynamicTab.vue';
 import ExecTerminal from '@/components/ExecTerminal.vue';
 import KeyValueBadge from '@/components/KeyValueBadge.vue';
 import LogViewer from '@/components/LogViewer.vue';
@@ -23,6 +23,7 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { usePermissions } from '@/stores/permissions';
 import { CoreV1Api, type V1Pod, V1PodFromJSON, type V1ContainerStatus } from '@/kubernetes-api/src';
+import { truncateStart } from '@/utils/text';
 import { listAndWatch } from '@/utils/watch';
 
 interface ContainerSpec {
@@ -119,9 +120,6 @@ const columns = [
   },
 ];
 
-const shortenTail = (s: string) =>
-  s.length > 8 ? `...${s.substring(s.length - 5)}` : s;
-
 const { abort: abortRequests, signal } = useAbortController();
 
 watch(selectedNamespace, async (namespace) => {
@@ -148,7 +146,7 @@ const createTab = (type: 'exec' | 'log', target: ContainerData) => {
   const id = type === 'log' ? `${pod}/${container}` : crypto.randomUUID();
   if (!tabs.value.some((t) => t.id === id)) {
     const isOnlyContainer = target._extra.pod.status!.containerStatuses!.length === 1;
-    const name = isOnlyContainer ? shortenTail(pod) : `${shortenTail(pod)}/${container}`;
+    const name = isOnlyContainer ? truncateStart(pod, 8) : `${truncateStart(pod, 8)}/${container}`;
     const fullName = `${pod}/${container}`;
     tabs.value.push({
       type, id, spec: { pod, container }, alerting: false,
@@ -177,15 +175,9 @@ const bell = (index: number) => {
 <template>
   <AppTabs v-model="tab">
     <VTab value="table">Pods</VTab>
-    <VTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id"
-      @click="() => tab.alerting = false">
-      <div :title="tab.description">
-        <VBadge dot color="red" v-model="tab.alerting">
-          {{ tab.title ?? tab.defaultTitle }}
-        </VBadge>
-      </div>
-      <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
-    </VTab>
+    <DynamicTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id"
+      :title="tab.title ?? tab.defaultTitle" :description="tab.description"
+      @click="() => tab.alerting = false" @close="closeTab(index)" />
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <VWindowItem value="table">

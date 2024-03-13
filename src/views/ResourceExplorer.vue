@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {
   VAutocomplete,
-  VBtn,
   VCol,
   VDataTable,
   VDataTableRow,
@@ -12,6 +11,7 @@ import {
   VWindowItem,
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
+import DynamicTab from '@/components/DynamicTab.vue';
 import YAMLViewer from '@/components/YAMLViewer.vue';
 import { computed, watch, ref } from 'vue';
 import { storeToRefs } from 'pinia';
@@ -24,7 +24,7 @@ import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
 import type { OpenAPIV3 } from 'openapi-types';
-import { uniqueKeyForObject } from '@/utils/objects';
+import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
 
 interface ResponseSchema {
@@ -34,7 +34,7 @@ interface ResponseSchema {
 
 interface ObjectRecord {
   schema?: ResponseSchema,
-  object: any,
+  object: KubernetesObject,
 }
 
 enum Verbosity {
@@ -187,6 +187,15 @@ const closeTab = (idx: number) => {
   tab.value = 'explore';
   inspectedObjects.value.splice(idx, 1);
 };
+
+const nsName = (o: KubernetesObject) => {
+  if (o.metadata!.namespace) {
+    return `${o.metadata!.namespace}/${o.metadata!.name}`;
+  } else {
+    return o.metadata!.name!;
+  }
+}
+
 watch(targetGroup, async () => {
   types.value = await getTypes();
   targetType.value = defaultTargetType();
@@ -198,17 +207,12 @@ watch(targetNamespace, listObjects);
 <template>
   <AppTabs v-model="tab">
     <VTab value="explore">Explore</VTab>
-    <VTab v-for="(obj, index) in inspectedObjects"
+    <DynamicTab v-for="(obj, index) in inspectedObjects"
       :key="uniqueKeyForObject(obj.object)"
-      :value="uniqueKeyForObject(obj.object)">
-      <template v-if="obj.object.metadata.namespace">
-        {{ obj.object.metadata.namespace }}/{{ obj.object.metadata.name }}
-      </template>
-      <template v-else>
-        {{ obj.object.metadata.name }}
-      </template>
-      <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
-    </VTab>
+      :value="uniqueKeyForObject(obj.object)"
+      :description="`${obj.object.kind}: ${nsName(obj.object)}`"
+      :title="nsName(obj.object)"
+      @close="closeTab(index)" />
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <VWindowItem value="explore">
