@@ -130,20 +130,16 @@ watch(pendingToast, (toast) => {
           v-model="selectedNamespace" hide-details :loading="namespacesLoading" />
         <VListItem v-for="route in namespacedRoutes"
           :disabled="!!route.unsupportedReason"
-          :subtitle="route.unsupportedReason"
-          :key="route.meta.name as string" :to="route">
-          {{ route.meta.name }}
-        </VListItem>
+          :subtitle="route.unsupportedReason" :title="route.meta.name"
+          :key="route.meta.name as string" :to="route" />
       </VList>
       <VDivider />
       <VList>
         <VListSubheader>Global</VListSubheader>
         <VListItem v-for="route in globalRoutes"
           :disabled="!!route.unsupportedReason"
-          :subtitle="route.unsupportedReason"
-          :key="route.meta.name as string" :to="route">
-          {{ route.meta.name }}
-        </VListItem>
+          :subtitle="route.unsupportedReason" :title="route.meta.name"
+          :key="route.meta.name as string" :to="route" />
       </VList>
       <template #append>
         <div class="px-4 bottom-auth-line text-caption py-1 w-100">
