@@ -6,6 +6,7 @@ import {
   VDataTableRow,
   VRow,
   VSelect,
+  VSwitch,
   VTab,
   VWindow,
   VWindowItem,
@@ -37,12 +38,6 @@ interface ObjectRecord {
   object: KubernetesObject,
 }
 
-enum Verbosity {
-  FULL = 'full',
-  MINIMAL = 'minimal',
-}
-
-const NS_ALL_NAMESPACES = '(all)';
 const EMPTY_V1_TABLE: V1Table<V1PartialObjectMetadata> = {
   columnDefinitions: [],
   rows: [],
@@ -53,9 +48,8 @@ const anyApi = new AnyApi(await apiConfigStore.getConfig());
 
 const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces();
-const { namespaces } = storeToRefs(namespacesStore);
-const namespaceOptions = computed(() => [ NS_ALL_NAMESPACES, ...namespaces.value ]);
-const targetNamespace = ref(NS_ALL_NAMESPACES);
+const { selectedNamespace } = storeToRefs(namespacesStore);
+const allNamespaces = ref(false);
 const groups = await useApisDiscovery().getGroups();
 const targetGroup = ref(groups[0]);
 
@@ -87,7 +81,7 @@ const objects = ref(EMPTY_V1_TABLE);
 const objectsLoading = ref(false);
 const tab = ref('explore');
 const inspectedObjects = ref<Array<ObjectRecord>>([]);
-const verbosity = ref(useDisplay().xlAndUp.value ? Verbosity.FULL : Verbosity.MINIMAL);
+const verbose = ref(useDisplay().xlAndUp.value);
 
 const { abort: abortRequests, signal } = useAbortController();
 
@@ -104,9 +98,9 @@ const listObjects = async () => {
     group: targetGroup.value.name,
     version: targetGroup.value.preferredVersion!.version,
     plural: targetType.value.name,
-    namespace: targetNamespace.value,
+    namespace: selectedNamespace.value,
   };
-  const listType = (targetType.value.namespaced && targetNamespace.value !== NS_ALL_NAMESPACES) ?
+  const listType = (targetType.value.namespaced && !allNamespaces.value) ?
     'Namespaced' : 'Cluster';
   if (targetType.value.verbs.includes('watch')) {
     await listAndUnwaitedWatchTable(
@@ -125,12 +119,12 @@ const listObjects = async () => {
 };
 
 const columns = computed(() =>
-  ((targetType.value?.namespaced && targetNamespace.value === NS_ALL_NAMESPACES) ? [{
+  ((targetType.value?.namespaced && allNamespaces.value) ? [{
     title: 'Namespace',
     key: 'object.metadata.namespace',
   }] : []).concat(
     objects.value.columnDefinitions
-      .filter((c) => verbosity.value === Verbosity.FULL || c.priority === 0)
+      .filter((c) => verbose.value || c.priority === 0)
       .map((c, i) => ({
         title: c.name,
         key: `cells.${i}`,
@@ -201,7 +195,7 @@ watch(targetGroup, async () => {
   targetType.value = defaultTargetType();
 });
 watch(targetType, listObjects, { immediate: true });
-watch(targetNamespace, listObjects);
+watch(allNamespaces, listObjects);
 </script>
 
 <template>
@@ -226,15 +220,15 @@ watch(targetNamespace, listObjects);
           <VAutocomplete label="Type" v-model="targetType" :items="types"
             return-object hide-details item-title="name" :loading="typesLoading" />
         </VCol>
-        <VCol cols="6" md="">
-          <VAutocomplete v-if="targetType?.namespaced" label="Namespace"
-            v-model="targetNamespace" :items="namespaceOptions" hide-details />
-          <VSelect v-else label="Namespace" model-value="(global)" hide-details
-            disabled />
+        <VCol cols="6" md="3">
+          <VSwitch v-if="targetType?.namespaced"
+            label="All namespaces" v-model="allNamespaces" hide-details />
+          <div v-else title="Selected type is not namespaced">
+            <VSwitch disabled label="All namespaces" :model-value="true" hide-details />
+          </div>
         </VCol>
         <VCol cols="6" md="2">
-          <VSelect label="Verbosity" v-model="verbosity"
-            :items="Object.values(Verbosity)" hide-details />
+          <VSwitch label="Verbose" v-model="verbose" hide-details />
         </VCol>
       </VRow>
       <VDataTable hover fixed-header class="data-table-auto"

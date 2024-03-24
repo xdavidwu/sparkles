@@ -56,13 +56,13 @@ const router = createRouter({
       component: () => import('@/views/HelmList.vue'),
       meta: { name: 'Helm', namespaced: true, unsupported: checkNamespacedResourcePermission('', 'secrets') }
     },
-    // global
     {
       path: '/explore',
       name: 'explore',
       component: () => import('@/views/ResourceExplorer.vue'),
-      meta: { name: 'Resource Explorer' },
+      meta: { name: 'Resource Explorer', namespaced: true },
     },
+    // global
     {
       path: '/metrics',
       name: 'metrics',
