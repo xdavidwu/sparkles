@@ -129,6 +129,8 @@ watch(pendingToast, (toast) => {
         <VAutocomplete label="Namespace" variant="solo" :items="namespaces"
           v-model="selectedNamespace" hide-details :loading="namespacesLoading" />
         <VListItem v-for="route in namespacedRoutes"
+          :disabled="!!route.unsupportedReason"
+          :subtitle="route.unsupportedReason"
           :key="route.meta.name as string" :to="route">
           {{ route.meta.name }}
         </VListItem>
