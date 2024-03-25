@@ -196,6 +196,7 @@ watch(targetGroup, async () => {
 });
 watch(targetType, listObjects, { immediate: true });
 watch(allNamespaces, listObjects);
+watch(selectedNamespace, listObjects);
 </script>
 
 <template>
