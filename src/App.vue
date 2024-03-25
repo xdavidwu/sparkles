@@ -205,3 +205,23 @@ watch(pendingToast, (toast) => {
   color: rgb(var(--v-theme-on-surface-light));
 }
 </style>
+
+<style>
+/*
+ * color stolen from chromium: https://github.com/whatwg/html/issues/5426#issuecomment-904021675
+ *
+ * XXX: do we have a better way to catch plain a tag without affecting vuetify navs?
+ */
+
+a[target="_blank"] {
+  color: #9e9eff;
+}
+
+a[target="_blank"]:visited {
+  color: #d0adf0;
+}
+
+a[target="_blank"]:active, a[target="_blank"]:visited:active {
+  color: #ff9e9e;
+}
+</style>
