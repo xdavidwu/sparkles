@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import {
   VAutocomplete,
+  VCheckbox,
   VCol,
   VDataTable,
   VDataTableRow,
   VRow,
-  VSelect,
-  VSwitch,
   VTab,
   VWindow,
   VWindowItem,
@@ -82,6 +81,7 @@ const objectsLoading = ref(false);
 const tab = ref('explore');
 const inspectedObjects = ref<Array<ObjectRecord>>([]);
 const verbose = ref(useDisplay().xlAndUp.value);
+const { mdAndUp } = useDisplay();
 
 const { abort: abortRequests, signal } = useAbortController();
 
@@ -220,16 +220,32 @@ watch(allNamespaces, listObjects);
           <VAutocomplete label="Type" v-model="targetType" :items="types"
             return-object hide-details item-title="name" :loading="typesLoading" />
         </VCol>
-        <VCol cols="6" md="3">
-          <VSwitch v-if="targetType?.namespaced"
-            label="All namespaces" v-model="allNamespaces" hide-details />
+        <VCol v-if="mdAndUp" md="3">
+          <VCheckbox v-if="targetType?.namespaced" class="checkbox-intense"
+            label="All namespaces" v-model="allNamespaces" hide-details
+            density="compact" />
           <div v-else title="Selected type is not namespaced">
-            <VSwitch disabled label="All namespaces" :model-value="true" hide-details />
+            <VCheckbox class="checkbox-intense" disabled label="All namespaces"
+              :model-value="true" hide-details density="compact" />
           </div>
+          <VCheckbox class="checkbox-intense" label="Verbose" v-model="verbose"
+            hide-details density="compact" />
         </VCol>
-        <VCol cols="6" md="2">
-          <VSwitch label="Verbose" v-model="verbose" hide-details />
-        </VCol>
+        <template v-else>
+          <VCol cols="7">
+            <VCheckbox v-if="targetType?.namespaced" class="checkbox-intense"
+              label="All namespaces" v-model="allNamespaces" hide-details
+              density="compact" />
+            <div v-else title="Selected type is not namespaced">
+              <VCheckbox class="checkbox-intense" disabled label="All namespaces"
+                :model-value="true" hide-details density="compact" />
+            </div>
+          </VCol>
+          <VCol cols="5">
+            <VCheckbox class="checkbox-intense" label="Verbose" v-model="verbose"
+              hide-details density="compact" />
+          </VCol>
+        </template>
       </VRow>
       <VDataTable hover fixed-header class="data-table-auto"
         items-per-page="-1"
@@ -251,5 +267,9 @@ watch(allNamespaces, listObjects);
 <style>
 .data-table-auto table {
   table-layout: auto !important;
+}
+
+.checkbox-intense > .v-input__control > .v-selection-control {
+  min-height: unset !important;
 }
 </style>
