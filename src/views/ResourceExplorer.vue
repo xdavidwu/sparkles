@@ -85,7 +85,7 @@ const objectsLoading = ref(false);
 const tab = ref('explore');
 const inspectedObjects = ref<Array<ObjectRecord>>([]);
 const verbose = ref(useDisplay().xlAndUp.value);
-const { mdAndUp } = useDisplay();
+const { smAndDown } = useDisplay();
 
 const { abort: abortRequests, signal } = useAbortController();
 
@@ -212,17 +212,17 @@ watch(selectedNamespace, listObjects);
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <VWindowItem value="explore">
-      <VRow class="mb-1">
-        <VCol cols="6" md="">
+      <VRow class="mb-1" :dense="smAndDown">
+        <VCol cols="6" sm="">
           <VAutocomplete label="API group" v-model="targetGroup" :items="groups"
             return-object hide-details
             :item-title="(api) => (api.preferredVersion!.groupVersion)" />
         </VCol>
-        <VCol cols="6" md="">
+        <VCol cols="6" sm="">
           <VAutocomplete label="Type" v-model="targetType" :items="types"
             return-object hide-details item-title="name" :loading="typesLoading" />
         </VCol>
-        <VCol v-if="mdAndUp" md="3">
+        <VCol md="3" sm="4">
           <VCheckbox v-if="targetType?.namespaced" class="checkbox-intense"
             label="All namespaces" v-model="allNamespaces" hide-details
             density="compact" />
@@ -233,21 +233,6 @@ watch(selectedNamespace, listObjects);
           <VCheckbox class="checkbox-intense" label="Verbose" v-model="verbose"
             hide-details density="compact" />
         </VCol>
-        <template v-else>
-          <VCol cols="7">
-            <VCheckbox v-if="targetType?.namespaced" class="checkbox-intense"
-              label="All namespaces" v-model="allNamespaces" hide-details
-              density="compact" />
-            <div v-else title="Selected type is not namespaced">
-              <VCheckbox class="checkbox-intense" disabled label="All namespaces"
-                :model-value="true" hide-details density="compact" />
-            </div>
-          </VCol>
-          <VCol cols="5">
-            <VCheckbox class="checkbox-intense" label="Verbose" v-model="verbose"
-              hide-details density="compact" />
-          </VCol>
-        </template>
       </VRow>
       <div v-if="!targetType.verbs.includes('watch')"
         class="text-caption text-medium-emphasis mb-2">
