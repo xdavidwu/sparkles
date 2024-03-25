@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   VAutocomplete,
+  VBtn,
   VCheckbox,
   VCol,
   VDataTable,
@@ -16,6 +17,7 @@ import YAMLViewer from '@/components/YAMLViewer.vue';
 import { computed, watch, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDisplay } from 'vuetify';
+import { timestamp, useLastChanged, useTimeAgo } from '@vueuse/core';
 import { useAbortController } from '@/composables/abortController';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
@@ -77,6 +79,8 @@ const defaultTargetType = () => {
 
 const targetType = ref(defaultTargetType());
 const objects = ref(EMPTY_V1_TABLE);
+const lastUpdatedAt = useLastChanged(objects, { initialValue: timestamp() });
+const lastUpdated = useTimeAgo(lastUpdatedAt);
 const objectsLoading = ref(false);
 const tab = ref('explore');
 const inspectedObjects = ref<Array<ObjectRecord>>([]);
@@ -110,9 +114,6 @@ const listObjects = async () => {
       (e) => useErrorPresentation().pendingError = e,
     );
   } else {
-    useErrorPresentation().pendingToast =
-      `${targetGroup.value.preferredVersion!.groupVersion} ${targetType.value.name}` +
-      ' does not support watch, updates will not be reflected without refreshing.';
     objects.value = await anyApi[`list${listType}CustomObjectAsTable`](options);
   }
   objectsLoading.value = false;
@@ -248,6 +249,13 @@ watch(selectedNamespace, listObjects);
           </VCol>
         </template>
       </VRow>
+      <div v-if="!targetType.verbs.includes('watch')"
+        class="text-caption text-medium-emphasis mb-2">
+        This type does not support watch operation, last updated
+        <span :title="new Date(lastUpdatedAt).toLocaleString()"
+          class="font-weight-bold">{{ lastUpdated }}</span>
+        <VBtn variant="text" size="x-small" color="primary" @click="listObjects">refresh</VBtn>
+      </div>
       <VDataTable hover fixed-header class="data-table-auto"
         items-per-page="-1"
         :items="objects.rows ?? []" :headers="columns" :loading="objectsLoading">
