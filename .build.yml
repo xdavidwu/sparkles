@@ -1,0 +1,17 @@
+image: alpine/edge
+packages:
+  - podman
+secrets:
+  - d45b9b20-bc8b-480e-8e6e-edb5e0fd5848 # podman auth
+tasks:
+  - setup: |
+      sudo rc-service cgroups start
+      sudo modprobe tun
+      sudo chown root:wheel /dev/net/tun
+      sudo chmod g+rw /dev/net/tun
+      echo build:100000:65536 | sudo tee /etc/subuid
+      echo build:100000:65536 | sudo tee /etc/subgid
+  - build: |
+      podman build sparkles/ -t ghcr.io/xdavidwu/sparkles:latest
+  - publish: |
+      podman push ghcr.io/xdavidwu/sparkles:latest
