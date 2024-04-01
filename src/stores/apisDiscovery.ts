@@ -18,11 +18,11 @@ export const useApisDiscovery = defineStore('apisDiscovery', () => {
       {
         name: '',
         versions: core.versions.map((i) => ({
-          groupVersion: `core/${i}`,
+          groupVersion: i,
           version: i,
         })),
         preferredVersion: {
-          groupVersion: `core/${core.versions[core.versions.length - 1]}`,
+          groupVersion: core.versions[core.versions.length - 1],
           version: core.versions[core.versions.length - 1],
         }
       },
