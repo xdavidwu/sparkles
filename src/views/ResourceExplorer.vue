@@ -220,7 +220,7 @@ watch(selectedNamespace, listObjects);
         </VCol>
         <VCol cols="6" sm="">
           <VAutocomplete label="Type" v-model="targetType" :items="types"
-            return-object hide-details item-title="name" :loading="typesLoading" />
+            return-object hide-details item-title="kind" :loading="typesLoading" />
         </VCol>
         <VCol md="3" sm="4">
           <VCheckbox v-if="targetType?.namespaced" class="checkbox-intense"
