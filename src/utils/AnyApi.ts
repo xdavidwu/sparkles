@@ -39,9 +39,11 @@ export interface AnyApiGetOpenAPISchemaRequest {
   version: string;
 }
 
+const corePlaceholder = '~core~';
+
 const toCore: Middleware['pre'] = async (context) => ({
   ...context,
-  url: context.url.replace('apis/core', 'api'),
+  url: context.url.replace(`apis/${corePlaceholder}`, 'api'),
 });
 
 const asTable: Middleware['pre'] = async (context) => {
@@ -110,7 +112,7 @@ export class AnyApi extends CustomObjectsApi {
       return super.withPreMiddleware(toCore)
         .listClusterCustomObjectRaw({
           ...requestParameters,
-          group: 'core',
+          group: corePlaceholder,
         }, initOverrides);
     }
   }
@@ -128,7 +130,7 @@ export class AnyApi extends CustomObjectsApi {
       return super.withPreMiddleware(toCore)
         .listNamespacedCustomObjectRaw({
           ...requestParameters,
-          group: 'core',
+          group: corePlaceholder,
         }, initOverrides);
     }
   }
@@ -195,7 +197,7 @@ export class AnyApi extends CustomObjectsApi {
       return super.getClusterCustomObject({ ...requestParameters, group: requestParameters.group! });
     } else {
       return super.withPreMiddleware(toCore)
-        .getClusterCustomObject({ ...requestParameters, group: 'core' });
+        .getClusterCustomObject({ ...requestParameters, group: corePlaceholder });
     }
   }
 
@@ -205,7 +207,7 @@ export class AnyApi extends CustomObjectsApi {
       return super.getNamespacedCustomObject({ ...requestParameters, group: requestParameters.group! });
     } else {
       return super.withPreMiddleware(toCore)
-        .getNamespacedCustomObject({ ...requestParameters, group: 'core' });
+        .getNamespacedCustomObject({ ...requestParameters, group: corePlaceholder });
     }
   }
 
