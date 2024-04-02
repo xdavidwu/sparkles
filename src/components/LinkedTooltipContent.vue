@@ -29,7 +29,7 @@ const tokens = computed(() => {
 </script>
 
 <template>
-  <div class="text-white bg-teal-darken-4 px-2 py-1 text-caption mw-40">
+  <div class="text-white bg-teal-darken-4 px-2 py-1 text-caption elevation-4 mw-40">
     <template v-for="(token, i) in tokens">
       <template v-if="token.type == 'plain'">
         {{ token.value }}
