@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import { computed, ref, onMounted } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
 import { errorIsTypeUnsupported, doSelfSubjectReview } from '@/utils/api';
@@ -24,5 +25,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <span :title="groupsText">{{ username }}</span>
+  <span>
+    {{ username }}
+    <LinkedTooltip :text="groupsText" activator="parent" />
+  </span>
 </template>

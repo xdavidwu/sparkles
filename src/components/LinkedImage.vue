@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import { computed } from 'vue';
 
 const props = defineProps<{
   image: string,
+  id: string,
 }>();
 
 const url = computed(() => {
@@ -68,6 +70,8 @@ const url = computed(() => {
 </script>
 
 <template>
-  <a v-if="url" :href="url" target="_blank">{{ image }}</a>
-  <span v-else>{{ image }}</span>
+  <component :is="url ? 'a' : 'span'" :href="url" target="_blank">
+    {{ image }}
+    <LinkedTooltip v-if="id" :text="id" activator="parent" style="word-break: break-all" />
+  </component>
 </template>

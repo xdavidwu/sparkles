@@ -1,13 +1,13 @@
 <script setup lang="ts">
+import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import { VBadge, VBtn, VTab } from 'vuetify/components';
 
 withDefaults(defineProps<{
-  alerting: boolean,
+  alerting?: boolean,
   title: string,
-  description: string,
+  description?: string,
 }>(), {
   alerting: false,
-  description: '',
 });
 
 const emit = defineEmits<{
@@ -17,11 +17,10 @@ const emit = defineEmits<{
 
 <template>
   <VTab>
-    <div :title="description">
-      <VBadge dot color="red" :model-value="alerting">
-        {{ title }}
-      </VBadge>
-    </div>
+    <VBadge dot color="red" :model-value="alerting">
+      {{ title }}
+    </VBadge>
     <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="emit('close')" />
+    <LinkedTooltip v-if="description" :text="description" activator="parent" />
   </VTab>
 </template>

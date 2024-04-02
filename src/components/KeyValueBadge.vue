@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import { computed } from 'vue';
 import { BaseColor, ColorVariant, colorToClass, hashColor } from '@/utils/colors';
 import { truncate, truncateStart } from '@/utils/text';
@@ -34,13 +35,14 @@ const vColor = computed(() => colorToClass(hashColor(props.v, baseColors, varian
 </script>
 
 <template>
-  <div class="d-inline-block" :title="title">
+  <div class="d-inline-block">
     <span :class="[`text-${kColor}`, 'kv']">
       {{ shortK }}<span :class="[`rounded-s-${pill ? 'pill' : 'sm'}`, 'underlay']" />
     </span>
     <span :class="[`text-${vColor}`, 'kv']">
       {{ shortV }}<span :class="[`rounded-e-${pill ? 'pill' : 'sm'}`, 'underlay']" />
     </span>
+    <LinkedTooltip :text="title" activator="parent" />
   </div>
 </template>
 

@@ -227,12 +227,11 @@ watch(selectedNamespace, listObjects);
             return-object hide-details item-title="kind" :loading="typesLoading" />
         </VCol>
         <VCol md="3" sm="4">
-          <VCheckbox v-if="targetType?.namespaced" class="checkbox-intense"
-            label="All namespaces" v-model="allNamespaces" hide-details
-            density="compact" />
-          <div v-else title="Selected type is not namespaced">
-            <VCheckbox class="checkbox-intense" disabled label="All namespaces"
-              :model-value="true" hide-details density="compact" />
+          <div>
+            <VCheckbox :disabled="!targetType?.namespaced" class="checkbox-intense"
+              label="All namespaces" v-model="allNamespaces" hide-details
+              density="compact"/>
+            <LinkedTooltip v-if="!targetType?.namespaced" activator="parent" text="Selected type is not namespaced" />
           </div>
           <VCheckbox class="checkbox-intense" label="Verbose" v-model="verbose"
             hide-details density="compact" />
@@ -241,8 +240,10 @@ watch(selectedNamespace, listObjects);
       <div v-if="!targetType.verbs.includes('watch')"
         class="text-caption text-medium-emphasis mb-2">
         This type does not support watch operation, last updated
-        <span :title="new Date(lastUpdatedAt).toLocaleString()"
-          class="font-weight-bold">{{ lastUpdated }}</span>
+        <span class="font-weight-bold">
+          {{ lastUpdated }}
+          <LinkedTooltip :text="new Date(lastUpdatedAt).toLocaleString()" activator="parent" />
+        </span>
         <VBtn variant="text" size="x-small" color="primary" @click="listObjects">refresh</VBtn>
       </div>
       <VDataTable hover fixed-header class="data-table-auto"

@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import {
-  VBtn,
   VDataTable,
   VIcon,
   VTab,
@@ -13,6 +12,7 @@ import ExecTerminal from '@/components/ExecTerminal.vue';
 import KeyValueBadge from '@/components/KeyValueBadge.vue';
 import LogViewer from '@/components/LogViewer.vue';
 import LinkedImage from '@/components/LinkedImage.vue';
+import TippedBtn from '@/components/TippedBtn.vue';
 import { computed, ref, watch } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { useAbortController } from '@/composables/abortController';
@@ -200,17 +200,17 @@ const bell = (index: number) => {
             :key="key" :k="key as string" :v="value" pill />
         </template>
         <template #[`item.image`]="{ item, value }">
-          <LinkedImage :image="value" :title="item.imageID" />
+          <LinkedImage :image="value" :id="item.imageID" />
         </template>
         <template #[`item.ready`]="{ value }">
           <VIcon v-if="value" icon="mdi-check" />
           <VIcon v-else icon="mdi-close" color="red" />
         </template>
         <template #[`item.actions`]="{ item }">
-          <VBtn size="small" icon="mdi-console-line" title="Terminal" variant="text"
+          <TippedBtn size="small" icon="mdi-console-line" tooltip="Terminal" variant="text"
             :disabled="!item.state!.running || (item._extra.mayExec !== undefined && !item._extra.mayExec)"
             @click="createTab('exec', item)" />
-          <VBtn size="small" icon="mdi-file-document" title="Log" variant="text"
+          <TippedBtn size="small" icon="mdi-file-document" tooltip="Log" variant="text"
             :disabled="item._extra.mayReadLogs !== undefined && !item._extra.mayReadLogs"
             @click="createTab('log', item)" />
         </template>

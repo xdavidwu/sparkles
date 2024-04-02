@@ -8,6 +8,8 @@ import {
   VWindowItem,
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
+import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import TippedBtn from '@/components/TippedBtn.vue';
 import YAMLViewer from '@/components/YAMLViewer.vue';
 import { onMounted, ref, watch } from 'vue';
 import { computedAsync } from '@vueuse/core';
@@ -195,13 +197,14 @@ onMounted(setupGo);
               {{ value }}
             </template>
             <template #[`item.chart.metadata.name`]='{ item, value }'>
-              <div :title="(item as any).chart.metadata.description" class="d-flex align-center">
+              <div class="d-flex align-center">
                 <img :src="(item as any).chart.metadata.icon" class="chart-icon mr-2" />
                 {{ value }}
+                <LinkedTooltip :text="(item as any).chart.metadata.description" activator="parent" />
               </div>
             </template>
             <template #[`item.actions`]='{ item }'>
-              <VBtn size="small" icon="mdi-file-document" title="Values" variant="text"
+              <TippedBtn size="small" icon="mdi-file-document" tooltip="Values" variant="text"
                 @click="createTab(item)" />
             </template>
           </VDataTableRow>
@@ -210,13 +213,14 @@ onMounted(setupGo);
           <VBtn size="small" variant="text" disabled icon="mdi-circle-small" />
         </template>
         <template #[`item.chart.metadata.name`]='{ item, value }'>
-          <div :title="(item as any).chart.metadata.description" class="d-flex align-center">
+          <div class="d-flex align-center">
             <img :src="(item as any).chart.metadata.icon" class="chart-icon mr-2" />
             {{ value }}
+            <LinkedTooltip :text="(item as any).chart.metadata.description" activator="parent" />
           </div>
         </template>
         <template #[`item.actions`]='{ item }'>
-          <VBtn size="small" icon="mdi-file-document" title="Values" variant="text"
+          <TippedBtn size="small" icon="mdi-file-document" tooltip="Values" variant="text"
             @click="createTab(item)" />
         </template>
         <template #bottom />
