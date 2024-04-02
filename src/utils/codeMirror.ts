@@ -44,23 +44,9 @@ export const createTextTooltip = (tooltips: Ref<Array<Tooltip>>) => hoverTooltip
         pos: tooltip.range[0],
         end: tooltip.range[1],
         create: () => {
-          const div = document.createElement('div');
-          div.classList.add('text-white', 'bg-grey-darken-3', 'px-2', 'py-1', 'text-caption');
-          div.textContent = tooltip.text;
-          div.innerHTML = div.innerHTML.replace(/((http:|https:)[^\s]+[\w])/g, (match) => {
-            let url;
-            try {
-              url = new URL(match);
-            } catch (e) {
-              return match;
-            }
-            const a = document.createElement('a');
-            a.target = '_blank';
-            a.href = url.href;
-            a.textContent = match;
-            return a.outerHTML;
-          });
-          return { dom: div };
+          const t = document.createElement('linked-tooltip-content') as any;
+          t.text = tooltip.text;
+          return { dom: t };
         },
       };
     }

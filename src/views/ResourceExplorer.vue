@@ -6,6 +6,7 @@ import {
   VCol,
   VDataTable,
   VDataTableRow,
+  VIcon,
   VRow,
   VTab,
   VWindow,
@@ -13,6 +14,7 @@ import {
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
+import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import YAMLViewer from '@/components/YAMLViewer.vue';
 import { computed, watch, ref } from 'vue';
 import { storeToRefs } from 'pinia';
@@ -119,7 +121,11 @@ const listObjects = async () => {
   objectsLoading.value = false;
 };
 
-const columns = computed(() =>
+const columns = computed<Array<{
+  title: string,
+  key: string,
+  description?: string,
+}>>(() =>
   ((targetType.value?.namespaced && allNamespaces.value) ? [{
     title: 'Namespace',
     key: 'object.metadata.namespace',
@@ -129,9 +135,7 @@ const columns = computed(() =>
       .map((c, i) => ({
         title: c.name,
         key: `cells.${i}`,
-        headerProps: { // html title tooltip, TODO: roll our own a la YAMLViewer
-          title: c.description,
-        },
+        description: c.description,
       }))
   ),
 );
@@ -244,6 +248,14 @@ watch(selectedNamespace, listObjects);
       <VDataTable hover fixed-header class="data-table-auto"
         items-per-page="-1"
         :items="objects.rows ?? []" :headers="columns" :loading="objectsLoading">
+        <!-- TODO: ask vuetify to open up VDataTableHeaderCell -->
+        <template v-for="(c, i) in columns" #[`header.${c.key}`]="{ column, getSortIcon }" :key="i">
+          <div class="v-data-table-header__content h-100">
+            <span>{{ column.title }}</span>
+            <VIcon v-if="column.sortable" key="icon" class="v-data-table-header__sort-icon" :icon="getSortIcon(column)" />
+            <LinkedTooltip v-if="c.description" :text="c.description" activator="parent" />
+          </div>
+        </template>
         <template #item="{ props: itemProps }">
           <VDataTableRow v-bind="itemProps" @click="inspectObject(itemProps.item.raw.object)" />
         </template>
