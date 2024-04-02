@@ -250,7 +250,7 @@ watch(selectedNamespace, listObjects);
         :items="objects.rows ?? []" :headers="columns" :loading="objectsLoading">
         <!-- TODO: ask vuetify to open up VDataTableHeaderCell -->
         <template v-for="(c, i) in columns" #[`header.${c.key}`]="{ column, getSortIcon }" :key="i">
-          <div class="v-data-table-header__content h-100">
+          <div class="v-data-table-header__content h-100 width-min-content">
             <span>{{ column.title }}</span>
             <VIcon v-if="column.sortable" key="icon" class="v-data-table-header__sort-icon" :icon="getSortIcon(column)" />
             <LinkedTooltip v-if="c.description" :text="c.description" activator="parent" />
@@ -277,5 +277,9 @@ watch(selectedNamespace, listObjects);
 
 .checkbox-intense > .v-input__control > .v-selection-control {
   min-height: unset !important;
+}
+
+.width-min-content {
+  width: min-content;
 }
 </style>
