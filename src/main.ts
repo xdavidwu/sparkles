@@ -1,6 +1,6 @@
 import '@mdi/font/css/materialdesignicons.css';
 
-import { createApp, defineCustomElement } from 'vue';
+import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import { createVuetify } from 'vuetify';
 import {
@@ -19,7 +19,6 @@ import {
 import { StdDateAdapter } from 'chartjs-adapter-date-std';
 
 import App from '@/OIDCApp.vue';
-import LinkedTooltipContent from '@/components/LinkedTooltipContent.ce.vue';
 import router from '@/router';
 
 import 'vuetify/styles';
@@ -47,9 +46,6 @@ Chart.defaults.plugins.legend.labels.padding = 8;
 Chart.defaults.plugins.title.padding = 0;
 Chart.defaults.animation = false;
 Chart.defaults.resizeDelay = 1000 / 24;
-
-const linkedTooltipContentElement = defineCustomElement(LinkedTooltipContent);
-customElements.define('linked-tooltip-content', linkedTooltipContentElement);
 
 const app = createApp(App);
 

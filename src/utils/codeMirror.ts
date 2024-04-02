@@ -1,4 +1,5 @@
-import type { Ref } from 'vue';
+import LinkedTooltipContent from '@/components/LinkedTooltipContent.vue';
+import { type Ref, createApp } from 'vue';
 import { foldService, IndentContext } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
 import { hoverTooltip } from "@codemirror/view"
@@ -44,9 +45,9 @@ export const createTextTooltip = (tooltips: Ref<Array<Tooltip>>) => hoverTooltip
         pos: tooltip.range[0],
         end: tooltip.range[1],
         create: () => {
-          const t = document.createElement('linked-tooltip-content') as any;
-          t.text = tooltip.text;
-          return { dom: t };
+          const div = document.createElement('div');
+          const vue = createApp(LinkedTooltipContent, { text: tooltip.text });
+          return { dom: div, mount: () => vue.mount(div), destroy: () => vue.unmount() };
         },
       };
     }

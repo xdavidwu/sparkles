@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { VOverlay } from 'vuetify/components';
-import LinkedTooltipContent from '@/components/LinkedTooltipContent.ce.vue';
+import LinkedTooltipContent from '@/components/LinkedTooltipContent.vue';
 
 const props = defineProps<{
   text: string,
