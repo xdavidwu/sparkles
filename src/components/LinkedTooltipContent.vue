@@ -7,7 +7,7 @@ const props = defineProps<{
 
 const tokens = computed(() => {
   const tokens = [];
-  const linkRegex = new RegExp(/((http:|https:)[^\s]+[\w])/, 'gd');
+  const linkRegex = new RegExp(/((http:|https:)[^\s]+[^\s.])/, 'gd');
   let currentIndex = 0;
   for (const match of props.text.matchAll(linkRegex)) {
     tokens.push({
