@@ -1,4 +1,4 @@
-FROM alpine:3.19 as builder
+FROM alpine:edge as builder
 
 WORKDIR /workspace
 RUN apk add go npm git # gzip brotli
