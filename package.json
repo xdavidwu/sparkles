@@ -8,7 +8,7 @@
     "dev": "npm run wasm && vite",
     "build": "npm run type-check && npm run build-only",
     "preview": "vite preview",
-    "build-only": "npm run wasm && vite build",
+    "build-only": "npm run wasm && vite build --base=\"${SPARKLES_BASE:-/}\"",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
   },

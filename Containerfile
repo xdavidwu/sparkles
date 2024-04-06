@@ -1,4 +1,6 @@
 FROM alpine:edge as builder
+ARG SPARKLES_ENV=.env.apiserver-proxy
+ARG SPARKLES_BASE=/
 
 WORKDIR /workspace
 RUN apk add go npm git gzip # brotli
@@ -7,10 +9,11 @@ RUN npm ci
 COPY helm-wasm/go.mod helm-wasm/go.sum helm-wasm/
 RUN cd helm-wasm && go mod download
 COPY . .
-RUN cp .env.apiserver-proxy .env
+RUN cp "$SPARKLES_ENV" .env
 RUN npm run build
 RUN find dist -type f \( -name '*.css' -or -name '*.js' -or -name '*.wasm' \) -exec gzip -9k {} \;
 # RUN find dist -type f \( -name '*.css' -or -name '*.js' -or -name '*.wasm' \) -exec brotli -k -q 11 {} \;
+RUN [ "$SPARKLES_BASE" == / ] || (mv dist _dist && mkdir dist && cp _dist/index.html dist && mv _dist dist/"$SPARKLES_BASE")
 RUN chmod -R a-w dist
 
 FROM alpine:3.19
