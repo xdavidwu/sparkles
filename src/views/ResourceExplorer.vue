@@ -10,11 +10,11 @@ import {
   VRow,
   VTab,
   VWindow,
-  VWindowItem,
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import WindowItem from '@/components/WindowItem.vue';
 import YAMLViewer from '@/components/YAMLViewer.vue';
 import { computed, watch, ref } from 'vue';
 import { storeToRefs } from 'pinia';
@@ -215,7 +215,7 @@ watch(selectedNamespace, listObjects);
       @close="closeTab(index)" />
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
-    <VWindowItem value="explore">
+    <WindowItem value="explore">
       <VRow class="mb-1" :dense="smAndDown">
         <VCol cols="6" sm="">
           <VAutocomplete label="API group" v-model="targetGroup" :items="groups"
@@ -262,12 +262,12 @@ watch(selectedNamespace, listObjects);
         </template>
         <template #bottom />
       </VDataTable>
-    </VWindowItem>
-    <VWindowItem v-for="obj in inspectedObjects"
+    </WindowItem>
+    <WindowItem v-for="obj in inspectedObjects"
       :key="uniqueKeyForObject(obj.object)"
       :value="uniqueKeyForObject(obj.object)">
       <YAMLViewer :data="obj.object" :schema="obj.schema" />
-    </VWindowItem>
+    </WindowItem>
   </VWindow>
 </template>
 

@@ -4,7 +4,6 @@ import {
   VIcon,
   VTab,
   VWindow,
-  VWindowItem
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
@@ -13,6 +12,7 @@ import KeyValueBadge from '@/components/KeyValueBadge.vue';
 import LogViewer from '@/components/LogViewer.vue';
 import LinkedImage from '@/components/LinkedImage.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
+import WindowItem from '@/components/WindowItem.vue';
 import { computed, ref, watch } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { useAbortController } from '@/composables/abortController';
@@ -180,7 +180,7 @@ const bell = (index: number) => {
       @click="() => tab.alerting = false" @close="closeTab(index)" />
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
-    <VWindowItem value="table">
+    <WindowItem value="table">
       <VDataTable hover :items="containers" :headers="columns">
         <template #[`header._extra.pod.metadata.name`]>
           Pod
@@ -216,14 +216,14 @@ const bell = (index: number) => {
         </template>
         <template #bottom />
       </VDataTable>
-    </VWindowItem>
-    <VWindowItem v-for="(tab, index) in tabs" :key="tab.id"
+    </WindowItem>
+    <WindowItem v-for="(tab, index) in tabs" :key="tab.id"
       :value="tab.id">
       <component :is="tab.type === 'exec' ? ExecTerminal : LogViewer"
         :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
         @title-changed="(title) => tab.title = title"
         @bell="() => bell(index)"
         :container-spec="{ namespace: selectedNamespace, ...tab.spec}" />
-    </VWindowItem>
+    </WindowItem>
   </VWindow>
 </template>

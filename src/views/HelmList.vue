@@ -5,11 +5,11 @@ import {
   VDataTableRow,
   VTab,
   VWindow,
-  VWindowItem,
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
+import WindowItem from '@/components/WindowItem.vue';
 import YAMLViewer from '@/components/YAMLViewer.vue';
 import { onMounted, ref, watch } from 'vue';
 import { computedAsync } from '@vueuse/core';
@@ -185,7 +185,7 @@ onMounted(setupGo);
     </VTab>
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
-    <VWindowItem value="table">
+    <WindowItem value="table">
       <VDataTable hover :items="releases" :headers="columns" :group-by="[{ key: 'name', order: 'asc'}]">
         <template #group-header='groupProps'>
           <VDataTableRow v-bind='{ ...groupProps, item: latestRevision(groupProps.item.items) }' class="group-header">
@@ -225,10 +225,10 @@ onMounted(setupGo);
         </template>
         <template #bottom />
       </VDataTable>
-    </VWindowItem>
-    <VWindowItem v-for="tab in tabs" :key="tab.id" :value="tab.id">
+    </WindowItem>
+    <WindowItem v-for="tab in tabs" :key="tab.id" :value="tab.id">
       <YAMLViewer :data="tab.values" :schema="{ object: tab.schema }" />
-    </VWindowItem>
+    </WindowItem>
   </VWindow>
 </template>
 
