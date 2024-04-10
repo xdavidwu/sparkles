@@ -15,7 +15,8 @@ const windowVisibility = inject(windowVisibilityInjectionKey, null);
 if (windowVisibility !== null) {
   watch(windowVisibility, (windowVisible) => {
     if (!windowVisible) {
-      visible.value = false;
+      // XXX?
+      setTimeout(() => visible.value = false, 0);
     }
   });
 }
