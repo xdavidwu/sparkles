@@ -22,7 +22,10 @@ import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { usePermissions } from '@/stores/permissions';
-import { CoreV1Api, type V1Pod, V1PodFromJSON, type V1ContainerStatus } from '@/kubernetes-api/src';
+import {
+  CoreV1Api,
+  type V1Pod, V1PodFromJSON, type V1Container, type V1ContainerStatus,
+} from '@/kubernetes-api/src';
 import { truncateStart } from '@/utils/text';
 import { listAndWatch } from '@/utils/watch';
 
@@ -42,7 +45,9 @@ interface Tab {
   bellTimeoutID?: ReturnType<typeof setTimeout>,
 }
 
-interface ContainerData extends V1ContainerStatus {
+type _ContainerData = V1Container & V1ContainerStatus;
+
+interface ContainerData extends _ContainerData {
   _extra: {
     pod: V1Pod,
     mayReadLogs?: boolean,
@@ -63,8 +68,12 @@ const tabs = ref<Array<Tab>>([]);
 const _pods = ref<Array<V1Pod>>([]);
 const _containers = computed<Array<ContainerData>>(() =>
   _pods.value.reduce(
-    (a, v) => a.concat(v.status!.containerStatuses!.map((c) =>
-      ({ ...c, _extra: { pod: v } }))),
+    (a, v) => a.concat(v.spec!.containers.map((c) =>
+      ({
+        ...c,
+        ...v.status!.containerStatuses?.find((s) => s.name == c.name),
+        _extra: { pod: v },
+      } as ContainerData))),
     [] as Array<ContainerData>,
   ));
 // XXX: this updates once all settles
@@ -85,8 +94,8 @@ const columns = [
     key: '_extra.pod.metadata.name',
     // XXX: reconsider this?
     cellProps: ({ item }: { item: ContainerData }) => ({
-      rowspan: item._extra.pod.status!.containerStatuses!.length,
-      style: item.name === item._extra.pod.status!.containerStatuses![0].name ? '' : 'display: none',
+      rowspan: item._extra.pod.spec!.containers.length,
+      style: item.name === item._extra.pod.spec!.containers[0].name ? '' : 'display: none',
     }),
     sortable: false,
   },
@@ -200,7 +209,7 @@ const bell = (index: number) => {
             :key="key" :k="key as string" :v="value" pill />
         </template>
         <template #[`item.image`]="{ item, value }">
-          <LinkedImage :image="value" :id="item.imageID" />
+          <LinkedImage :image="value" :id="item.imageID ?? ''" />
         </template>
         <template #[`item.ready`]="{ value }">
           <VIcon v-if="value" icon="mdi-check" />
@@ -208,7 +217,7 @@ const bell = (index: number) => {
         </template>
         <template #[`item.actions`]="{ item }">
           <TippedBtn size="small" icon="mdi-console-line" tooltip="Terminal" variant="text"
-            :disabled="!item.state!.running || (item._extra.mayExec !== undefined && !item._extra.mayExec)"
+            :disabled="!item.state?.running || (item._extra.mayExec !== undefined && !item._extra.mayExec)"
             @click="createTab('exec', item)" />
           <TippedBtn size="small" icon="mdi-file-document" tooltip="Log" variant="text"
             :disabled="item._extra.mayReadLogs !== undefined && !item._extra.mayReadLogs"
