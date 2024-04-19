@@ -169,7 +169,6 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     if (!object) {
       console.log('Schema discovered, but no response definition for: ', path);
     } else {
-      // XXX prevent infinite recursing
       objectRecord.schema = openapiSchemaToJsonSchema(dereference(root, object));
     }
   } catch (e) {

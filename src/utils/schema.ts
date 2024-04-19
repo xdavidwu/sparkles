@@ -6,7 +6,14 @@ export type SchemaOrRef = OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject;
 export const dereference = (
   root: OpenAPIV3.Document,
   schema: SchemaOrRef,
+  resolved = new Map<SchemaOrRef, boolean>(),
 ): OpenAPIV3.SchemaObject => {
+  if (resolved.get(schema)) {
+    // XXX downstream doesn't seems to handle circular stuff
+    return {};
+  }
+  resolved.set(schema, true);
+
   let asRef = schema as OpenAPIV3.ReferenceObject;
   while (asRef.$ref) {
     if (asRef.$ref[0] === '#') {
@@ -22,26 +29,26 @@ export const dereference = (
   ['allOf', 'oneOf', 'anyOf'].forEach((k) => {
     const key = k as 'allOf' | 'oneOf' | 'anyOf';
     if (asSchema[key]) {
-      asSchema[key] = asSchema[key]!.map((schemaOrRef: SchemaOrRef) => dereference(root, schemaOrRef));
+      asSchema[key] = asSchema[key]!.map((schemaOrRef: SchemaOrRef) => dereference(root, schemaOrRef, resolved));
     }
   });
 
   if (asSchema.properties) {
     Object.keys(asSchema.properties).forEach(
-      (k) => asSchema.properties![k] = dereference(root, asSchema.properties![k]));
+      (k) => asSchema.properties![k] = dereference(root, asSchema.properties![k], resolved));
   }
 
   if (asSchema.not) {
-    asSchema.not = dereference(root, asSchema.not);
+    asSchema.not = dereference(root, asSchema.not, resolved);
   }
 
   if (asSchema.type === 'array') {
     const asArray = asSchema as OpenAPIV3.ArraySchemaObject;
-    asArray.items = dereference(root, asArray.items);
+    asArray.items = dereference(root, asArray.items, resolved);
   }
 
   if (asSchema.additionalProperties && typeof asSchema.additionalProperties !== 'boolean') {
-    asSchema.additionalProperties = dereference(root, asSchema.additionalProperties);
+    asSchema.additionalProperties = dereference(root, asSchema.additionalProperties, resolved);
   }
 
   return asSchema;
