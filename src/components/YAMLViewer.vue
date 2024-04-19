@@ -4,7 +4,7 @@ import { computed, createApp } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { type EditorView, hoverTooltip } from '@codemirror/view';
 import { yaml } from '@codemirror/lang-yaml';
-import { foldEffect, foldable } from '@codemirror/language';
+import { foldEffect, foldable, syntaxTree } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { stateExtensions } from 'codemirror-json-schema';
 import { yamlSchemaHover } from 'codemirror-json-schema/yaml';
@@ -95,10 +95,13 @@ if (props.schema) {
   extensions.push(
     hoverTooltip(async (view, pos, side) => {
       const h = await origHover(view, pos, side);
-      // XXX: arrow makes tooltip itself hard to hover
-      // XXX: lib set tooltip for the character under cursor only
-      // should probably set it to the whole token to make it stable
-     return h ? { ...h, arrow: false } : null;
+      if (!h) {
+        return null;
+      }
+      // arrow makes tooltip itself hard to hover
+      const tree = syntaxTree(view.state);
+      const node = tree.resolve(h.pos);
+      return { ...h, pos: node.from, end: node.to, arrow: false };
     }),
     // XXX: actually the lib uses Draft04?
     stateExtensions(props.schema as JSONSchema7),
