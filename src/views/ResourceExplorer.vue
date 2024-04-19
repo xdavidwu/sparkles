@@ -27,17 +27,15 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
+import { openapiSchemaToJsonSchema } from '@openapi-contrib/openapi-schema-to-json-schema';
 import type { OpenAPIV3 } from 'openapi-types';
+import type { JSONSchema4 } from 'json-schema';
+import { dereference } from '@/utils/schema';
 import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
 
-interface ResponseSchema {
-  root: OpenAPIV3.Document,
-  object: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject,
-}
-
 interface ObjectRecord {
-  schema?: ResponseSchema,
+  schema?: JSONSchema4,
   object: KubernetesObject,
 }
 
@@ -171,7 +169,8 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     if (!object) {
       console.log('Schema discovered, but no response definition for: ', path);
     } else {
-      objectRecord.schema = { root, object };
+      // XXX prevent infinite recursing
+      objectRecord.schema = openapiSchemaToJsonSchema(dereference(root, object));
     }
   } catch (e) {
     //shrug

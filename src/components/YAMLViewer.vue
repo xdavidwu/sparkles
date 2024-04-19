@@ -1,13 +1,16 @@
 <script lang="ts" setup>
-import { computed } from 'vue';
+import LinkedTooltipContent from '@/components/LinkedTooltipContent.vue';
+import { computed, createApp } from 'vue';
 import { Codemirror } from 'vue-codemirror';
-import type { EditorView } from '@codemirror/view';
-import { yaml } from '@codemirror/legacy-modes/mode/yaml';
-import { StreamLanguage, foldEffect, foldable } from '@codemirror/language';
+import { type EditorView, hoverTooltip } from '@codemirror/view';
+import { yaml } from '@codemirror/lang-yaml';
+import { foldEffect, foldable } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { indentFold, createTextTooltip, type Tooltip } from '@/utils/codeMirror';
-import { stringify, parseDocument, visit, Pair, YAMLMap, YAMLSeq, Scalar, type Node } from 'yaml';
-import pointer from 'json-pointer';
+import { stateExtensions } from 'codemirror-json-schema';
+import { yamlSchemaHover } from 'codemirror-json-schema/yaml';
+import { indentFold } from '@/utils/codeMirror';
+import { stringify, parseDocument, visit, Scalar, type Node } from 'yaml';
+import type { JSONSchema4, JSONSchema7 } from 'json-schema';
 
 interface PathHistoryItem {
   kind: 'YAMLMap' | 'YAMLSeq',
@@ -28,82 +31,11 @@ const foldOnReady: Array<Array<PathHistoryItem>> = [
 
 const props = defineProps<{
   data: Object,
-  schema?: {
-    root?: any,
-    object: any,
-  },
+  schema?: JSONSchema4,
 }>();
 
 const dataAsYAML = computed(() => stringify(props.data));
 const parsedBackData = computed(() => parseDocument(dataAsYAML.value));
-
-const descriptionFromPath = (schema: any, path: Array<any>): string | undefined => {
-  if (schema.$ref) {
-    if (schema.$ref[0] === '#') {
-      schema = pointer(props.schema!.root, schema.$ref.substring(1));
-    } else {
-      console.log('Unsupported non-local reference: ', schema.$ref);
-      return;
-    }
-  }
-
-  if (path.length === 0) {
-    let res = schema.description as string | undefined;
-    if (schema.title) {
-      res = `${schema.title}:\n${res ?? ''}`;
-    }
-    return res;
-  }
-
-  if (path[0] instanceof Pair) {
-    const key = path[0].key.value;
-    if (schema.properties?.[key]) {
-      schema = schema.properties?.[key];
-    } else {
-      return;
-    }
-  } else if (path[0] instanceof YAMLMap) {
-    // XXX: why kubernetes uses allOf everywhere?
-    // take this chance to hack out allOf
-    if (schema.allOf) {
-      schema = schema.allOf[0];
-    }
-  } else if (path[0] instanceof YAMLSeq) {
-    if (schema.items) {
-      schema = schema.items;
-    } else {
-      return;
-    }
-  }
-
-  return descriptionFromPath(schema, path.slice(1));
-}
-
-const tooltips = computed(() => {
-  if (!props.schema) {
-    return [];
-  }
-  const tips: Array<Tooltip> = [];
-  visit(parsedBackData.value, {
-    Pair: (key, node, path) => {
-      const description = descriptionFromPath(props.schema!.object, [ ...path, node ]);
-      if (description) {
-        let end = node.value instanceof Scalar ?
-          node.value.range![1] : (node.key as Node).range![1];
-        tips.push({ range: [(node.key as Node).range![0], end], text: description });
-      }
-    },
-    Seq: (key, node, path) => {
-      const description = descriptionFromPath(props.schema!.object, [ ...path, node ]);
-      if (description) {
-        // the first - list mark
-        // TODO: locate other - list marks?
-        tips.push({ range: [node.range![0], node.range![0] + 1], text: description });
-      }
-    },
-  });
-  return tips;
-});
 
 const codemirrorReady = ({ view }: { view: EditorView }) => {
   const maybeFold = (target: Array<PathHistoryItem>) => {
@@ -144,11 +76,38 @@ const codemirrorReady = ({ view }: { view: EditorView }) => {
   }, 1);
 };
 
-const extensions = [ oneDark, StreamLanguage.define(yaml), indentFold, createTextTooltip(tooltips) ];
+const origHover = yamlSchemaHover({
+  formatHover: (data) => {
+    // XXX: typeInfo does not look great sometime? (allof or object)
+    const type = `Type: ${data.typeInfo}`;
+    const text = data.message ? `${data.message} ${type}` : type;
+    const div = document.createElement('div');
+    const vue = createApp(LinkedTooltipContent, { text });
+    vue.mount(div);
+    return div;
+  }
+});
+
+// TODO use cm yaml native folding
+const extensions = [oneDark, yaml(), indentFold];
+
+if (props.schema) {
+  extensions.push(
+    hoverTooltip(async (view, pos, side) => {
+      const h = await origHover(view, pos, side);
+      // XXX: arrow makes tooltip itself hard to hover
+      // XXX: lib set tooltip for the character under cursor only
+      // should probably set it to the whole token to make it stable
+     return h ? { ...h, arrow: false } : null;
+    }),
+    // XXX: actually the lib uses Draft04?
+    stateExtensions(props.schema as JSONSchema7),
+  );
+}
 </script>
 
 <template>
-  <Codemirror v-model="dataAsYAML" :extensions="extensions" @ready="codemirrorReady" disabled />
+  <Codemirror v-model="dataAsYAML" :extensions="extensions" @ready="codemirrorReady" />
 </template>
 
 <style>

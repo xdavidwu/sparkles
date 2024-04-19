@@ -227,7 +227,7 @@ onMounted(setupGo);
       </VDataTable>
     </WindowItem>
     <WindowItem v-for="tab in tabs" :key="tab.id" :value="tab.id">
-      <YAMLViewer :data="tab.values" :schema="{ object: tab.schema }" />
+      <YAMLViewer :data="tab.values" :schema="tab.schema" />
     </WindowItem>
   </VWindow>
 </template>
