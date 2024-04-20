@@ -4,17 +4,17 @@ import { computed, createApp } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { type EditorView, hoverTooltip } from '@codemirror/view';
 import { yaml } from '@codemirror/lang-yaml';
-import { foldEffect, foldable, syntaxTree } from '@codemirror/language';
+import { foldEffect, syntaxTree, ensureSyntaxTree } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { stateExtensions } from 'codemirror-json-schema';
 import { yamlSchemaHover } from 'codemirror-json-schema/yaml';
-import { indentFold } from '@/utils/codeMirror';
-import { stringify, parseDocument, visit, Scalar, type Node } from 'yaml';
+import { stringify } from 'yaml';
 import type { JSONSchema4, JSONSchema7 } from 'json-schema';
 
+// do we want seq here?
 interface PathHistoryItem {
-  kind: 'YAMLMap' | 'YAMLSeq',
-  index: string | number,
+  kind: 'YAMLMap',
+  index: string,
 }
 
 const foldOnReady: Array<Array<PathHistoryItem>> = [
@@ -35,45 +35,44 @@ const props = defineProps<{
 }>();
 
 const dataAsYAML = computed(() => stringify(props.data));
-const parsedBackData = computed(() => parseDocument(dataAsYAML.value));
 
 const codemirrorReady = ({ view }: { view: EditorView }) => {
-  const maybeFold = (target: Array<PathHistoryItem>) => {
+  // XXX
+  const tree = ensureSyntaxTree(view.state, view.state.doc.length, 1000);
+  if (!tree) {
+    return;
+  }
+
+  foldOnReady.forEach((target) => {
     let findIndex = 0;
-    visit(parsedBackData.value, {
-      Pair: (key, node) => {
-        if (target[findIndex].kind !== 'YAMLMap') {
-          return visit.SKIP;
+    let abort = false;
+    tree.iterate({
+      enter: (n) => {
+        if (abort) {
+          return false;
         }
-        if ((node.key as Scalar).value === target[findIndex].index) {
-          findIndex++;
-          if (findIndex === target.length) {
-            const range = foldable(
-              view.state,
-              (node.key as Node).range![0],
-              (node.key as Node).range![1],
-            );
-            if (range) {
-              view.dispatch({effects: foldEffect.of(range)});
+        if (n.type.name === 'Pair' && target[findIndex].kind === 'YAMLMap') {
+          const literal = n.node.firstChild?.firstChild;
+          if (literal) {
+            const str = view.state.doc.sliceString(literal.from, literal.to);
+            if (str === target[findIndex].index) {
+              findIndex++;
+              if (findIndex === target.length) {
+                abort = true;
+                view.dispatch({
+                  effects: foldEffect.of({
+                    from: view.state.doc.lineAt(n.from).to, to: n.to,
+                  }) });
+                return false;
+              }
+              return;
             }
-            return visit.BREAK;
           }
-        } else {
-          return visit.SKIP;
+          return false;
         }
-      },
-      // TODO Seq?
+      }
     });
-  };
-  // inital usage of parsedBackData is slow, either on:
-  //  - tooltips (called only on tooltip callback)
-  //  - maybeFold
-  // hack so that maybeFold does not block rendering
-  setTimeout(() => {
-    foldOnReady.forEach((path) => {
-      maybeFold(path);
-    });
-  }, 1);
+  });
 };
 
 const origHover = yamlSchemaHover({
@@ -88,8 +87,7 @@ const origHover = yamlSchemaHover({
   }
 });
 
-// TODO use cm yaml native folding
-const extensions = [oneDark, yaml(), indentFold];
+const extensions = [oneDark, yaml()];
 
 if (props.schema) {
   extensions.push(
