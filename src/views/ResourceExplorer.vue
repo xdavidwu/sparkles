@@ -27,7 +27,7 @@ import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
-import { AnyApi, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
+import { AnyApi, asYAML, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
 import { openapiSchemaToJsonSchema } from '@openapi-contrib/openapi-schema-to-json-schema';
 import type { OpenAPIV3 } from 'openapi-types';
 import type { JSONSchema4 } from 'json-schema';
@@ -37,7 +37,9 @@ import { listAndUnwaitedWatchTable } from '@/utils/watch';
 
 interface ObjectRecord {
   schema?: JSONSchema4,
-  object: KubernetesObject,
+  object: string,
+  key: string,
+  meta: V1PartialObjectMetadata,
 }
 
 const EMPTY_V1_TABLE: V1Table<V1PartialObjectMetadata> = {
@@ -147,14 +149,16 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     plural: targetType.value!.name,
     name: obj.metadata!.name!,
   };
-  const objectRecord: ObjectRecord = { object: {} };
+  const objectRecord: ObjectRecord = { object: '', key: uniqueKeyForObject(obj), meta: obj };
   if (obj.metadata!.namespace) {
-    objectRecord.object = await anyApi.getNamespacedCustomObject({
-      ...sharedOptions,
-      namespace: obj.metadata!.namespace!,
-    });
+    objectRecord.object = await (await anyApi.withPreMiddleware(asYAML)
+      .getNamespacedCustomObjectRaw({
+        ...sharedOptions,
+        namespace: obj.metadata!.namespace!,
+      })).raw.text();
   } else {
-    objectRecord.object = await anyApi.getClusterCustomObject(sharedOptions);
+    objectRecord.object = await (await anyApi.withPreMiddleware(asYAML)
+      .getClusterCustomObjectRaw(sharedOptions)).raw.text();
   }
 
   try {
@@ -179,7 +183,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
   }
 
   inspectedObjects.value.push(objectRecord);
-  tab.value = uniqueKeyForObject(objectRecord.object);
+  tab.value = objectRecord.key;
 };
 
 const closeTab = (idx: number) => {
@@ -207,12 +211,9 @@ watch(selectedNamespace, listObjects);
 <template>
   <AppTabs v-model="tab">
     <VTab value="explore">Explore</VTab>
-    <DynamicTab v-for="(obj, index) in inspectedObjects"
-      :key="uniqueKeyForObject(obj.object)"
-      :value="uniqueKeyForObject(obj.object)"
-      :description="`${obj.object.kind}: ${nsName(obj.object)}`"
-      :title="nsName(obj.object)"
-      @close="closeTab(index)" />
+    <DynamicTab v-for="(obj, index) in inspectedObjects" :key="obj.key"
+      :value="obj.key" :description="`${obj.meta.kind}: ${nsName(obj.meta)}`"
+      :title="nsName(obj.meta)" @close="closeTab(index)" />
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="explore">
@@ -263,9 +264,7 @@ watch(selectedNamespace, listObjects);
         <template #bottom />
       </VDataTable>
     </WindowItem>
-    <WindowItem v-for="obj in inspectedObjects"
-      :key="uniqueKeyForObject(obj.object)"
-      :value="uniqueKeyForObject(obj.object)">
+    <WindowItem v-for="obj in inspectedObjects" :key="obj.key" :value="obj.key">
       <YAMLViewer :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
         :data="obj.object" :schema="obj.schema" />
     </WindowItem>

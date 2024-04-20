@@ -19,6 +19,7 @@ import { useNamespaces } from '@/stores/namespaces';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
+import { stringify } from 'yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
 import { listAndWatch } from '@/utils/watch';
 import '@/vendor/wasm_exec';
@@ -231,7 +232,7 @@ onMounted(setupGo);
     </WindowItem>
     <WindowItem v-for="tab in tabs" :key="tab.id" :value="tab.id">
       <YAMLViewer :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
-        :data="tab.values" :schema="tab.schema" />
+        :data="stringify(tab.values, null, { indentSeq: true })" :schema="tab.schema" />
     </WindowItem>
   </VWindow>
 </template>

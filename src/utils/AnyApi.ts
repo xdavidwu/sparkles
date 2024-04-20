@@ -54,6 +54,14 @@ const asTable: Middleware['pre'] = async (context) => {
   return context;
 };
 
+export const asYAML: Middleware['pre'] = async (context) => {
+  context.init.headers = {
+    ...context.init.headers,
+    accept: 'application/yaml',
+  };
+  return context;
+};
+
 // https://github.com/kubernetes/apimachinery/blob/master/pkg/apis/meta/v1/types.go
 
 export interface V1TableColumnDefinition {
@@ -191,23 +199,39 @@ export class AnyApi extends CustomObjectsApi {
     return await response.value();
   }
 
-  async getClusterCustomObject(requestParameters: AnyApiGetClusterCustomObjectRequest):
-      Promise<object> {
+  async getClusterCustomObjectRaw(
+      requestParameters: AnyApiGetClusterCustomObjectRequest,
+      initOverrides?: RequestInit,
+  ): Promise<ApiResponse<object>> {
     if (requestParameters.group) {
-      return super.getClusterCustomObject({ ...requestParameters, group: requestParameters.group! });
+      return super.getClusterCustomObjectRaw(
+        { ...requestParameters, group: requestParameters.group! },
+        initOverrides,
+      );
     } else {
       return super.withPreMiddleware(toCore)
-        .getClusterCustomObject({ ...requestParameters, group: corePlaceholder });
+        .getClusterCustomObjectRaw(
+          { ...requestParameters, group: corePlaceholder },
+          initOverrides,
+        );
     }
   }
 
-  async getNamespacedCustomObject(requestParameters: AnyApiGetNamespacedCustomObjectRequest):
-      Promise<object> {
+  async getNamespacedCustomObjectRaw(
+      requestParameters: AnyApiGetNamespacedCustomObjectRequest,
+      initOverrides?: RequestInit,
+  ): Promise<ApiResponse<object>> {
     if (requestParameters.group) {
-      return super.getNamespacedCustomObject({ ...requestParameters, group: requestParameters.group! });
+      return super.getNamespacedCustomObjectRaw(
+        { ...requestParameters, group: requestParameters.group! },
+        initOverrides,
+      );
     } else {
       return super.withPreMiddleware(toCore)
-        .getNamespacedCustomObject({ ...requestParameters, group: corePlaceholder });
+        .getNamespacedCustomObjectRaw(
+          { ...requestParameters, group: corePlaceholder },
+          initOverrides,
+        );
     }
   }
 

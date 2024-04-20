@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import LinkedTooltipContent from '@/components/LinkedTooltipContent.vue';
-import { computed, createApp } from 'vue';
+import { createApp } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { EditorView, hoverTooltip } from '@codemirror/view';
 import { yaml } from '@codemirror/lang-yaml';
@@ -8,7 +8,6 @@ import { foldEffect, syntaxTree, ensureSyntaxTree } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { stateExtensions } from 'codemirror-json-schema';
 import { yamlSchemaHover } from 'codemirror-json-schema/yaml';
-import { stringify } from 'yaml';
 import type { JSONSchema4, JSONSchema7 } from 'json-schema';
 
 // do we want seq here?
@@ -30,11 +29,9 @@ const foldOnReady: Array<Array<PathHistoryItem>> = [
 ];
 
 const props = defineProps<{
-  data: Object,
+  data: string,
   schema?: JSONSchema4,
 }>();
-
-const dataAsYAML = computed(() => stringify(props.data));
 
 const codemirrorReady = ({ view }: { view: EditorView }) => {
   // XXX?
@@ -122,7 +119,7 @@ if (props.schema) {
 </script>
 
 <template>
-  <Codemirror v-model="dataAsYAML" :extensions="extensions" @ready="codemirrorReady" disabled />
+  <Codemirror :model-value="data" :extensions="extensions" @ready="codemirrorReady" disabled />
 </template>
 
 <style scoped>
