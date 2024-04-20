@@ -99,9 +99,14 @@ if (props.schema) {
         return null;
       }
       const tree = syntaxTree(view.state);
-      const node = tree.resolve(h.pos);
-      const posOverride = node.type.name == 'Pair' ?
-        { pos: node.firstChild?.from ?? h.pos } :
+      const node = tree.resolveInner(h.pos, side);
+      // lib seems to return schema for parent object in this case
+      if (node.type.name === 'Pair') {
+        return null;
+      }
+      // expand to the key if colon, or the node
+      const posOverride = node.type.name === ':' ?
+        { pos: node.parent?.firstChild?.from ?? h.pos } :
         { pos: node.from, end: node.to };
       // arrow makes tooltip itself hard to hover
       return { ...h, ...posOverride, arrow: false };
