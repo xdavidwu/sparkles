@@ -17,7 +17,7 @@ import {
 import type { OpenAPIV3 } from 'openapi-types';
 import type { KubernetesObject } from '@/utils/objects';
 
-type PartiallyRequired<T, C extends keyof T> = T & Required<Pick<T, C>>;
+type PartiallyRequired<T, C extends keyof T> = Omit<T, C> & Partial<Pick<T, C>>;
 
 export type AnyApiGetAPIResourcesRequest =
   PartiallyRequired<CustomObjectsApiGetAPIResourcesRequest, 'group'>;
