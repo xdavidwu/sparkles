@@ -102,7 +102,7 @@ if (props.schema) {
       const tree = syntaxTree(view.state);
       const node = tree.resolveInner(h.pos, side);
       // lib seems to return schema for parent object in this case
-      if (node.type.name === 'Pair') {
+      if (node.type.name === 'Pair' || node.type.name === 'BlockMapping') {
         return null;
       }
       // expand to the key if colon, or the node
