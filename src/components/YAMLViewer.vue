@@ -90,7 +90,10 @@ const origHover = yamlSchemaHover({
   }
 });
 
-const extensions = [oneDark, yaml()];
+// disabled set both editable.of(false) and readonly.of(true)
+// editable but readonly is still read-only, but making input handling work
+// enable editable for cm-native search
+const extensions = [oneDark, EditorView.editable.of(true), yaml()];
 
 if (props.schema) {
   extensions.push(
@@ -119,7 +122,7 @@ if (props.schema) {
 </script>
 
 <template>
-  <Codemirror v-model="dataAsYAML" :extensions="extensions" @ready="codemirrorReady" />
+  <Codemirror v-model="dataAsYAML" :extensions="extensions" @ready="codemirrorReady" disabled />
 </template>
 
 <style scoped>
