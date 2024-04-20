@@ -18,6 +18,7 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
+import { useAppTabs } from '@/composables/appTabs';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
 import { listAndWatch } from '@/utils/watch';
 import '@/vendor/wasm_exec';
@@ -120,6 +121,8 @@ const columns = [
 
 const latestRevision = (releases: ReadonlyArray<any>) => releases.reduce(
   (a, v) => (v.raw.version > a.raw.version) ? v : a, releases[0]);
+
+const { appBarHeightPX } = useAppTabs();
 
 const { abort: abortRequests, signal } = useAbortController();
 
@@ -227,7 +230,8 @@ onMounted(setupGo);
       </VDataTable>
     </WindowItem>
     <WindowItem v-for="tab in tabs" :key="tab.id" :value="tab.id">
-      <YAMLViewer :data="tab.values" :schema="tab.schema" />
+      <YAMLViewer :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
+        :data="tab.values" :schema="tab.schema" />
     </WindowItem>
   </VWindow>
 </template>

@@ -21,6 +21,7 @@ import { storeToRefs } from 'pinia';
 import { useDisplay } from 'vuetify';
 import { timestamp, useLastChanged, useTimeAgo } from '@vueuse/core';
 import { useAbortController } from '@/composables/abortController';
+import { useAppTabs } from '@/composables/appTabs';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -86,6 +87,7 @@ const tab = ref('explore');
 const inspectedObjects = ref<Array<ObjectRecord>>([]);
 const verbose = ref(useDisplay().xlAndUp.value);
 const { smAndDown } = useDisplay();
+const { appBarHeightPX } = useAppTabs();
 
 const { abort: abortRequests, signal } = useAbortController();
 
@@ -264,7 +266,8 @@ watch(selectedNamespace, listObjects);
     <WindowItem v-for="obj in inspectedObjects"
       :key="uniqueKeyForObject(obj.object)"
       :value="uniqueKeyForObject(obj.object)">
-      <YAMLViewer :data="obj.object" :schema="obj.schema" />
+      <YAMLViewer :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
+        :data="obj.object" :schema="obj.schema" />
     </WindowItem>
   </VWindow>
 </template>

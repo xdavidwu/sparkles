@@ -2,7 +2,7 @@
 import LinkedTooltipContent from '@/components/LinkedTooltipContent.vue';
 import { computed, createApp } from 'vue';
 import { Codemirror } from 'vue-codemirror';
-import { type EditorView, hoverTooltip } from '@codemirror/view';
+import { EditorView, hoverTooltip } from '@codemirror/view';
 import { yaml } from '@codemirror/lang-yaml';
 import { foldEffect, syntaxTree, ensureSyntaxTree } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
@@ -37,6 +37,9 @@ const props = defineProps<{
 const dataAsYAML = computed(() => stringify(props.data));
 
 const codemirrorReady = ({ view }: { view: EditorView }) => {
+  // XXX?
+  view.dispatch({ effects: EditorView.scrollIntoView(0) });
+
   // XXX
   const tree = ensureSyntaxTree(view.state, view.state.doc.length, 1000);
   if (!tree) {
