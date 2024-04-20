@@ -7,6 +7,10 @@ Notes:
 ## Required
 
 - User should always have permission as in `system:discovery` ClusterRoleBinding (default behavior of Kubernetes)
+- [KEP 3352](https://github.com/kubernetes/enhancements/issues/3352) Aggregated Discovery
+  - Alpha (v2beta1): 1.26
+  - Beta (v2beta1): 1.27
+  - GA (v2): 1.30
 
 ## Optional
 

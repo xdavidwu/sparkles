@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
-import { ApisApi, CoreApi, VersionApi, type V1APIGroup, type VersionInfo } from '@/kubernetes-api/src';
+import { CoreApi, ApisApi, VersionApi, type VersionInfo } from '@/kubernetes-api/src';
+import { toV2Discovery, type V2APIGroupDiscoveryList, type V2APIGroupDiscovery } from '@/utils/discoveryV2';
 
 export const useApisDiscovery = defineStore('apisDiscovery', () => {
-  const groups = ref<Array<V1APIGroup>>([]);
+  const groups = ref<Array<V2APIGroupDiscovery>>([]);
   const versionInfo = ref<VersionInfo | null>(null);
 
   const getGroups = async () => {
@@ -12,22 +13,14 @@ export const useApisDiscovery = defineStore('apisDiscovery', () => {
       return groups.value;
     }
     const config = await useApiConfig().getConfig();
-    const core = await new CoreApi(config).getAPIVersions({});
-    const response = await new ApisApi(config).getAPIVersions({});
-    groups.value = [
-      {
-        name: '',
-        versions: core.versions.map((i) => ({
-          groupVersion: i,
-          version: i,
-        })),
-        preferredVersion: {
-          groupVersion: core.versions[core.versions.length - 1],
-          version: core.versions[core.versions.length - 1],
-        }
-      },
-      ...response.groups,
-    ];
+    await Promise.all([new CoreApi(config), new ApisApi(config)].map(async (api) => {
+      const response = (await api.withPreMiddleware(toV2Discovery).getAPIVersionsRaw({})).raw;
+      const list = (await response.json()) as V2APIGroupDiscoveryList;
+      if (list.kind !== 'APIGroupDiscoveryList') {
+        throw new Error(`Unexpected kind on discovery: ${list.kind}, make sure server supports AggregatedDiscoveryEndpoint`);
+      }
+      groups.value.push(...list.items);
+    }));
     return groups.value;
   };
 

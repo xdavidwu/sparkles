@@ -31,6 +31,7 @@ import { AnyApi, asYAML, type V1Table, type V1PartialObjectMetadata } from '@/ut
 import { openapiSchemaToJsonSchema } from '@openapi-contrib/openapi-schema-to-json-schema';
 import type { OpenAPIV3 } from 'openapi-types';
 import type { JSONSchema4 } from 'json-schema';
+import { V2ResourceScope, type V2APIGroupDiscovery } from '@/utils/discoveryV2';
 import { dereference } from '@/utils/schema';
 import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
@@ -57,21 +58,8 @@ const allNamespaces = ref(false);
 const groups = await useApisDiscovery().getGroups();
 const targetGroup = ref(groups[0]);
 
-const typesLoading = ref(false);
-const getTypes = async () => {
-  typesLoading.value = true;
-  const response = await anyApi.getAPIResources({
-    group: targetGroup.value.name,
-    version: targetGroup.value.preferredVersion!.version,
-  });
-  typesLoading.value = false;
-
-  // filter out subresources, unlistables
-  return response.resources.filter(
-    (v) => (!v.name.includes('/') && v.verbs.includes('list'))
-  );
-};
-const types = ref(await getTypes());
+const types = computed(() =>
+  targetGroup.value.versions[0].resources.filter((r) => r.verbs.includes('list')));
 
 const defaultTargetType = () => {
   const firstWithWatch = types.value.find(
@@ -103,12 +91,13 @@ const listObjects = async () => {
 
   objectsLoading.value = true;
   const options = {
-    group: targetGroup.value.name,
-    version: targetGroup.value.preferredVersion!.version,
-    plural: targetType.value.name,
+    group: targetGroup.value.metadata!.name,
+    version: targetGroup.value.versions[0].version,
+    plural: targetType.value.resource,
     namespace: selectedNamespace.value,
   };
-  const listType = (targetType.value.namespaced && !allNamespaces.value) ?
+  const listType =
+    (targetType.value.scope === V2ResourceScope.Namespaced && !allNamespaces.value) ?
     'Namespaced' : 'Cluster';
   if (targetType.value.verbs.includes('watch')) {
     await listAndUnwaitedWatchTable(
@@ -128,7 +117,7 @@ const columns = computed<Array<{
   key: string,
   description?: string,
 }>>(() =>
-  ((targetType.value?.namespaced && allNamespaces.value) ? [{
+  ((targetType.value.scope === V2ResourceScope.Namespaced && allNamespaces.value) ? [{
     title: 'Namespace',
     key: 'object.metadata.namespace',
   }] : []).concat(
@@ -142,11 +131,15 @@ const columns = computed<Array<{
   ),
 );
 
+const preferredGroupVersion = (group: V2APIGroupDiscovery) =>
+  group.metadata!.name ? `${group.metadata!.name}/${group.versions[0].version}`
+  : group.versions[0].version;
+
 const inspectObject = async (obj: V1PartialObjectMetadata) => {
   const sharedOptions = {
-    group: targetGroup.value.name,
-    version: targetGroup.value.preferredVersion!.version,
-    plural: targetType.value!.name,
+    group: targetGroup.value.metadata!.name,
+    version: targetGroup.value.versions[0].version,
+    plural: targetType.value.resource,
     name: obj.metadata!.name!,
   };
   const objectRecord: ObjectRecord = { object: '', key: uniqueKeyForObject(obj), meta: obj };
@@ -162,13 +155,13 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
   }
 
   try {
+    // XXX: if it is a custom resouce, and we are able to access crd,
+    // using openAPIV3Schema may be faster
     const root = await openAPISchemaDiscovery.getSchema(sharedOptions);
 
     // XXX: is there a better place to place this?
-    const apiBase = targetGroup.value.name ?
-      `/apis/${targetGroup.value.preferredVersion!.groupVersion}` :
-      `/api/${targetGroup.value.preferredVersion!.version}`;
-    const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${targetType.value!.name}/{name}`;
+    const apiBase = `/api${targetGroup.value.metadata!.name ? 's' : ''}/${preferredGroupVersion(targetGroup.value)}`;
+    const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${targetType.value!.resource}/{name}`;
     const object = (root.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject)
       .content?.['application/json']?.schema;
 
@@ -199,10 +192,7 @@ const nsName = (o: KubernetesObject) => {
   }
 }
 
-watch(targetGroup, async () => {
-  types.value = await getTypes();
-  targetType.value = defaultTargetType();
-});
+watch(targetGroup, () => targetType.value = defaultTargetType());
 watch(targetType, listObjects, { immediate: true });
 watch(allNamespaces, listObjects);
 watch(selectedNamespace, listObjects);
@@ -220,19 +210,19 @@ watch(selectedNamespace, listObjects);
       <VRow class="mb-1" :dense="smAndDown">
         <VCol cols="6" sm="">
           <VAutocomplete label="API group" v-model="targetGroup" :items="groups"
-            return-object hide-details
-            :item-title="(api) => (api.preferredVersion!.groupVersion)" />
+            return-object hide-details :item-title="preferredGroupVersion" />
         </VCol>
         <VCol cols="6" sm="">
           <VAutocomplete label="Type" v-model="targetType" :items="types"
-            return-object hide-details item-title="kind" :loading="typesLoading" />
+            return-object hide-details item-title="responseKind.kind" />
         </VCol>
         <VCol md="3" sm="4">
           <div>
-            <VCheckbox :disabled="!targetType?.namespaced" class="checkbox-intense"
-              label="All namespaces" v-model="allNamespaces" hide-details
-              density="compact"/>
-            <LinkedTooltip v-if="!targetType?.namespaced" activator="parent" text="Selected type is not namespaced" />
+            <VCheckbox :disabled="targetType.scope === V2ResourceScope.Cluster"
+              class="checkbox-intense" label="All namespaces"
+              v-model="allNamespaces" hide-details density="compact" />
+            <LinkedTooltip v-if="targetType.scope === V2ResourceScope.Cluster"
+              activator="parent" text="Selected type is not namespaced" />
           </div>
           <VCheckbox class="checkbox-intense" label="Verbose" v-model="verbose"
             hide-details density="compact" />
