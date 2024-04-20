@@ -79,7 +79,7 @@ const origHover = yamlSchemaHover({
   formatHover: (data) => {
     // XXX: typeInfo does not look great sometime? (allof or object)
     const type = `Type: ${data.typeInfo}`;
-    const text = data.message ? `${data.message} ${type}` : type;
+    const text = data.message ? `${data.message}\n${type}` : type;
     const div = document.createElement('div');
     const vue = createApp(LinkedTooltipContent, { text });
     vue.mount(div);
