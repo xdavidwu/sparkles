@@ -98,10 +98,13 @@ if (props.schema) {
       if (!h) {
         return null;
       }
-      // arrow makes tooltip itself hard to hover
       const tree = syntaxTree(view.state);
       const node = tree.resolve(h.pos);
-      return { ...h, pos: node.from, end: node.to, arrow: false };
+      const posOverride = node.type.name == 'Pair' ?
+        { pos: node.firstChild?.from ?? h.pos } :
+        { pos: node.from, end: node.to };
+      // arrow makes tooltip itself hard to hover
+      return { ...h, ...posOverride, arrow: false };
     }),
     // XXX: actually the lib uses Draft04?
     stateExtensions(props.schema as JSONSchema7),
