@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { VBtn, VCol, VRow, VSelect, VTextField } from 'vuetify/components';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
@@ -52,21 +52,28 @@ const apply = () => {
   });
   window.location.reload();
 };
+
+const debugInfo = computed(() => {
+  let info = `${ brand } version: ${ version }\n` +
+    `Kubernetes version: ${ kubernetesVersion.value }\n`;
+  if (review.value) {
+    info += `User: ${review.value.status?.userInfo?.username}\n` +
+      `Groups: ${review.value.status?.userInfo?.groups?.join(', ')}\n`;
+  }
+  if (supportedApis.value) {
+    info += `Supported APIs:\n - ${supportedApis.value.join('\n - ')}\n`;
+  }
+  return info;
+});
+
+const copy = () => navigator.clipboard.writeText(debugInfo.value);
 </script>
 
 <template>
   <VRow>
     <VCol :col="configurable ? 6 : 12">
-      <pre class="text-pre-wrap">
-{{ brand }} version: {{ version }}
-Kubernetes version: {{ kubernetesVersion }}
-<template v-if="review">User: {{ review.status!.userInfo!.username }}
-Groups: {{ review.status!.userInfo!.groups?.join(', ') }}</template>
-<template v-if="supportedApis">Supported APIs:
-<template v-for="api in supportedApis">- {{ api }}
-</template>
-</template>
-      </pre>
+      <pre class="text-pre-wrap">{{ debugInfo }}</pre>
+      <VBtn class="mt-4" @click="copy">Copy</VBtn>
     </VCol>
     <VCol col="6" v-if="configurable">
       <VSelect label="Authentication method" v-model="scheme" :items="schemes"
