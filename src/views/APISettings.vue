@@ -22,6 +22,13 @@ const kubernetesVersion = computedAsync(async () => {
   const info = await useApisDiscovery().getVersionInfo();
   return info.gitVersion;
 }, 'unknown');
+
+const supportedApis = computedAsync(async () => {
+  const groups = await useApisDiscovery().getGroups();
+  return groups.map((g) =>
+    g.metadata!.name ? `${g.metadata!.name}/${g.versions[0].version}` : g.versions[0].version);
+}, null);
+
 const review = computedAsync(async () => {
   try {
     return await doSelfSubjectReview(config);
@@ -55,6 +62,10 @@ const apply = () => {
 Kubernetes version: {{ kubernetesVersion }}
 <template v-if="review">User: {{ review.status!.userInfo!.username }}
 Groups: {{ review.status!.userInfo!.groups?.join(', ') }}</template>
+<template v-if="supportedApis">Supported APIs:
+<template v-for="api in supportedApis">- {{ api }}
+</template>
+</template>
       </pre>
     </VCol>
     <VCol col="6" v-if="configurable">
