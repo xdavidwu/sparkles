@@ -13,14 +13,14 @@ export const useApisDiscovery = defineStore('apisDiscovery', () => {
       return groups.value;
     }
     const config = await useApiConfig().getConfig();
-    await Promise.all([new CoreApi(config), new ApisApi(config)].map(async (api) => {
+    (await Promise.all([new CoreApi(config), new ApisApi(config)].map(async (api) => {
       const response = (await api.withPreMiddleware(toV2Discovery).getAPIVersionsRaw({})).raw;
       const list = (await response.json()) as V2APIGroupDiscoveryList;
       if (list.kind !== 'APIGroupDiscoveryList') {
         throw new Error(`Unexpected kind on discovery: ${list.kind}, make sure server supports AggregatedDiscoveryEndpoint`);
       }
-      groups.value.push(...list.items);
-    }));
+      return list.items;
+    }))).forEach((items) => groups.value.push(...items));
     return groups.value;
   };
 
