@@ -57,18 +57,20 @@ const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces();
 const { selectedNamespace } = storeToRefs(namespacesStore);
 const allNamespaces = ref(false);
-const groups = await useApisDiscovery().getGroups();
+const groups = (await useApisDiscovery().getGroups())
+  .map((g) => ({
+    ...g,
+    versions: [g.versions[0]].map((v) => ({
+      ...v,
+      resources: v.resources.filter((r) => r.verbs.includes('list'))
+    })),
+  })).filter((g) => g.versions[0].resources.length);
 const targetGroup = ref(groups[0]);
 
-const types = computed(() =>
-  targetGroup.value.versions[0].resources.filter((r) => r.verbs.includes('list')));
+const types = computed(() => targetGroup.value.versions[0].resources);
 
-const defaultTargetType = () => {
-  const firstWithWatch = types.value.find(
-    (v) => v.verbs.includes('watch')
-  );
-  return firstWithWatch ?? types.value[0] ?? null;
-};
+const defaultTargetType = () =>
+  types.value.find((v) => v.verbs.includes('watch')) ?? types.value[0];
 
 const targetType = ref(defaultTargetType());
 const objects = ref(EMPTY_V1_TABLE);
@@ -85,11 +87,6 @@ const { abort: abortRequests, signal } = useAbortController();
 
 const listObjects = async () => {
   abortRequests();
-
-  if (targetType.value === null) {
-    objects.value = EMPTY_V1_TABLE;
-    return;
-  }
 
   objectsLoading.value = true;
   const options = {
