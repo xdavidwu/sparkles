@@ -33,7 +33,7 @@ import type { OpenAPIV3 } from 'openapi-types';
 import type { JSONSchema4 } from 'json-schema';
 import { V2ResourceScope, type V2APIGroupDiscovery } from '@/utils/discoveryV2';
 import { dereference } from '@/utils/schema';
-import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
+import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
 
 interface ObjectRecord {
@@ -41,6 +41,7 @@ interface ObjectRecord {
   object: string,
   key: string,
   meta: V1PartialObjectMetadata,
+  kind: string,
 }
 
 const EMPTY_V1_TABLE: V1Table<V1PartialObjectMetadata> = {
@@ -75,8 +76,8 @@ const lastUpdated = useTimeAgo(lastUpdatedAt);
 const objectsLoading = ref(false);
 const tab = ref('explore');
 const inspectedObjects = ref<Array<ObjectRecord>>([]);
-const verbose = ref(useDisplay().xlAndUp.value);
-const { smAndDown } = useDisplay();
+const { smAndDown, xlAndUp } = useDisplay();
+const verbose = ref(xlAndUp.value);
 const { appBarHeightPX } = useAppTabs();
 
 const { abort: abortRequests, signal } = useAbortController();
@@ -136,39 +137,37 @@ const preferredGroupVersion = (group: V2APIGroupDiscovery) =>
   : group.versions[0].version;
 
 const inspectObject = async (obj: V1PartialObjectMetadata) => {
-  const sharedOptions = {
+  const options = {
     group: targetGroup.value.metadata!.name,
     version: targetGroup.value.versions[0].version,
     plural: targetType.value.resource,
     name: obj.metadata!.name!,
+    namespace: obj.metadata!.namespace,
   };
-  const objectRecord: ObjectRecord = { object: '', key: uniqueKeyForObject(obj), meta: obj };
-  if (obj.metadata!.namespace) {
-    objectRecord.object = await (await anyApi.withPreMiddleware(asYAML)
-      .getNamespacedCustomObjectRaw({
-        ...sharedOptions,
-        namespace: obj.metadata!.namespace!,
-      })).raw.text();
-  } else {
-    objectRecord.object = await (await anyApi.withPreMiddleware(asYAML)
-      .getClusterCustomObjectRaw(sharedOptions)).raw.text();
-  }
+  const objectRecord: ObjectRecord = {
+    object: await (await anyApi.withPreMiddleware(asYAML)[
+      `get${obj.metadata!.namespace ? 'Namespaced' : 'Cluster'}CustomObjectRaw`
+    ](options as typeof options & { namespace: string })).raw.text(),
+    key: uniqueKeyForObject(obj),
+    meta: obj,
+    kind: targetType.value.responseKind.kind,
+  };
 
   try {
     // XXX: if it is a custom resouce, and we are able to access crd,
     // using openAPIV3Schema may be faster
-    const root = await openAPISchemaDiscovery.getSchema(sharedOptions);
+    const root = await openAPISchemaDiscovery.getSchema(options);
 
     // XXX: is there a better place to place this?
     const apiBase = `/api${targetGroup.value.metadata!.name ? 's' : ''}/${preferredGroupVersion(targetGroup.value)}`;
     const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${targetType.value!.resource}/{name}`;
-    const object = (root.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject)
-      .content?.['application/json']?.schema;
+    const response = (root.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject | undefined)
+      ?.content?.['application/json']?.schema;
 
-    if (!object) {
+    if (!response) {
       console.log('Schema discovered, but no response definition for: ', path);
     } else {
-      objectRecord.schema = openapiSchemaToJsonSchema(dereference(root, object));
+      objectRecord.schema = openapiSchemaToJsonSchema(dereference(root, response));
     }
   } catch (e) {
     //shrug
@@ -184,25 +183,18 @@ const closeTab = (idx: number) => {
   inspectedObjects.value.splice(idx, 1);
 };
 
-const nsName = (o: KubernetesObject) => {
-  if (o.metadata!.namespace) {
-    return `${o.metadata!.namespace}/${o.metadata!.name}`;
-  } else {
-    return o.metadata!.name!;
-  }
-}
+const nsName = (o: V1PartialObjectMetadata) =>
+  o.metadata!.namespace ? `${o.metadata!.namespace}/${o.metadata!.name}` : o.metadata!.name!;
 
 watch(targetGroup, () => targetType.value = defaultTargetType());
-watch(targetType, listObjects, { immediate: true });
-watch(allNamespaces, listObjects);
-watch(selectedNamespace, listObjects);
+watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: true });
 </script>
 
 <template>
   <AppTabs v-model="tab">
     <VTab value="explore">Explore</VTab>
     <DynamicTab v-for="(obj, index) in inspectedObjects" :key="obj.key"
-      :value="obj.key" :description="`${obj.meta.kind}: ${nsName(obj.meta)}`"
+      :value="obj.key" :description="`${obj.kind}: ${nsName(obj.meta)}`"
       :title="nsName(obj.meta)" @close="closeTab(index)" />
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
