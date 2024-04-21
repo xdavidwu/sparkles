@@ -36,7 +36,7 @@ interface V2APISubresourceDiscovery {
   verbs: Array<string>;
 }
 
-interface V2APIResourceDiscovery {
+export interface V2APIResourceDiscovery {
   resource: string;
   responseKind: V1GroupVersionKind;
   scope: V2ResourceScope;

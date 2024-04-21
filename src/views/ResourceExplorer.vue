@@ -31,17 +31,18 @@ import { AnyApi, asYAML, type V1Table, type V1PartialObjectMetadata } from '@/ut
 import { openapiSchemaToJsonSchema } from '@openapi-contrib/openapi-schema-to-json-schema';
 import type { OpenAPIV3 } from 'openapi-types';
 import type { JSONSchema4 } from 'json-schema';
-import { V2ResourceScope, type V2APIGroupDiscovery } from '@/utils/discoveryV2';
+import { V2ResourceScope, type V2APIGroupDiscovery, type V2APIResourceDiscovery } from '@/utils/discoveryV2';
 import { dereference } from '@/utils/schema';
 import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
+import { truncate, truncateStart } from '@/utils/text';
 
 interface ObjectRecord {
   schema?: JSONSchema4,
   object: string,
   key: string,
   meta: V1PartialObjectMetadata,
-  kind: string,
+  type: V2APIResourceDiscovery,
 }
 
 const EMPTY_V1_TABLE: V1Table<V1PartialObjectMetadata> = {
@@ -150,7 +151,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     ](options as typeof options & { namespace: string })).raw.text(),
     key: uniqueKeyForObject(obj),
     meta: obj,
-    kind: targetType.value.responseKind.kind,
+    type: targetType.value,
   };
 
   try {
@@ -160,7 +161,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
 
     // XXX: is there a better place to place this?
     const apiBase = `/api${targetGroup.value.metadata!.name ? 's' : ''}/${preferredGroupVersion(targetGroup.value)}`;
-    const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${targetType.value!.resource}/{name}`;
+    const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${objectRecord.type.resource}/{name}`;
     const response = (root.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject | undefined)
       ?.content?.['application/json']?.schema;
 
@@ -186,6 +187,14 @@ const closeTab = (idx: number) => {
 const nsName = (o: V1PartialObjectMetadata) =>
   o.metadata!.namespace ? `${o.metadata!.namespace}/${o.metadata!.name}` : o.metadata!.name!;
 
+const nsNameShort = (o: V1PartialObjectMetadata) =>
+  o.metadata!.namespace ?
+  `${truncate(o.metadata!.namespace, 8)}/${truncateStart(o.metadata!.name!, 8)}` :
+  truncateStart(o.metadata!.name!, 17);
+
+const title = (o: ObjectRecord) =>
+  `${o.type.shortNames ? o.type.shortNames[0] : o.type.responseKind.kind}: ${nsNameShort(o.meta)}`;
+
 watch(targetGroup, () => targetType.value = defaultTargetType());
 watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: true });
 </script>
@@ -194,8 +203,8 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
   <AppTabs v-model="tab">
     <VTab value="explore">Explore</VTab>
     <DynamicTab v-for="(obj, index) in inspectedObjects" :key="obj.key"
-      :value="obj.key" :description="`${obj.kind}: ${nsName(obj.meta)}`"
-      :title="nsName(obj.meta)" @close="closeTab(index)" />
+      :value="obj.key" :description="`${obj.type.responseKind.kind}: ${nsName(obj.meta)}`"
+      :title="title(obj)" @close="closeTab(index)" />
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="explore">
