@@ -57,7 +57,7 @@ const apply = () => {
 <template>
   <VRow>
     <VCol :col="configurable ? 6 : 12">
-      <pre>
+      <pre class="text-pre-wrap">
 {{ brand }} version: {{ version }}
 Kubernetes version: {{ kubernetesVersion }}
 <template v-if="review">User: {{ review.status!.userInfo!.username }}
