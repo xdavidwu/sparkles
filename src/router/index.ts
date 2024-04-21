@@ -78,7 +78,7 @@ const router = createRouter({
     {
       path: '/about',
       name: 'about',
-      component: () => import('@/views/APISettings.vue'),
+      component: () => import('@/views/DebugInfo.vue'),
       meta: { name: 'About' },
     },
     // hidden
