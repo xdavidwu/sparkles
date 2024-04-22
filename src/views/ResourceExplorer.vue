@@ -139,6 +139,18 @@ const columns = computed<Array<{
 );
 
 const inspectObject = async (obj: V1PartialObjectMetadata) => {
+  const objWithKind = {
+    ...obj,
+    apiVersion: targetGroupVersion.value.groupVersion,
+    kind: targetType.value.responseKind.kind,
+  };
+  const key = uniqueKeyForObject(objWithKind);
+  const entry = inspectedObjects.value.find((o) => o.key === key);
+  if (entry) {
+    tab.value = entry.key;
+    return;
+  }
+
   const options = {
     group: targetGroupVersion.value.group,
     version: targetGroupVersion.value.version,
@@ -150,7 +162,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     object: await (await anyApi.withPreMiddleware(asYAML)[
       `get${obj.metadata!.namespace ? 'Namespaced' : 'Cluster'}CustomObjectRaw`
     ](options as typeof options & { namespace: string })).raw.text(),
-    key: uniqueKeyForObject(obj),
+    key,
     meta: obj,
     type: targetType.value,
   };
