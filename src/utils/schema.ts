@@ -12,7 +12,7 @@ export const dereference = (
     // XXX downstream doesn't seems to handle circular stuff
     return {};
   }
-  resolved.set(schema, true);
+  resolved = new Map(resolved).set(schema, true);
 
   let asRef = schema as OpenAPIV3.ReferenceObject;
   while (asRef.$ref) {
