@@ -31,7 +31,7 @@ import { AnyApi, asYAML, type V1Table, type V1PartialObjectMetadata } from '@/ut
 import { openapiSchemaToJsonSchema } from '@openapi-contrib/openapi-schema-to-json-schema';
 import type { OpenAPIV3 } from 'openapi-types';
 import type { JSONSchema4 } from 'json-schema';
-import { V2ResourceScope, type V2APIGroupDiscovery, type V2APIResourceDiscovery } from '@/utils/discoveryV2';
+import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscovery } from '@/utils/discoveryV2';
 import { dereference } from '@/utils/schema';
 import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
@@ -57,17 +57,19 @@ const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces();
 const { selectedNamespace } = storeToRefs(namespacesStore);
 const allNamespaces = ref(false);
-const groups = (await useApisDiscovery().getGroups())
-  .map((g) => ({
-    ...g,
-    versions: [g.versions[0]].map((v) => ({
+const groupVersions: Array<V2APIVersionDiscovery & { group?: string, groupVersion: string }> = [];
+(await useApisDiscovery().getGroups()).forEach((g) => {
+  groupVersions.push(...g.versions
+    .filter((v) => v.resources.length)
+    .map((v) => ({
       ...v,
-      resources: v.resources.filter((r) => r.verbs.includes('list'))
-    })),
-  })).filter((g) => g.versions[0].resources.length);
-const targetGroup = ref(groups[0]);
+      group: g.metadata?.name,
+      groupVersion: g.metadata?.name ? `${g.metadata.name}/${v.version}` : v.version,
+      resources: v.resources.filter((r) => r.verbs.includes('list'))})));
+});
+const targetGroupVersion = ref(groupVersions[0]);
 
-const types = computed(() => targetGroup.value.versions[0].resources);
+const types = computed(() => targetGroupVersion.value.resources);
 
 const defaultTargetType = () =>
   types.value.find((v) => v.verbs.includes('watch')) ?? types.value[0];
@@ -90,8 +92,8 @@ const listObjects = async () => {
 
   objectsLoading.value = true;
   const options = {
-    group: targetGroup.value.metadata!.name,
-    version: targetGroup.value.versions[0].version,
+    group: targetGroupVersion.value.group,
+    version: targetGroupVersion.value.version,
     plural: targetType.value.resource,
     namespace: selectedNamespace.value,
   };
@@ -130,14 +132,10 @@ const columns = computed<Array<{
   ),
 );
 
-const preferredGroupVersion = (group: V2APIGroupDiscovery) =>
-  group.metadata!.name ? `${group.metadata!.name}/${group.versions[0].version}`
-  : group.versions[0].version;
-
 const inspectObject = async (obj: V1PartialObjectMetadata) => {
   const options = {
-    group: targetGroup.value.metadata!.name,
-    version: targetGroup.value.versions[0].version,
+    group: targetGroupVersion.value.group,
+    version: targetGroupVersion.value.version,
     plural: targetType.value.resource,
     name: obj.metadata!.name!,
     namespace: obj.metadata!.namespace,
@@ -157,7 +155,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     const root = await openAPISchemaDiscovery.getSchema(options);
 
     // XXX: is there a better place to place this?
-    const apiBase = `/api${targetGroup.value.metadata!.name ? 's' : ''}/${preferredGroupVersion(targetGroup.value)}`;
+    const apiBase = `/api${targetGroupVersion.value.group ? 's' : ''}/${targetGroupVersion.value.groupVersion}`;
     const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${objectRecord.type.resource}/{name}`;
     const response = (root.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject | undefined)
       ?.content?.['application/json']?.schema;
@@ -192,7 +190,7 @@ const nsNameShort = (o: V1PartialObjectMetadata) =>
 const title = (o: ObjectRecord) =>
   `${o.type.shortNames ? o.type.shortNames[0] : o.type.responseKind.kind}: ${nsNameShort(o.meta)}`;
 
-watch(targetGroup, () => targetType.value = defaultTargetType());
+watch(targetGroupVersion, () => targetType.value = defaultTargetType());
 watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: true });
 </script>
 
@@ -207,8 +205,8 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
     <WindowItem value="explore">
       <VRow class="mb-1" :dense="smAndDown">
         <VCol cols="6" sm="">
-          <VAutocomplete label="API group" v-model="targetGroup" :items="groups"
-            return-object hide-details :item-title="preferredGroupVersion" />
+          <VAutocomplete label="API version" v-model="targetGroupVersion"
+            :items="groupVersions" return-object hide-details item-title="groupVersion" />
         </VCol>
         <VCol cols="6" sm="">
           <VAutocomplete label="Type" v-model="targetType" :items="types"

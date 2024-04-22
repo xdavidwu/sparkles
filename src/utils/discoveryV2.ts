@@ -18,7 +18,7 @@ export const toV2Discovery: Middleware['pre'] = async (context) => {
   return context;
 };
 
-interface V1GroupVersionKind {
+export interface V1GroupVersionKind {
   group: string;
   version: string;
   kind: string;
@@ -29,7 +29,7 @@ export enum V2ResourceScope {
   Namespaced = 'Namespaced',
 }
 
-interface V2APISubresourceDiscovery {
+export interface V2APISubresourceDiscovery {
   subresource: string;
   responseKind: V1GroupVersionKind;
   acceptedTypes?: Array<V1GroupVersionKind>;
@@ -52,7 +52,7 @@ export enum V2DiscoveryFreshness {
   Stale = 'Stale',
 }
 
-interface V2APIVersionDiscovery {
+export interface V2APIVersionDiscovery {
   version: string;
   resources: Array<V2APIResourceDiscovery>;
   freshness: V2DiscoveryFreshness;
