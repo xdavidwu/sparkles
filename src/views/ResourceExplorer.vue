@@ -59,13 +59,20 @@ const { selectedNamespace } = storeToRefs(namespacesStore);
 const allNamespaces = ref(false);
 const groupVersions: Array<V2APIVersionDiscovery & { group?: string, groupVersion: string }> = [];
 (await useApisDiscovery().getGroups()).forEach((g) => {
-  groupVersions.push(...g.versions
-    .filter((v) => v.resources.length)
-    .map((v) => ({
+  const knownResources: Array<string> = [];
+  groupVersions.push(...g.versions.map((v) => {
+    const resources = v.resources
+      .filter((r) => !knownResources.includes(r.resource))
+      .filter((r) => r.verbs.includes('list'));
+    knownResources.push(...resources.map((r) => r.resource));
+
+    return {
       ...v,
+      resources,
       group: g.metadata?.name,
       groupVersion: g.metadata?.name ? `${g.metadata.name}/${v.version}` : v.version,
-      resources: v.resources.filter((r) => r.verbs.includes('list'))})));
+    };
+  }).filter((v) => v.resources.length));
 });
 const targetGroupVersion = ref(groupVersions[0]);
 
