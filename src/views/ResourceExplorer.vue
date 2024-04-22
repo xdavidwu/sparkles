@@ -167,23 +167,22 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
       ?.content?.['application/json']?.schema;
 
     if (!response) {
-      console.log('Schema discovered, but no response definition for: ', path);
-    } else {
-      const rebased = {
-        ...openapiSchemaToJsonSchema(response),
-        components: {
-          schemas: root.components?.schemas ?
-            Object.keys(root.components.schemas).reduce((a, v) => {
-              a[v] = openapiSchemaToJsonSchema(root.components!.schemas![v]);
-              return a;
-            }, {} as { [key: string]: JSONSchema4 }) : {},
-        },
-      };
-      objectRecord.schema = rebased;
+      throw new Error(`schema discovered, but no response definition for: ${path}`);
     }
+
+    objectRecord.schema = {
+      ...openapiSchemaToJsonSchema(response),
+      components: {
+        schemas: root.components?.schemas ?
+          Object.keys(root.components.schemas).reduce((a, v) => {
+            a[v] = openapiSchemaToJsonSchema(root.components!.schemas![v]);
+            return a;
+          }, {} as { [key: string]: JSONSchema4 }) : {},
+      },
+    };
   } catch (e) {
     //shrug
-    console.log('Schema discovery failed: ', e);
+    console.log('Failed to get schema', e);
   }
 
   inspectedObjects.value.push(objectRecord);
