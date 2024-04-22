@@ -25,8 +25,12 @@ const kubernetesVersion = computedAsync(async () => {
 
 const supportedApis = computedAsync(async () => {
   const groups = await useApisDiscovery().getGroups();
-  return groups.map((g) =>
-    g.metadata!.name ? `${g.metadata!.name}/${g.versions[0].version}` : g.versions[0].version);
+  const versions: Array<string> = [];
+  groups.forEach((g) => {
+    versions.push(...g.versions.map((v) =>
+      g.metadata!.name ? `${g.metadata!.name}/${v.version}` : v.version));
+  });
+  return versions;
 }, null);
 
 const review = computedAsync(async () => {
