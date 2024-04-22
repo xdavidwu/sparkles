@@ -28,7 +28,6 @@
     "change-case": "^5.1.2",
     "chartjs-adapter-date-std": "^0.1.8",
     "codemirror-json-schema": "^0.7.0",
-    "json-pointer": "^0.6.2",
     "oidc-client-ts": "^3.0.0",
     "openapi-types": "^12.1.0",
     "parse-duration": "^1.0.2",
@@ -45,7 +44,6 @@
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.1.4",
     "@types/golang-wasm-exec": "^1.15.0",
-    "@types/json-pointer": "^1.0.31",
     "@types/json-schema": "^7.0.15",
     "@types/xxhashjs": "^0.2.4",
     "@vitejs/plugin-vue": "^5.0.3",

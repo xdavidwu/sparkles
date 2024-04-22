@@ -32,7 +32,6 @@ import { openapiSchemaToJsonSchema } from '@openapi-contrib/openapi-schema-to-js
 import type { OpenAPIV3 } from 'openapi-types';
 import type { JSONSchema4 } from 'json-schema';
 import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscovery } from '@/utils/discoveryV2';
-import { dereference } from '@/utils/schema';
 import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
 import { truncate, truncateStart } from '@/utils/text';
@@ -170,7 +169,17 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     if (!response) {
       console.log('Schema discovered, but no response definition for: ', path);
     } else {
-      objectRecord.schema = openapiSchemaToJsonSchema(dereference(root, response));
+      const rebased = {
+        ...openapiSchemaToJsonSchema(response),
+        components: {
+          schemas: root.components?.schemas ?
+            Object.keys(root.components.schemas).reduce((a, v) => {
+              a[v] = openapiSchemaToJsonSchema(root.components!.schemas![v]);
+              return a;
+            }, {} as { [key: string]: JSONSchema4 }) : {},
+        },
+      };
+      objectRecord.schema = rebased;
     }
   } catch (e) {
     //shrug
