@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import LinkedTooltipContent from '@/components/LinkedTooltipContent.vue';
-import { createApp } from 'vue';
+import { createApp, computed } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { EditorState } from '@codemirror/state';
 import { EditorView, hoverTooltip } from '@codemirror/view';
@@ -30,7 +30,7 @@ const foldOnReady: Array<Array<PathHistoryItem>> = [
 ];
 
 const props = withDefaults(defineProps<{
-  disabled: boolean,
+  disabled?: boolean,
   schema?: JSONSchema4,
 }>(), {
   disabled: false,
@@ -90,39 +90,40 @@ const origHover = yamlSchemaHover({
   }
 });
 
-// disabled set both editable.of(false) and readonly.of(true)
-// editable but readonly is still read-only, but making input handling work
-// always enable editable for cm-native search
-const extensions = [
-  oneDark,
-  EditorView.editable.of(true), EditorState.readOnly.of(props.disabled),
-  yaml(),
-];
+const tooltipExtension = hoverTooltip(async (view, pos, side) => {
+  const h = await origHover(view, pos, side);
+  if (!h) {
+    return null;
+  }
+  const tree = syntaxTree(view.state);
+  const node = tree.resolveInner(h.pos, side);
+  // lib seems to return schema for parent object in this case
+  if (node.type.name === 'Pair' || node.type.name === 'BlockMapping') {
+    return null;
+  }
+  // expand to the key if colon, or the node
+  const posOverride = node.type.name === ':' ?
+    { pos: node.parent?.firstChild?.from ?? h.pos } :
+    { pos: node.from, end: node.to };
+  // arrow makes tooltip itself hard to hover
+  return { ...h, ...posOverride, arrow: false };
+});
 
-if (props.schema) {
-  extensions.push(
-    hoverTooltip(async (view, pos, side) => {
-      const h = await origHover(view, pos, side);
-      if (!h) {
-        return null;
-      }
-      const tree = syntaxTree(view.state);
-      const node = tree.resolveInner(h.pos, side);
-      // lib seems to return schema for parent object in this case
-      if (node.type.name === 'Pair' || node.type.name === 'BlockMapping') {
-        return null;
-      }
-      // expand to the key if colon, or the node
-      const posOverride = node.type.name === ':' ?
-        { pos: node.parent?.firstChild?.from ?? h.pos } :
-        { pos: node.from, end: node.to };
-      // arrow makes tooltip itself hard to hover
-      return { ...h, ...posOverride, arrow: false };
-    }),
-    // XXX: actually the lib uses Draft04?
-    stateExtensions(props.schema as JSONSchema7),
-  );
-}
+const extensions = computed(() => {
+  const e = [
+    oneDark,
+    // editable but readonly is still read-only, but making input handling work
+    // always enable editable for cm-native search
+    EditorView.editable.of(true), EditorState.readOnly.of(props.disabled),
+    yaml(),
+  ];
+
+  if (props.schema) {
+    e.push(tooltipExtension, stateExtensions(props.schema as JSONSchema7));
+  }
+
+  return e;
+});
 </script>
 
 <template>
