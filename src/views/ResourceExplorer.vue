@@ -11,6 +11,7 @@ import {
   VTab,
   VWindow,
 } from 'vuetify/components';
+import { VFab } from 'vuetify/labs/VFab';
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
@@ -42,6 +43,7 @@ interface ObjectRecord {
   key: string,
   meta: V1PartialObjectMetadata,
   type: V2APIResourceDiscovery,
+  editing: boolean,
 }
 
 const EMPTY_V1_TABLE: V1Table<V1PartialObjectMetadata> = {
@@ -165,6 +167,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     key,
     meta: obj,
     type: targetType.value,
+    editing: false,
   };
 
   try {
@@ -188,6 +191,8 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
         schemas: root.components?.schemas ?
           Object.keys(root.components.schemas).reduce((a, v) => {
             a[v] = openapiSchemaToJsonSchema(root.components!.schemas![v]);
+            // XXX: for whole object after deref, not actually right on the schemas
+            a[v].title = `OpenAPI schema of ${targetGroupVersion.value.groupVersion} ${objectRecord.type.responseKind.kind}`;
             return a;
           }, {} as { [key: string]: JSONSchema4 }) : {},
       },
@@ -200,6 +205,10 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
   inspectedObjects.value.push(objectRecord);
   tab.value = objectRecord.key;
 };
+
+const apply = (obj: ObjectRecord) => {
+  alert(`TODO ${obj.object}`);
+}
 
 const closeTab = (idx: number) => {
   tab.value = 'explore';
@@ -279,7 +288,9 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
     </WindowItem>
     <WindowItem v-for="obj in inspectedObjects" :key="obj.key" :value="obj.key">
       <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
-        v-model="obj.object" :schema="obj.schema" disabled />
+        v-model="obj.object" :schema="obj.schema" :disabled="!obj.editing" />
+      <VFab v-if="!obj.editing" icon="$edit" color="primary" absolute @click="() => obj.editing = true" />
+      <VFab v-else icon="$complete" color="primary" absolute @click="() => apply(obj)" />
     </WindowItem>
   </VWindow>
 </template>
