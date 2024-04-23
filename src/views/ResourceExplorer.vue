@@ -15,7 +15,7 @@ import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import WindowItem from '@/components/WindowItem.vue';
-import YAMLViewer from '@/components/YAMLViewer.vue';
+import YAMLEditor from '@/components/YAMLEditor.vue';
 import { computed, watch, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDisplay } from 'vuetify';
@@ -278,8 +278,8 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
       </VDataTable>
     </WindowItem>
     <WindowItem v-for="obj in inspectedObjects" :key="obj.key" :value="obj.key">
-      <YAMLViewer :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
-        :data="obj.object" :schema="obj.schema" />
+      <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
+        v-model="obj.object" :schema="obj.schema" disabled />
     </WindowItem>
   </VWindow>
 </template>

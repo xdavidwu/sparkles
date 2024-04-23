@@ -11,7 +11,7 @@ import DynamicTab from '@/components/DynamicTab.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
 import WindowItem from '@/components/WindowItem.vue';
-import YAMLViewer from '@/components/YAMLViewer.vue';
+import YAMLEditor from '@/components/YAMLEditor.vue';
 import { onMounted, ref, watch } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
@@ -230,8 +230,9 @@ onMounted(setupGo);
       </VDataTable>
     </WindowItem>
     <WindowItem v-for="tab in tabs" :key="tab.id" :value="tab.id">
-      <YAMLViewer :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
-        :data="stringify(tab.values, null, { indentSeq: true })" :schema="tab.schema" />
+      <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
+        :model-value="stringify(tab.values, null, { indentSeq: true })"
+        :schema="tab.schema" disabled />
     </WindowItem>
   </VWindow>
 </template>

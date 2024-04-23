@@ -2,6 +2,7 @@
 import LinkedTooltipContent from '@/components/LinkedTooltipContent.vue';
 import { createApp } from 'vue';
 import { Codemirror } from 'vue-codemirror';
+import { EditorState } from '@codemirror/state';
 import { EditorView, hoverTooltip } from '@codemirror/view';
 import { yaml } from '@codemirror/lang-yaml';
 import { foldEffect, syntaxTree, ensureSyntaxTree } from '@codemirror/language';
@@ -28,10 +29,12 @@ const foldOnReady: Array<Array<PathHistoryItem>> = [
   ],
 ];
 
-const props = defineProps<{
-  data: string,
+const props = withDefaults(defineProps<{
+  disabled: boolean,
   schema?: JSONSchema4,
-}>();
+}>(), {
+  disabled: false,
+});
 
 const codemirrorReady = ({ view }: { view: EditorView }) => {
   // XXX?
@@ -89,8 +92,12 @@ const origHover = yamlSchemaHover({
 
 // disabled set both editable.of(false) and readonly.of(true)
 // editable but readonly is still read-only, but making input handling work
-// enable editable for cm-native search
-const extensions = [oneDark, EditorView.editable.of(true), yaml()];
+// always enable editable for cm-native search
+const extensions = [
+  oneDark,
+  EditorView.editable.of(true), EditorState.readOnly.of(props.disabled),
+  yaml(),
+];
 
 if (props.schema) {
   extensions.push(
@@ -119,7 +126,7 @@ if (props.schema) {
 </script>
 
 <template>
-  <Codemirror :model-value="data" :extensions="extensions" @ready="codemirrorReady" disabled />
+  <Codemirror :extensions="extensions" @ready="codemirrorReady" />
 </template>
 
 <style scoped>
