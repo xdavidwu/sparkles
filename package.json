@@ -13,6 +13,7 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.16.0",
     "@codemirror/lang-yaml": "^6.1.1",
     "@codemirror/language": "^6.3.1",
     "@codemirror/state": "^6.4.1",

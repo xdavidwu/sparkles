@@ -4,11 +4,12 @@ import { createApp, computed } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { EditorState } from '@codemirror/state';
 import { EditorView, hoverTooltip } from '@codemirror/view';
-import { yaml } from '@codemirror/lang-yaml';
+import { autocompletion } from '@codemirror/autocomplete';
+import { yaml, yamlLanguage } from '@codemirror/lang-yaml';
 import { foldEffect, syntaxTree, ensureSyntaxTree } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { stateExtensions } from 'codemirror-json-schema';
-import { yamlSchemaHover } from 'codemirror-json-schema/yaml';
+import { yamlSchemaHover, yamlCompletion } from 'codemirror-json-schema/yaml';
 import type { JSONSchema4, JSONSchema7 } from 'json-schema';
 
 // do we want seq here?
@@ -118,7 +119,20 @@ const extensions = computed(() => {
     yaml(),
   ];
 
+  if (!props.disabled) {
+    e.push(autocompletion({
+      // TODO: no bring-your-own-tooltip,
+      // need to align it with LinkedTooltipContent as close as possible
+      // XXX: default stying feels reversed on selection
+      tooltipClass: () => 'text-caption elevation-4',
+    }));
+  }
+
   if (props.schema) {
+    if (!props.disabled) {
+      e.push(yamlLanguage.data.of({ autocomplete: yamlCompletion() }));
+    }
+
     e.push(tooltipExtension, stateExtensions(props.schema as JSONSchema7));
   }
 
