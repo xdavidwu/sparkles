@@ -20,7 +20,7 @@ const emit = defineEmits<{
     <VBadge dot color="red" :model-value="alerting">
       {{ title }}
     </VBadge>
-    <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="emit('close')" />
+    <VBtn size="x-small" icon="$close" variant="plain" @click.stop="emit('close')" />
     <LinkedTooltip v-if="description" :text="description" activator="parent" />
   </VTab>
 </template>

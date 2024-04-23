@@ -7,6 +7,7 @@ import {
   VWindow,
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
+import DynamicTab from '@/components/DynamicTab.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
 import WindowItem from '@/components/WindowItem.vue';
@@ -183,10 +184,8 @@ onMounted(setupGo);
 <template>
   <AppTabs v-model="tab">
     <VTab value="table">Releases</VTab>
-    <VTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id">
-      Values: {{ tab.id }}
-      <VBtn size="x-small" icon="mdi-close" variant="plain" @click.stop="closeTab(index)" />
-    </VTab>
+    <DynamicTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id"
+      :title="`Values: ${ tab.id }`" @close="closeTab(index)" />
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="table">
