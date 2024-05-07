@@ -270,8 +270,8 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
         <VBtn variant="text" size="x-small" color="primary" @click="listObjects">refresh</VBtn>
       </div>
       <VDataTable hover fixed-header class="data-table-auto"
-        items-per-page="-1"
-        :items="objects.rows ?? []" :headers="columns" :loading="objectsLoading">
+        items-per-page="-1" :items="objects.rows ?? []" :headers="columns"
+        :loading="objectsLoading" :mobile="false">
         <!-- TODO: ask vuetify to open up VDataTableHeaderCell -->
         <template v-for="(c, i) in columns" #[`header.${c.key}`]="{ column, getSortIcon }" :key="i">
           <div class="v-data-table-header__content h-100 width-fit-content">
