@@ -191,13 +191,28 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     }
 
     r.schema = {
-      ...openapiSchemaToJsonSchema(response),
+      title: `OpenAPI schema of ${r.gv.groupVersion} ${r.type.responseKind.kind}`,
+      allOf: [
+        openapiSchemaToJsonSchema(response),
+        {
+          type: 'object',
+          required: ['apiVersion', 'kind'],
+          properties: {
+            apiVersion: {
+              type: 'string',
+              'const': r.gv.groupVersion,
+            },
+            kind: {
+              type: 'string',
+              'const': r.type.responseKind.kind,
+            },
+          },
+        },
+      ],
       components: {
         schemas: root.components?.schemas ?
           Object.keys(root.components.schemas).reduce((a, v) => {
             a[v] = openapiSchemaToJsonSchema(root.components!.schemas![v]);
-            // XXX: for whole object after deref, not actually right on the schemas
-            a[v].title = `OpenAPI schema of ${targetGroupVersion.value.groupVersion} ${r.type.responseKind.kind}`;
             return a;
           }, {} as { [key: string]: JSONSchema4 }) : {},
       },
