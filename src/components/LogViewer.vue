@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import XTerm from '@/components/XTerm.vue';
 import type { Terminal } from '@xterm/xterm';
+// @ts-expect-error Missing type definitions
+import { openpty } from 'xterm-pty';
 import { useAbortController } from '@/composables/abortController';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api, FetchError } from '@/kubernetes-api/src';
@@ -19,7 +21,10 @@ const opts = {
 
 const { signal } = useAbortController();
 
+const { master, slave } = openpty();
+
 const display = async (terminal: Terminal) => {
+  terminal.loadAddon(master);
   terminal.textarea!.disabled = true;
 
   const config = await useApiConfig().getConfig();
@@ -54,8 +59,7 @@ const display = async (terminal: Terminal) => {
       break;
     }
 
-    // termios(3) c_oflag=OPOST|ONLCR
-    terminal.write(value.replace(/\n/g, '\r\n'));
+    slave.write(value);
   }
 };
 </script>
