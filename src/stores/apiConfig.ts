@@ -82,7 +82,11 @@ export const useApiConfig = defineStore('api-config', {
       return null;
     },
     async getConfig() {
-      const headers: HTTPHeaders = {};
+      const headers: HTTPHeaders = {
+        // avoid pretty printing, sliently dropped on chromium
+        // https://crbug.com/571722
+        'User-Agent': import.meta.env.VITE_APP_BRANDING ?? 'Sparkles',
+      };
 
       const token = await this.getBearerToken();
       if (token) {
