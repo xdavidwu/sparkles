@@ -2,6 +2,8 @@ import {
   CoreV1Api,
   CustomObjectsApi,
   type ApiResponse,
+  type CustomObjectsApiDeleteClusterCustomObjectRequest,
+  type CustomObjectsApiDeleteNamespacedCustomObjectRequest,
   type CustomObjectsApiGetAPIResourcesRequest,
   type CustomObjectsApiGetClusterCustomObjectRequest,
   type CustomObjectsApiGetNamespacedCustomObjectRequest,
@@ -33,6 +35,12 @@ export type AnyApiListClusterCustomObjectRequest =
 
 export type AnyApiListNamespacedCustomObjectRequest =
   PartiallyRequired<CustomObjectsApiListNamespacedCustomObjectRequest, 'group'>;
+
+export type AnyApiDeleteClusterCustomObjectRequest =
+  PartiallyRequired<CustomObjectsApiDeleteClusterCustomObjectRequest, 'group'>;
+
+export type AnyApiDeleteNamespacedCustomObjectRequest =
+  PartiallyRequired<CustomObjectsApiDeleteNamespacedCustomObjectRequest, 'group'>;
 
 export interface AnyApiGetOpenAPISchemaRequest {
   group?: string;
@@ -233,6 +241,58 @@ export class AnyApi extends CustomObjectsApi {
           initOverrides,
         );
     }
+  }
+
+  async deleteClusterCustomObjectRaw(
+      requestParameters: AnyApiDeleteClusterCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction
+      ): Promise<ApiResponse<object>> {
+    if (requestParameters.group) {
+      return super.deleteClusterCustomObjectRaw({
+        ...requestParameters,
+        group: requestParameters.group!,
+      }, initOverrides);
+    } else {
+      return super.withPreMiddleware(toCore)
+        .deleteClusterCustomObjectRaw({
+          ...requestParameters,
+          group: corePlaceholder,
+        }, initOverrides);
+    }
+  }
+
+  async deleteNamespacedCustomObjectRaw(
+      requestParameters: AnyApiDeleteNamespacedCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction
+      ): Promise<ApiResponse<object>> {
+    if (requestParameters.group) {
+      return super.deleteNamespacedCustomObjectRaw({
+        ...requestParameters,
+        group: requestParameters.group!,
+      }, initOverrides);
+    } else {
+      return super.withPreMiddleware(toCore)
+        .deleteNamespacedCustomObjectRaw({
+          ...requestParameters,
+          group: corePlaceholder,
+        }, initOverrides);
+    }
+  }
+
+  async deleteClusterCustomObject(
+      requestParameters: AnyApiDeleteClusterCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction
+      ): Promise<object> {
+    const response = await this.deleteClusterCustomObjectRaw(requestParameters, initOverrides);
+    return await response.value();
+  }
+
+  async deleteNamespacedCustomObject(
+      requestParameters: AnyApiDeleteNamespacedCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction
+      ): Promise<object> {
+    const response = await this.deleteNamespacedCustomObjectRaw(requestParameters, initOverrides);
+    return await response.value();
   }
 
   async getOpenAPISchema(requestParameters: AnyApiGetOpenAPISchemaRequest):

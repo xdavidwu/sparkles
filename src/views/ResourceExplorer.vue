@@ -38,11 +38,14 @@ import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
 import { truncate, truncateStart } from '@/utils/text';
 
+type GroupVersion = V2APIVersionDiscovery & { group?: string, groupVersion: string };
+
 interface ObjectRecord {
   schema?: JSONSchema4,
   object: string,
   key: string,
   meta: V1PartialObjectMetadata,
+  gv: GroupVersion,
   type: V2APIResourceDiscovery,
   editing: boolean,
 }
@@ -59,7 +62,7 @@ const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces();
 const { selectedNamespace } = storeToRefs(namespacesStore);
 const allNamespaces = ref(false);
-const groupVersions: Array<V2APIVersionDiscovery & { group?: string, groupVersion: string }> = [];
+const groupVersions: Array<GroupVersion> = [];
 (await useApisDiscovery().getGroups()).forEach((g) => {
   const knownResources: Array<string> = [];
   groupVersions.push(...g.versions.map((v) => {
@@ -167,6 +170,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     ](options as typeof options & { namespace: string })).raw.text(),
     key,
     meta: obj,
+    gv: targetGroupVersion.value,
     type: targetType.value,
     editing: false,
   };
@@ -211,8 +215,17 @@ const apply = (obj: ObjectRecord) => {
   alert(`apply ${obj.object}`);
 };
 
-const _delete = (obj: ObjectRecord) => {
-  alert(`delete ${JSON.stringify(obj.meta)}`);
+const _delete = async (obj: ObjectRecord) => {
+  // TODO confirmation?
+  await anyApi[`delete${obj.meta.metadata!.namespace ? 'Namespaced' : 'Cluster'}CustomObject`]({
+    group: obj.gv.group,
+    version: obj.gv.version,
+    plural: obj.type.resource,
+    name: obj.meta.metadata!.name!,
+    namespace: obj.meta.metadata!.namespace!,
+  });
+  const i = inspectedObjects.value.findIndex((o) => o == obj);
+  closeTab(i);
 };
 
 const closeTab = (idx: number) => {
