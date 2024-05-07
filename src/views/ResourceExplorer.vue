@@ -9,6 +9,7 @@ import {
   VFab,
   VIcon,
   VRow,
+  VSpeedDial,
   VTab,
   VWindow,
 } from 'vuetify/components';
@@ -207,8 +208,12 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
 };
 
 const apply = (obj: ObjectRecord) => {
-  alert(`TODO ${obj.object}`);
-}
+  alert(`apply ${obj.object}`);
+};
+
+const _delete = (obj: ObjectRecord) => {
+  alert(`delete ${JSON.stringify(obj.meta)}`);
+};
 
 const closeTab = (idx: number) => {
   tab.value = 'explore';
@@ -289,7 +294,16 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
     <WindowItem v-for="obj in inspectedObjects" :key="obj.key" :value="obj.key">
       <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
         v-model="obj.object" :schema="obj.schema" :disabled="!obj.editing" />
-      <VFab v-if="!obj.editing" icon="$edit" color="primary" absolute @click="() => obj.editing = true" />
+      <!-- XXX: location seems not relative to fab -->
+      <!-- TODO: initial transition is broken -->
+      <VSpeedDial v-if="!obj.editing" location="top end" :offset="[ 64, -4 ]" scrim>
+        <template #activator="{ isActive, props }">
+          <VFab :icon="isActive ? '$close' : 'mdi-dots-vertical'" color="primary" absolute v-bind="props" />
+        </template>
+        <!-- TODO: labels would be nice -->
+        <VBtn icon="$edit" @click="() => obj.editing = true" />
+        <VBtn icon="mdi-delete" @click="() => _delete(obj)" />
+      </VSpeedDial>
       <VFab v-else icon="$complete" color="primary" absolute @click="() => apply(obj)" />
     </WindowItem>
   </VWindow>
