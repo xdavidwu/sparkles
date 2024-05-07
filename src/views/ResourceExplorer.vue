@@ -16,6 +16,7 @@ import {
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import SpeedDialBtn from '@/components/SpeedDialBtn.vue';
 import WindowItem from '@/components/WindowItem.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
 import { computed, watch, ref } from 'vue';
@@ -313,11 +314,10 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
         <template #activator="{ isActive, props }">
           <VFab :icon="isActive ? '$close' : 'mdi-dots-vertical'" color="primary" absolute v-bind="props" />
         </template>
-        <!-- TODO: labels would be nice -->
-        <VBtn icon="$edit" @click="() => obj.editing = true" />
-        <VBtn icon="mdi-delete" @click="() => _delete(obj)" />
+        <SpeedDialBtn label="Delete" icon="mdi-delete" @click="() => _delete(obj)" />
+        <SpeedDialBtn label="Edit" icon="$edit" @click="() => obj.editing = true" />
       </VSpeedDial>
-      <VFab v-else icon="$complete" color="primary" absolute @click="() => apply(obj)" />
+      <VFab v-else icon="mdi-content-save" color="primary" absolute @click="() => apply(obj)" />
     </WindowItem>
   </VWindow>
 </template>
