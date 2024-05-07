@@ -85,7 +85,7 @@ export const useApiConfig = defineStore('api-config', {
       const headers: HTTPHeaders = {
         // avoid pretty printing, sliently dropped on chromium
         // https://crbug.com/571722
-        'User-Agent': import.meta.env.VITE_APP_BRANDING ?? 'Sparkles',
+        'User-Agent': `${import.meta.env.VITE_APP_BRANDING ?? 'Sparkles'}; ${navigator.userAgent}`,
       };
 
       const token = await this.getBearerToken();
