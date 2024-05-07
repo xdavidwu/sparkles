@@ -6,12 +6,12 @@ import {
   VCol,
   VDataTable,
   VDataTableRow,
+  VFab,
   VIcon,
   VRow,
   VTab,
   VWindow,
 } from 'vuetify/components';
-import { VFab } from 'vuetify/labs/VFab';
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
