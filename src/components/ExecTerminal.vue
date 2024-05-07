@@ -24,6 +24,15 @@ const supportedProtocols = [
   wsstreamV4Channel,
 ];
 
+enum Streams {
+  STDIN = 0,
+  STDOUT = 1,
+  STDERR = 2,
+  ERROR = 3,
+  RESIZE = 4,
+  CLOSE = 255,
+}
+
 let socket: WebSocket | null = null;
 
 const commandOpts = (props.command ?? ['/bin/sh', '-c', findShell]).reduce(
@@ -32,6 +41,8 @@ const url = `/api/v1/namespaces/${props.containerSpec.namespace}/pods/${props.co
 
 const base64url = (s: string) => btoa(s).replace(/=+$/g, '').replace(/\+/g, '-').replace(/\\/g, '_');
 const configStore = useApiConfig();
+
+const encoder = new TextEncoder();
 
 const display = async (terminal: Terminal) => {
   terminal.write('Connecting...');
@@ -52,7 +63,8 @@ const display = async (terminal: Terminal) => {
   };
 
   const resize = (t: { cols: number, rows: number }) => {
-    socket!.send(`\x04{"Width":${t.cols},"Height":${t.rows}}\n`);
+    socket!.send(new Uint8Array([ Streams.RESIZE,
+      ...encoder.encode(`{"Width":${t.cols},"Height":${t.rows}}\n`)]));
   };
 
   const CSI = '\x1b[';
@@ -60,16 +72,16 @@ const display = async (terminal: Terminal) => {
     resize(terminal);
     terminal.write(`${CSI}2J${CSI}H`); // clear all, reset cursor
     terminal.onData((data) => {
-      socket!.send(`\x00${data}`);
+      socket!.send(new Uint8Array([Streams.STDIN, ...encoder.encode(data)]));
     });
     terminal.onResize(resize);
   };
   socket.onmessage = (event) => {
     const data = new Uint8Array(event.data);
     const stream = data[0];
-    if (stream === 1 || stream === 2) {
+    if (stream === Streams.STDOUT || stream === Streams.STDERR) {
       terminal.write(data.subarray(1));
-    } else if (stream === 3) {
+    } else if (stream === Streams.ERROR) {
       // https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/pkg/cri/streaming/remotecommand/httpstream.go
       const status = V1StatusFromJSON(JSON.parse(
         new TextDecoder().decode(data.subarray(1))
@@ -92,12 +104,9 @@ const display = async (terminal: Terminal) => {
 
 onUnmounted(() => {
   if (socket) {
-    // TODO v5.channel.k8s.io added support for closing streams (stdin)
-    // https://github.com/kubernetes/kubernetes/pull/119157 landed v1.29
-    // but not actually wired up yet @ kubelet (https://github.com/kubernetes/kubernetes/issues/122263)
-    // thus this is not tested
     if (socket.protocol === wsstreamV5Channel) {
-      socket.send("\xff\x00");
+      // XXX: there seems to be no way to close underlying tty?
+      socket.send(new Uint8Array([Streams.CLOSE, Streams.STDIN]));
     }
 
     socket.close();
