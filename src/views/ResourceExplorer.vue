@@ -30,6 +30,7 @@ import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
+import type { V1ObjectMeta } from '@/kubernetes-api/src';
 import { AnyApi, asYAML, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
 import { openapiSchemaToJsonSchema } from '@openapi-contrib/openapi-schema-to-json-schema';
 import type { OpenAPIV3 } from 'openapi-types';
@@ -44,8 +45,7 @@ type GroupVersion = V2APIVersionDiscovery & { group?: string, groupVersion: stri
 interface ObjectRecord {
   schema?: JSONSchema4,
   object: string,
-  key: string,
-  meta: V1PartialObjectMetadata,
+  metadata: V1ObjectMeta,
   gv: GroupVersion,
   type: V2APIResourceDiscovery,
   editing: boolean,
@@ -93,7 +93,7 @@ const lastUpdatedAt = useLastChanged(objects, { initialValue: timestamp() });
 const lastUpdated = useTimeAgo(lastUpdatedAt);
 const objectsLoading = ref(false);
 const tab = ref('explore');
-const inspectedObjects = ref<Array<ObjectRecord>>([]);
+const inspectedObjects = ref<Map<string, ObjectRecord>>(new Map());
 const { smAndDown, xlAndUp } = useDisplay();
 const verbose = ref(xlAndUp.value);
 const { appBarHeightPX } = useAppTabs();
@@ -152,9 +152,9 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     kind: targetType.value.responseKind.kind,
   };
   const key = uniqueKeyForObject(objWithKind);
-  const entry = inspectedObjects.value.find((o) => o.key === key);
+  const entry = inspectedObjects.value.get(key);
   if (entry) {
-    tab.value = entry.key;
+    tab.value = key;
     return;
   }
 
@@ -165,12 +165,11 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     name: obj.metadata!.name!,
     namespace: obj.metadata!.namespace,
   };
-  const objectRecord: ObjectRecord = {
+  const r: ObjectRecord = {
     object: await (await anyApi.withPreMiddleware(asYAML)[
       `get${obj.metadata!.namespace ? 'Namespaced' : 'Cluster'}CustomObjectRaw`
     ](options as typeof options & { namespace: string })).raw.text(),
-    key,
-    meta: obj,
+    metadata: obj.metadata!,
     gv: targetGroupVersion.value,
     type: targetType.value,
     editing: false,
@@ -182,8 +181,8 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     const root = await openAPISchemaDiscovery.getSchema(options);
 
     // XXX: is there a better place to place this?
-    const apiBase = `/api${targetGroupVersion.value.group ? 's' : ''}/${targetGroupVersion.value.groupVersion}`;
-    const path = `${apiBase}/${obj.metadata!.namespace ? 'namespaces/{namespace}/' : ''}${objectRecord.type.resource}/{name}`;
+    const apiBase = `/api${r.gv.group ? 's' : ''}/${r.gv.groupVersion}`;
+    const path = `${apiBase}/${r.metadata.namespace ? 'namespaces/{namespace}/' : ''}${r.type.resource}/{name}`;
     const response = (root.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject | undefined)
       ?.content?.['application/json']?.schema;
 
@@ -191,14 +190,14 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
       throw new Error(`schema discovered, but no response definition for: ${path}`);
     }
 
-    objectRecord.schema = {
+    r.schema = {
       ...openapiSchemaToJsonSchema(response),
       components: {
         schemas: root.components?.schemas ?
           Object.keys(root.components.schemas).reduce((a, v) => {
             a[v] = openapiSchemaToJsonSchema(root.components!.schemas![v]);
             // XXX: for whole object after deref, not actually right on the schemas
-            a[v].title = `OpenAPI schema of ${targetGroupVersion.value.groupVersion} ${objectRecord.type.responseKind.kind}`;
+            a[v].title = `OpenAPI schema of ${targetGroupVersion.value.groupVersion} ${r.type.responseKind.kind}`;
             return a;
           }, {} as { [key: string]: JSONSchema4 }) : {},
       },
@@ -208,42 +207,39 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     console.log('Failed to get schema', e);
   }
 
-  inspectedObjects.value.push(objectRecord);
-  tab.value = objectRecord.key;
+  inspectedObjects.value.set(key, r);
+  tab.value = key;
 };
 
-const apply = (obj: ObjectRecord) => {
-  alert(`apply ${obj.object}`);
+const apply = (r: ObjectRecord) => {
+  alert(`apply ${r.object}`);
 };
 
-const _delete = async (obj: ObjectRecord) => {
-  // TODO confirmation?
-  await anyApi[`delete${obj.meta.metadata!.namespace ? 'Namespaced' : 'Cluster'}CustomObject`]({
-    group: obj.gv.group,
-    version: obj.gv.version,
-    plural: obj.type.resource,
-    name: obj.meta.metadata!.name!,
-    namespace: obj.meta.metadata!.namespace!,
+const _delete = async (r: ObjectRecord, key: string) => {
+  await anyApi[`delete${r.metadata.namespace ? 'Namespaced' : 'Cluster'}CustomObject`]({
+    group: r.gv.group,
+    version: r.gv.version,
+    plural: r.type.resource,
+    name: r.metadata.name!,
+    namespace: r.metadata.namespace!,
   });
-  const i = inspectedObjects.value.findIndex((o) => o == obj);
-  closeTab(i);
+  closeTab(key);
 };
 
-const closeTab = (idx: number) => {
+const closeTab = (key: string) => {
   tab.value = 'explore';
-  inspectedObjects.value.splice(idx, 1);
+  inspectedObjects.value.delete(key);
 };
 
-const nsName = (o: V1PartialObjectMetadata) =>
-  o.metadata!.namespace ? `${o.metadata!.namespace}/${o.metadata!.name}` : o.metadata!.name!;
+const nsName = (m: V1ObjectMeta) =>
+  m.namespace ? `${m.namespace}/${m.name}` : m.name!;
 
-const nsNameShort = (o: V1PartialObjectMetadata) =>
-  o.metadata!.namespace ?
-  `${truncate(o.metadata!.namespace, 8)}/${truncateStart(o.metadata!.name!, 8)}` :
-  truncateStart(o.metadata!.name!, 17);
+const nsNameShort = (m: V1ObjectMeta) =>
+  m.namespace ? `${truncate(m.namespace, 8)}/${truncateStart(m.name!, 8)}` :
+  truncate(m.name!, 17);
 
 const title = (o: ObjectRecord) =>
-  `${o.type.shortNames ? o.type.shortNames[0] : o.type.responseKind.kind}: ${nsNameShort(o.meta)}`;
+  `${o.type.shortNames ? o.type.shortNames[0] : o.type.responseKind.kind}: ${nsNameShort(o.metadata)}`;
 
 watch(targetGroupVersion, () => targetType.value = defaultTargetType());
 watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: true });
@@ -252,9 +248,9 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
 <template>
   <AppTabs v-model="tab">
     <VTab value="explore">Explore</VTab>
-    <DynamicTab v-for="(obj, index) in inspectedObjects" :key="obj.key"
-      :value="obj.key" :description="`${obj.type.responseKind.kind}: ${nsName(obj.meta)}`"
-      :title="title(obj)" @close="closeTab(index)" />
+    <DynamicTab v-for="[key, r] in inspectedObjects" :key="key"
+      :value="key" :description="`${r.type.responseKind.kind}: ${nsName(r.metadata)}`"
+      :title="title(r)" @close="closeTab(key)" />
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="explore">
@@ -305,19 +301,18 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
         <template #bottom />
       </VDataTable>
     </WindowItem>
-    <WindowItem v-for="obj in inspectedObjects" :key="obj.key" :value="obj.key">
+    <WindowItem v-for="[key, r] in inspectedObjects" :key="key" :value="key">
       <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
-        v-model="obj.object" :schema="obj.schema" :disabled="!obj.editing" />
+        v-model="r.object" :schema="r.schema" :disabled="!r.editing" />
       <!-- XXX: location seems not relative to fab -->
-      <!-- TODO: initial transition is broken -->
-      <VSpeedDial v-if="!obj.editing" location="top end" :offset="[ 64, -4 ]" scrim>
+      <VSpeedDial v-if="!r.editing" location="top end" :offset="[ 64, -4 ]" scrim origin="bottom end">
         <template #activator="{ isActive, props }">
           <VFab :icon="isActive ? '$close' : 'mdi-dots-vertical'" color="primary" absolute v-bind="props" />
         </template>
-        <SpeedDialBtn label="Delete" icon="mdi-delete" @click="() => _delete(obj)" />
-        <SpeedDialBtn label="Edit" icon="$edit" @click="() => obj.editing = true" />
+        <SpeedDialBtn key="1" label="Delete" icon="mdi-delete" @click="() => _delete(r, key)" />
+        <SpeedDialBtn key="2" label="Edit" icon="$edit" @click="() => r.editing = true" />
       </VSpeedDial>
-      <VFab v-else icon="mdi-content-save" color="primary" absolute @click="() => apply(obj)" />
+      <VFab v-else icon="mdi-content-save" color="primary" absolute @click="() => apply(r)" />
     </WindowItem>
   </VWindow>
 </template>
