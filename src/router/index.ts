@@ -12,14 +12,6 @@ declare global {
   }
 }
 
-const dns1123LabelFmt = '[a-z0-9]([-a-z0-9]*[a-z0-9])?';
-const dns1123SubdomainFmt = `${dns1123LabelFmt}(\\.${dns1123LabelFmt})*`;
-// TODO IANA_SVC_NAME/integer validation
-const schemeNamePort = `((https?|):)?${dns1123SubdomainFmt}(:[^:/]*)?`;
-const apiserverProxyRegex = new RegExp(`^/api/v1/namespaces/${dns1123SubdomainFmt}/(pods|services)/${schemeNamePort}/proxy/`);
-const m = window.location.pathname.match(apiserverProxyRegex);
-window.__base_url = m === null ? import.meta.env.BASE_URL : m[0];
-
 const checkNamespacedResourcePermission =
   (group: string, resource: string) => computedAsync(async () => {
     const { selectedNamespace } = storeToRefs(useNamespaces());

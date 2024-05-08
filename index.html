@@ -5,6 +5,15 @@
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
     <title>Sparkles</title>
+    <script>
+      const dns1123LabelFmt = '[a-z0-9]([-a-z0-9]*[a-z0-9])?';
+      const dns1123SubdomainFmt = `${dns1123LabelFmt}(\\.${dns1123LabelFmt})*`;
+      // TODO IANA_SVC_NAME/integer validation
+      const schemeNamePort = `((https?|):)?${dns1123SubdomainFmt}(:[^:/]*)?`;
+      const apiserverProxyRegex = new RegExp(`^/api/v1/namespaces/${dns1123SubdomainFmt}/(pods|services)/${schemeNamePort}/proxy/`);
+      const m = window.location.pathname.match(apiserverProxyRegex);
+      window.__base_url = m === null ? '%BASE_URL%' : m[0];
+    </script>
   </head>
   <body>
     <div id="app"></div>
