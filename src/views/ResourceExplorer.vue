@@ -47,6 +47,7 @@ interface ObjectRecord {
   gv: GroupVersion,
   type: V2APIResourceDiscovery,
   editing: boolean,
+  unsaved: boolean,
 }
 
 const EMPTY_V1_TABLE: V1Table<V1PartialObjectMetadata> = {
@@ -171,6 +172,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     gv: targetGroupVersion.value,
     type: targetType.value,
     editing: false,
+    unsaved: false,
   };
 
   try {
@@ -227,7 +229,7 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
     <VTab value="explore">Explore</VTab>
     <DynamicTab v-for="[key, r] in inspectedObjects" :key="key"
       :value="key" :description="`${r.type.responseKind.kind}: ${nsName(r.metadata)}`"
-      :title="title(r)" @close="closeTab(key)" />
+      :title="title(r)" :alerting="r.unsaved" @close="closeTab(key)" />
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="explore">
@@ -280,7 +282,8 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
     </WindowItem>
     <WindowItem v-for="[key, r] in inspectedObjects" :key="key" :value="key">
       <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
-        v-model="r.object" :schema="r.schema" :disabled="!r.editing" />
+        v-model="r.object" :schema="r.schema" :disabled="!r.editing"
+        @change="() => r.unsaved = true" />
       <!-- XXX: location seems not relative to fab -->
       <VSpeedDial v-if="!r.editing" location="top end" :offset="[ 64, -4 ]" scrim origin="bottom end">
         <template #activator="{ isActive, props }">
