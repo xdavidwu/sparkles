@@ -9,6 +9,8 @@ import {
   type CustomObjectsApiGetNamespacedCustomObjectRequest,
   type CustomObjectsApiListClusterCustomObjectRequest,
   type CustomObjectsApiListNamespacedCustomObjectRequest,
+  type CustomObjectsApiReplaceClusterCustomObjectRequest,
+  type CustomObjectsApiReplaceNamespacedCustomObjectRequest,
   type V1APIResourceList,
   type V1ListMeta,
   type V1ObjectMeta,
@@ -42,6 +44,12 @@ export type AnyApiDeleteClusterCustomObjectRequest =
 export type AnyApiDeleteNamespacedCustomObjectRequest =
   PartiallyRequired<CustomObjectsApiDeleteNamespacedCustomObjectRequest, 'group'>;
 
+export type AnyApiReplaceClusterCustomObjectRequest =
+  PartiallyRequired<CustomObjectsApiReplaceClusterCustomObjectRequest, 'group'>;
+
+export type AnyApiReplaceNamespacedCustomObjectRequest =
+  PartiallyRequired<CustomObjectsApiReplaceNamespacedCustomObjectRequest, 'group'>;
+
 export interface AnyApiGetOpenAPISchemaRequest {
   group?: string;
   version: string;
@@ -68,6 +76,11 @@ export const asYAML: Middleware['pre'] = async (context) => {
     accept: 'application/yaml',
   };
   return context;
+};
+
+export const fromYAML: InitOverrideFunction = async (context) => {
+  context.init.headers!['Content-Type'] = 'application/yaml';
+  return context.init;
 };
 
 // https://github.com/kubernetes/apimachinery/blob/master/pkg/apis/meta/v1/types.go
@@ -292,6 +305,58 @@ export class AnyApi extends CustomObjectsApi {
       initOverrides?: RequestInit | InitOverrideFunction
       ): Promise<object> {
     const response = await this.deleteNamespacedCustomObjectRaw(requestParameters, initOverrides);
+    return await response.value();
+  }
+
+  async replaceClusterCustomObjectRaw(
+      requestParameters: AnyApiReplaceClusterCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction
+      ): Promise<ApiResponse<object>> {
+    if (requestParameters.group) {
+      return super.replaceClusterCustomObjectRaw({
+        ...requestParameters,
+        group: requestParameters.group!,
+      }, initOverrides);
+    } else {
+      return super.withPreMiddleware(toCore)
+        .replaceClusterCustomObjectRaw({
+          ...requestParameters,
+          group: corePlaceholder,
+        }, initOverrides);
+    }
+  }
+
+  async replaceNamespacedCustomObjectRaw(
+      requestParameters: AnyApiReplaceNamespacedCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction
+      ): Promise<ApiResponse<object>> {
+    if (requestParameters.group) {
+      return super.replaceNamespacedCustomObjectRaw({
+        ...requestParameters,
+        group: requestParameters.group!,
+      }, initOverrides);
+    } else {
+      return super.withPreMiddleware(toCore)
+        .replaceNamespacedCustomObjectRaw({
+          ...requestParameters,
+          group: corePlaceholder,
+        }, initOverrides);
+    }
+  }
+
+  async replaceClusterCustomObject(
+      requestParameters: AnyApiReplaceClusterCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction
+      ): Promise<object> {
+    const response = await this.replaceClusterCustomObjectRaw(requestParameters, initOverrides);
+    return await response.value();
+  }
+
+  async replaceNamespacedCustomObject(
+      requestParameters: AnyApiReplaceNamespacedCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction
+      ): Promise<object> {
+    const response = await this.replaceNamespacedCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
