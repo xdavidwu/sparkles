@@ -31,7 +31,10 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import type { V1ObjectMeta } from '@/kubernetes-api/src';
-import { AnyApi, asYAML, fromYAML, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
+import {
+  AnyApi, asYAML, fromYAML, chainOverrideFunction,
+  type V1Table, type V1PartialObjectMetadata,
+} from '@/utils/AnyApi';
 import type { JSONSchema4 } from 'json-schema';
 import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscovery } from '@/utils/discoveryV2';
 import { uniqueKeyForObject } from '@/utils/objects';
@@ -191,14 +194,16 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
 };
 
 const apply = async (r: ObjectRecord) => {
-  await anyApi[`replace${r.metadata.namespace ? 'Namespaced' : 'Cluster'}CustomObject`]({
+  r.object = await (await anyApi[
+    `replace${r.metadata.namespace ? 'Namespaced' : 'Cluster'}CustomObjectRaw`
+  ]({
     group: r.gv.group,
     version: r.gv.version,
     plural: r.type.resource,
     name: r.metadata.name!,
     namespace: r.metadata.namespace!,
     body: new Blob([r.object], { type: 'application/yaml' }),
-  }, fromYAML);
+  }, chainOverrideFunction(fromYAML, asYAML))).raw.text();
   r.unsaved = false;
 };
 
