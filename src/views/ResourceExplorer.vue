@@ -205,6 +205,7 @@ const apply = async (r: ObjectRecord) => {
     body: new Blob([r.object], { type: 'application/yaml' }),
   }, chainOverrideFunction(fromYAML, asYAML))).raw.text();
   r.unsaved = false;
+  r.editing = false;
 };
 
 const _delete = async (r: ObjectRecord, key: string) => {
