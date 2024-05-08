@@ -32,8 +32,6 @@ import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import type { V1ObjectMeta } from '@/kubernetes-api/src';
 import { AnyApi, asYAML, type V1Table, type V1PartialObjectMetadata } from '@/utils/AnyApi';
-import { openapiSchemaToJsonSchema } from '@openapi-contrib/openapi-schema-to-json-schema';
-import type { OpenAPIV3 } from 'openapi-types';
 import type { JSONSchema4 } from 'json-schema';
 import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscovery } from '@/utils/discoveryV2';
 import { uniqueKeyForObject } from '@/utils/objects';
@@ -176,47 +174,11 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
   };
 
   try {
-    // XXX: if it is a custom resouce, and we are able to access crd,
-    // using openAPIV3Schema may be faster
-    const root = await openAPISchemaDiscovery.getSchema(options);
-
-    // XXX: is there a better place to place this?
-    const apiBase = `/api${r.gv.group ? 's' : ''}/${r.gv.groupVersion}`;
-    const path = `${apiBase}/${r.metadata.namespace ? 'namespaces/{namespace}/' : ''}${r.type.resource}/{name}`;
-    const response = (root.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject | undefined)
-      ?.content?.['application/json']?.schema;
-
-    if (!response) {
-      throw new Error(`schema discovered, but no response definition for: ${path}`);
-    }
-
-    r.schema = {
-      title: `OpenAPI schema of ${r.gv.groupVersion} ${r.type.responseKind.kind}`,
-      allOf: [
-        openapiSchemaToJsonSchema(response),
-        {
-          type: 'object',
-          required: ['apiVersion', 'kind'],
-          properties: {
-            apiVersion: {
-              type: 'string',
-              'const': r.gv.groupVersion,
-            },
-            kind: {
-              type: 'string',
-              'const': r.type.responseKind.kind,
-            },
-          },
-        },
-      ],
-      components: {
-        schemas: root.components?.schemas ?
-          Object.keys(root.components.schemas).reduce((a, v) => {
-            a[v] = openapiSchemaToJsonSchema(root.components!.schemas![v]);
-            return a;
-          }, {} as { [key: string]: JSONSchema4 }) : {},
-      },
-    };
+    r.schema = await openAPISchemaDiscovery.getJSONSchema({
+      group: r.gv.group,
+      version: r.gv.version,
+      type: r.type,
+    });
   } catch (e) {
     //shrug
     console.log('Failed to get schema', e);
