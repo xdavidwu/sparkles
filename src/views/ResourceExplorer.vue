@@ -165,9 +165,9 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     namespace: obj.metadata!.namespace,
   };
   const r: ObjectRecord = {
-    object: await (await anyApi.withPreMiddleware(asYAML)[
+    object: await (await anyApi[
       `get${obj.metadata!.namespace ? 'Namespaced' : 'Cluster'}CustomObjectRaw`
-    ](options as typeof options & { namespace: string })).raw.text(),
+    ](options as typeof options & { namespace: string }, asYAML)).raw.text(),
     metadata: obj.metadata!,
     gv: targetGroupVersion.value,
     type: targetType.value,

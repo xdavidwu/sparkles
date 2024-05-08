@@ -15,6 +15,7 @@ import {
   type V1ListMeta,
   type V1ObjectMeta,
   type HTTPHeaders,
+  type HTTPRequestInit,
   type Middleware,
   type InitOverrideFunction,
 } from '@/kubernetes-api/src';
@@ -62,26 +63,47 @@ const toCore: Middleware['pre'] = async (context) => ({
   url: context.url.replace(`apis/${corePlaceholder}`, 'api'),
 });
 
-const asTable: Middleware['pre'] = async (context) => {
-  context.init.headers = {
-    ...context.init.headers,
-    accept: 'application/json;as=Table;g=meta.k8s.io;v=v1',
+type ChainableInitOverrideFunction = (...p: Parameters<InitOverrideFunction>) =>
+  (Promise<Awaited<ReturnType<InitOverrideFunction>> & HTTPRequestInit & { headers: HTTPHeaders }>);
+
+const asTable: ChainableInitOverrideFunction = async (context) => {
+  const overridden = {
+    ...context.init,
+    headers: context.init.headers ?? {},
   };
-  return context;
+  overridden.headers['accept'] = 'application/json;as=Table;g=meta.k8s.io;v=v1';
+  return overridden;
 };
 
-export const asYAML: Middleware['pre'] = async (context) => {
-  context.init.headers = {
-    ...context.init.headers,
-    accept: 'application/yaml',
+export const asYAML: ChainableInitOverrideFunction = async (context) => {
+  const overridden = {
+    ...context.init,
+    headers: context.init.headers ?? {},
   };
-  return context;
+  overridden.headers['accept'] = 'application/yaml';
+  return overridden;
 };
 
-export const fromYAML: InitOverrideFunction = async (context) => {
-  context.init.headers!['Content-Type'] = 'application/yaml';
-  return context.init;
+export const fromYAML: ChainableInitOverrideFunction = async (context) => {
+  const overridden = {
+    ...context.init,
+    headers: context.init.headers ?? {},
+  };
+  overridden.headers['Content-Type'] = 'application/yaml';
+  return overridden;
 };
+
+const identityOverrideFn: InitOverrideFunction = async ({ init }) => init;
+
+export const chainOverrideFunction = (
+  a: ChainableInitOverrideFunction,
+  b?: RequestInit | InitOverrideFunction,
+): InitOverrideFunction =>
+  async (c) => {
+    const fn = b === undefined ? identityOverrideFn : (
+      typeof b === 'function' ? b : async () => b);
+    return await fn({ init: await a(c), context: c.context });
+  };
 
 // https://github.com/kubernetes/apimachinery/blob/master/pkg/apis/meta/v1/types.go
 
@@ -130,7 +152,7 @@ export class AnyApi extends CustomObjectsApi {
   // TODO: type this
   async listClusterCustomObjectRaw(
       requestParameters: AnyApiListClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<ApiResponse<object>> {
     if (requestParameters.group) {
       return super.listClusterCustomObjectRaw({
@@ -148,7 +170,7 @@ export class AnyApi extends CustomObjectsApi {
 
   async listNamespacedCustomObjectRaw(
       requestParameters: AnyApiListNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<ApiResponse<object>> {
     if (requestParameters.group) {
       return super.listNamespacedCustomObjectRaw({
@@ -166,7 +188,7 @@ export class AnyApi extends CustomObjectsApi {
 
   async listClusterCustomObject(
       requestParameters: AnyApiListClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<object> {
     const response = await this.listClusterCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
@@ -174,7 +196,7 @@ export class AnyApi extends CustomObjectsApi {
 
   async listNamespacedCustomObject(
       requestParameters: AnyApiListNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<object> {
     const response = await this.listNamespacedCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
@@ -184,27 +206,27 @@ export class AnyApi extends CustomObjectsApi {
       ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
     >(
       requestParameters: AnyApiListClusterCustomObjectRequest,
-      initOverrides?: RequestInit
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<ApiResponse<V1Table<ObjectType>>> {
-    return <ApiResponse<V1Table<ObjectType>>> await this.withPreMiddleware(asTable)
-      .listClusterCustomObjectRaw(requestParameters, initOverrides);
+    return <ApiResponse<V1Table<ObjectType>>> await this.listClusterCustomObjectRaw(
+        requestParameters, chainOverrideFunction(asTable, initOverrides));
   }
 
   async listNamespacedCustomObjectAsTableRaw<
       ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
     >(
       requestParameters: AnyApiListNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<ApiResponse<V1Table<ObjectType>>> {
-    return <ApiResponse<V1Table<ObjectType>>> await this.withPreMiddleware(asTable)
-      .listNamespacedCustomObjectRaw(requestParameters, initOverrides);
+    return <ApiResponse<V1Table<ObjectType>>> await this.listNamespacedCustomObjectRaw(
+      requestParameters, chainOverrideFunction(asTable, initOverrides));
   }
 
   async listClusterCustomObjectAsTable<
       ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
     >(
       requestParameters: AnyApiListClusterCustomObjectRequest,
-      initOverrides?: RequestInit
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<V1Table<ObjectType>> {
     const response = await this.listClusterCustomObjectAsTableRaw<ObjectType>(requestParameters, initOverrides);
     return await response.value();
@@ -214,7 +236,7 @@ export class AnyApi extends CustomObjectsApi {
       ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
     >(
         requestParameters: AnyApiListNamespacedCustomObjectRequest,
-        initOverrides?: RequestInit
+        initOverrides?: RequestInit | InitOverrideFunction,
         ): Promise<V1Table<ObjectType>> {
     const response = await this.listNamespacedCustomObjectAsTableRaw<ObjectType>(requestParameters, initOverrides);
     return await response.value();
@@ -222,7 +244,7 @@ export class AnyApi extends CustomObjectsApi {
 
   async getClusterCustomObjectRaw(
       requestParameters: AnyApiGetClusterCustomObjectRequest,
-      initOverrides?: RequestInit,
+      initOverrides?: RequestInit | InitOverrideFunction,
   ): Promise<ApiResponse<object>> {
     if (requestParameters.group) {
       return super.getClusterCustomObjectRaw(
@@ -240,7 +262,7 @@ export class AnyApi extends CustomObjectsApi {
 
   async getNamespacedCustomObjectRaw(
       requestParameters: AnyApiGetNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit,
+      initOverrides?: RequestInit | InitOverrideFunction,
   ): Promise<ApiResponse<object>> {
     if (requestParameters.group) {
       return super.getNamespacedCustomObjectRaw(
@@ -258,7 +280,7 @@ export class AnyApi extends CustomObjectsApi {
 
   async deleteClusterCustomObjectRaw(
       requestParameters: AnyApiDeleteClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<ApiResponse<object>> {
     if (requestParameters.group) {
       return super.deleteClusterCustomObjectRaw({
@@ -276,7 +298,7 @@ export class AnyApi extends CustomObjectsApi {
 
   async deleteNamespacedCustomObjectRaw(
       requestParameters: AnyApiDeleteNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<ApiResponse<object>> {
     if (requestParameters.group) {
       return super.deleteNamespacedCustomObjectRaw({
@@ -294,7 +316,7 @@ export class AnyApi extends CustomObjectsApi {
 
   async deleteClusterCustomObject(
       requestParameters: AnyApiDeleteClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<object> {
     const response = await this.deleteClusterCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
@@ -302,7 +324,7 @@ export class AnyApi extends CustomObjectsApi {
 
   async deleteNamespacedCustomObject(
       requestParameters: AnyApiDeleteNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<object> {
     const response = await this.deleteNamespacedCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
@@ -310,7 +332,7 @@ export class AnyApi extends CustomObjectsApi {
 
   async replaceClusterCustomObjectRaw(
       requestParameters: AnyApiReplaceClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<ApiResponse<object>> {
     if (requestParameters.group) {
       return super.replaceClusterCustomObjectRaw({
@@ -328,7 +350,7 @@ export class AnyApi extends CustomObjectsApi {
 
   async replaceNamespacedCustomObjectRaw(
       requestParameters: AnyApiReplaceNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<ApiResponse<object>> {
     if (requestParameters.group) {
       return super.replaceNamespacedCustomObjectRaw({
@@ -346,7 +368,7 @@ export class AnyApi extends CustomObjectsApi {
 
   async replaceClusterCustomObject(
       requestParameters: AnyApiReplaceClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<object> {
     const response = await this.replaceClusterCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
@@ -354,7 +376,7 @@ export class AnyApi extends CustomObjectsApi {
 
   async replaceNamespacedCustomObject(
       requestParameters: AnyApiReplaceNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction
+      initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<object> {
     const response = await this.replaceNamespacedCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
