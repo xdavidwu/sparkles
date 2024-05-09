@@ -6,17 +6,17 @@ import {
   VCol,
   VDataTable,
   VDataTableRow,
-  VFab,
   VIcon,
   VRow,
-  VSpeedDial,
   VTab,
   VWindow,
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
+import FixedFab from '@/components/FixedFab.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import SpeedDialBtn from '@/components/SpeedDialBtn.vue';
+import SpeedDialFab from '@/components/SpeedDialFab.vue';
 import WindowItem from '@/components/WindowItem.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
 import { computed, watch, ref } from 'vue';
@@ -293,20 +293,17 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
         </template>
         <template #bottom />
       </VDataTable>
+      <FixedFab icon="$plus" />
     </WindowItem>
     <WindowItem v-for="[key, r] in inspectedObjects" :key="key" :value="key">
       <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
         v-model="r.object" :schema="r.schema" :disabled="!r.editing"
         @change="() => r.unsaved = true" />
-      <!-- XXX: location seems not relative to fab -->
-      <VSpeedDial v-if="!r.editing" location="top end" :offset="[ 64, -4 ]" scrim origin="bottom end">
-        <template #activator="{ isActive, props }">
-          <VFab :icon="isActive ? '$close' : 'mdi-dots-vertical'" color="primary" absolute v-bind="props" />
-        </template>
+      <SpeedDialFab v-if="!r.editing">
         <SpeedDialBtn key="1" label="Delete" icon="mdi-delete" @click="() => _delete(r, key)" />
         <SpeedDialBtn key="2" label="Edit" icon="$edit" @click="() => r.editing = true" />
-      </VSpeedDial>
-      <VFab v-else icon="mdi-content-save" color="primary" absolute @click="() => apply(r)" />
+      </SpeedDialFab>
+      <FixedFab v-else icon="mdi-content-save" @click="() => apply(r)" />
     </WindowItem>
   </VWindow>
 </template>
