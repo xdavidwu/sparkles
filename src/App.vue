@@ -59,7 +59,7 @@ const namespacedRoutes = computed(() => routes.value.filter(r => r.meta.namespac
 const globalRoutes = computed(() => routes.value.filter(r => !r.meta.namespaced));
 const title = computed(() => `${route.value.meta.name} - ${brand}`);
 useTitle(title);
-const { authScheme, configurable } = storeToRefs(useApiConfig());
+const { authScheme } = storeToRefs(useApiConfig());
 const isOIDC = computed(() => authScheme.value === AuthScheme.OIDC);
 const logoutHref = router.resolve('/oidc/logout').href;
 
@@ -164,10 +164,6 @@ watch(pendingToast, (toast) => {
         </VCardText>
         <VCardActions>
           <VSpacer />
-          <VBtn v-if="configurable" color="primary"
-            @click="showsDialog = false; router.push({ name: 'settings' })">
-            Settings
-          </VBtn>
           <VBtn color="primary" @click="showsDialog = false">Close</VBtn>
         </VCardActions>
       </VCard>
