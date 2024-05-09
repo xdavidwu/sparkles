@@ -211,8 +211,7 @@ const save = async (r: ObjectRecord) => {
       r.metadata.name = o?.metadata?.name;
       r.metadata.namespace = o?.metadata?.namespace;
     } catch (e) {
-      // TODO preserve linebreak in display
-      throw new PresentedError(`Cannot parse YAML: ${e}`);
+      throw new PresentedError(`Cannot parse YAML:\n${e}`);
     }
   }
 

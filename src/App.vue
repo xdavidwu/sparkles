@@ -152,7 +152,7 @@ watch(pendingToast, (toast) => {
       </template>
     </VNavigationDrawer>
     <VDialog v-model="showsDialog">
-      <VCard title="Operation failed">
+      <VCard title="Operation failed" class="align-self-center" style="max-width: 90%">
         <VCardText>
           <p v-if="failedResponse" class="mb-1">
             Kubernetes returned error:<br>
@@ -160,7 +160,7 @@ watch(pendingToast, (toast) => {
             <span class="text-caption text-medium-emphasis">at {{ failedResponse.url }}</span>
             <br>
           </p>
-          <p>{{ failedResponseText }}</p>
+          <pre class="text-pre-wrap">{{ failedResponseText }}</pre>
         </VCardText>
         <VCardActions>
           <VSpacer />
