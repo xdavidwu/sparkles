@@ -37,9 +37,11 @@ import {
 } from '@/utils/AnyApi';
 import type { JSONSchema4 } from 'json-schema';
 import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscovery } from '@/utils/discoveryV2';
-import { uniqueKeyForObject } from '@/utils/objects';
+import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
 import { truncate, truncateStart } from '@/utils/text';
+import { PresentedError } from '@/utils/PresentedError';
+import { stringify, parse } from 'yaml';
 
 type GroupVersion = V2APIVersionDiscovery & { group?: string, groupVersion: string };
 
@@ -57,6 +59,8 @@ const EMPTY_V1_TABLE: V1Table<V1PartialObjectMetadata> = {
   columnDefinitions: [],
   rows: [],
 };
+const NAME_NEW = '(new)'; // must be invalid
+
 const apiConfigStore = useApiConfig();
 const openAPISchemaDiscovery = useOpenAPISchemaDiscovery();
 const anyApi = new AnyApi(await apiConfigStore.getConfig());
@@ -147,11 +151,26 @@ const columns = computed<Array<{
   ),
 );
 
+const maybeGetSchema = async (r: ObjectRecord) => {
+  try {
+    r.schema = await openAPISchemaDiscovery.getJSONSchema({
+      group: r.gv.group,
+      version: r.gv.version,
+      type: r.type,
+    });
+  } catch (e) {
+    //shrug
+    console.log('Failed to get schema', e);
+  }
+};
+
+
 const inspectObject = async (obj: V1PartialObjectMetadata) => {
+  const gv = targetGroupVersion.value, type = targetType.value;
   const objWithKind = {
     ...obj,
-    apiVersion: targetGroupVersion.value.groupVersion,
-    kind: targetType.value.responseKind.kind,
+    apiVersion: gv.groupVersion,
+    kind: type.responseKind.kind,
   };
   const key = uniqueKeyForObject(objWithKind);
   const entry = inspectedObjects.value.get(key);
@@ -172,30 +191,35 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
       `get${obj.metadata!.namespace ? 'Namespaced' : 'Cluster'}CustomObjectRaw`
     ](options as typeof options & { namespace: string }, asYAML)).raw.text(),
     metadata: obj.metadata!,
-    gv: targetGroupVersion.value,
-    type: targetType.value,
+    gv,
+    type,
     editing: false,
     unsaved: false,
   };
 
-  try {
-    r.schema = await openAPISchemaDiscovery.getJSONSchema({
-      group: r.gv.group,
-      version: r.gv.version,
-      type: r.type,
-    });
-  } catch (e) {
-    //shrug
-    console.log('Failed to get schema', e);
-  }
+  await maybeGetSchema(r);
 
   inspectedObjects.value.set(key, r);
   tab.value = key;
 };
 
-const apply = async (r: ObjectRecord) => {
+const save = async (r: ObjectRecord) => {
+  const method = r.metadata.name === NAME_NEW ? 'create' : 'replace';
+  if (method === 'create') {
+    try {
+      const o = parse(r.object);
+      r.metadata.name = o?.metadata?.name;
+      r.metadata.namespace = o?.metadata?.namespace;
+    } catch (e) {
+      // TODO preserve linebreak in display
+      throw new PresentedError(`Cannot parse YAML: ${e}`);
+    }
+  }
+
+  // TODO create: we should set fieldmanager (seems to defaults to ua)
+  // TODO apply: diff, ssa? how to delete field?
   r.object = await (await anyApi[
-    `replace${r.metadata.namespace ? 'Namespaced' : 'Cluster'}CustomObjectRaw`
+    `${method}${r.metadata.namespace ? 'Namespaced' : 'Cluster'}CustomObjectRaw`
   ]({
     group: r.gv.group,
     version: r.gv.version,
@@ -206,6 +230,8 @@ const apply = async (r: ObjectRecord) => {
   }, chainOverrideFunction(fromYAML, asYAML))).raw.text();
   r.unsaved = false;
   r.editing = false;
+
+  // TODO create: reset key
 };
 
 const _delete = async (r: ObjectRecord, key: string) => {
@@ -217,6 +243,36 @@ const _delete = async (r: ObjectRecord, key: string) => {
     namespace: r.metadata.namespace!,
   });
   closeTab(key);
+};
+
+const newDraft = async () => {
+  const gv = targetGroupVersion.value, type = targetType.value;
+  const templateMeta: V1ObjectMeta = { name: 'changeme' };
+  if (type.scope === V2ResourceScope.Namespaced) {
+    templateMeta.namespace = selectedNamespace.value;
+  }
+  const template: KubernetesObject = {
+    apiVersion: gv.groupVersion,
+    kind: type.responseKind.kind,
+    metadata: templateMeta,
+  };
+  const key = crypto.randomUUID();
+  // TODO: editor: cursor to metadata.name
+  const r: ObjectRecord = {
+    object: stringify(template, null, { indentSeq: true }),
+    metadata: {
+      name: NAME_NEW,
+    },
+    gv,
+    type,
+    editing: true,
+    unsaved: true,
+  };
+
+  await maybeGetSchema(r);
+
+  inspectedObjects.value.set(key, r);
+  tab.value = key;
 };
 
 const closeTab = (key: string) => {
@@ -293,7 +349,7 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
         </template>
         <template #bottom />
       </VDataTable>
-      <FixedFab icon="$plus" />
+      <FixedFab icon="$plus" @click="newDraft" />
     </WindowItem>
     <WindowItem v-for="[key, r] in inspectedObjects" :key="key" :value="key">
       <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
@@ -303,7 +359,7 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
         <SpeedDialBtn key="1" label="Delete" icon="mdi-delete" @click="() => _delete(r, key)" />
         <SpeedDialBtn key="2" label="Edit" icon="$edit" @click="() => r.editing = true" />
       </SpeedDialFab>
-      <FixedFab v-else icon="mdi-content-save" @click="() => apply(r)" />
+      <FixedFab v-else icon="mdi-content-save" @click="() => save(r)" />
     </WindowItem>
   </VWindow>
 </template>

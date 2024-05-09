@@ -2,6 +2,8 @@ import {
   CoreV1Api,
   CustomObjectsApi,
   type ApiResponse,
+  type CustomObjectsApiCreateClusterCustomObjectRequest,
+  type CustomObjectsApiCreateNamespacedCustomObjectRequest,
   type CustomObjectsApiDeleteClusterCustomObjectRequest,
   type CustomObjectsApiDeleteNamespacedCustomObjectRequest,
   type CustomObjectsApiGetAPIResourcesRequest,
@@ -50,6 +52,12 @@ export type AnyApiReplaceClusterCustomObjectRequest =
 
 export type AnyApiReplaceNamespacedCustomObjectRequest =
   PartiallyRequired<CustomObjectsApiReplaceNamespacedCustomObjectRequest, 'group'>;
+
+export type AnyApiCreateClusterCustomObjectRequest =
+  PartiallyRequired<CustomObjectsApiCreateClusterCustomObjectRequest, 'group'>;
+
+export type AnyApiCreateNamespacedCustomObjectRequest =
+  PartiallyRequired<CustomObjectsApiCreateNamespacedCustomObjectRequest, 'group'>;
 
 export interface AnyApiGetOpenAPISchemaRequest {
   group?: string;
@@ -379,6 +387,58 @@ export class AnyApi extends CustomObjectsApi {
       initOverrides?: RequestInit | InitOverrideFunction,
       ): Promise<object> {
     const response = await this.replaceNamespacedCustomObjectRaw(requestParameters, initOverrides);
+    return await response.value();
+  }
+
+  async createClusterCustomObjectRaw(
+      requestParameters: AnyApiCreateClusterCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction,
+      ): Promise<ApiResponse<object>> {
+    if (requestParameters.group) {
+      return super.createClusterCustomObjectRaw({
+        ...requestParameters,
+        group: requestParameters.group!,
+      }, initOverrides);
+    } else {
+      return super.withPreMiddleware(toCore)
+        .createClusterCustomObjectRaw({
+          ...requestParameters,
+          group: corePlaceholder,
+        }, initOverrides);
+    }
+  }
+
+  async createNamespacedCustomObjectRaw(
+      requestParameters: AnyApiCreateNamespacedCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction,
+      ): Promise<ApiResponse<object>> {
+    if (requestParameters.group) {
+      return super.createNamespacedCustomObjectRaw({
+        ...requestParameters,
+        group: requestParameters.group!,
+      }, initOverrides);
+    } else {
+      return super.withPreMiddleware(toCore)
+        .createNamespacedCustomObjectRaw({
+          ...requestParameters,
+          group: corePlaceholder,
+        }, initOverrides);
+    }
+  }
+
+  async createClusterCustomObject(
+      requestParameters: AnyApiCreateClusterCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction,
+      ): Promise<object> {
+    const response = await this.createClusterCustomObjectRaw(requestParameters, initOverrides);
+    return await response.value();
+  }
+
+  async createNamespacedCustomObject(
+      requestParameters: AnyApiCreateNamespacedCustomObjectRequest,
+      initOverrides?: RequestInit | InitOverrideFunction,
+      ): Promise<object> {
+    const response = await this.createNamespacedCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
