@@ -33,6 +33,7 @@ import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
 import { useAppTabs } from '@/composables/appTabs';
 import { useRouter } from 'vue-router';
 import { useTitle } from '@vueuse/core';
+import { stringify, parse } from 'yaml';
 
 const brand = import.meta.env.VITE_APP_BRANDING ?? 'Sparkles';
 
@@ -67,12 +68,12 @@ const handleError = (err: any) => {
     failedResponse.value = err.response;
     err.response.text().then(t => {
       try {
-        const json = JSON.parse(t);
-        const status = V1StatusFromJSON(json);
+        const o = parse(t);
+        const status = V1StatusFromJSON(o);
         if (status.message || status.reason) {
           failedResponseText.value = status.message ? status.message! : status.reason!;
         } else {
-          failedResponseText.value = JSON.stringify(json, null, 2);
+          failedResponseText.value = stringify(o, null, { indentSeq: true });
         }
       } catch (e) {
         failedResponseText.value = t;
