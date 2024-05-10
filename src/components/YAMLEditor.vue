@@ -125,7 +125,7 @@ const extensions = computed(() => {
       // TODO: no bring-your-own-tooltip,
       // need to align it with LinkedTooltipContent as close as possible
       // XXX: default stying feels reversed on selection
-      tooltipClass: () => 'text-caption elevation-4',
+      tooltipClass: () => 'text-caption elevation-1',
     }));
   }
 
