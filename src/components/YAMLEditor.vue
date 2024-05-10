@@ -5,7 +5,7 @@ import { Codemirror } from 'vue-codemirror';
 import { EditorState } from '@codemirror/state';
 import { EditorView, hoverTooltip } from '@codemirror/view';
 import { autocompletion } from '@codemirror/autocomplete';
-import { linter } from '@codemirror/lint';
+import { linter, type Diagnostic } from '@codemirror/lint';
 import { yaml, yamlLanguage } from '@codemirror/lang-yaml';
 import { foldEffect, syntaxTree, ensureSyntaxTree } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
@@ -36,6 +36,24 @@ const props = withDefaults(defineProps<{
   schema?: JSONSchema4,
 }>(), {
   disabled: false,
+});
+
+// yaml.parse has more insight on errors,
+// but lezer can catch multiple errors via recovery, and is already parsed
+// yamlSchemaLinter does yaml.parse, but drops errors, TODO do it there?
+const lezerParserLinter = linter((view) => {
+  const res: Array<Diagnostic> = [];
+  syntaxTree(view.state).cursor().iterate((n) => {
+    if (n.type.isError) {
+      res.push({
+        from: n.from,
+        to: n.to,
+        severity: 'warning',
+        message: 'Invalid YAML',
+      });
+    }
+  });
+  return res;
 });
 
 const codemirrorReady = ({ view }: { view: EditorView }) => {
@@ -127,6 +145,7 @@ const extensions = computed(() => {
       // XXX: default stying feels reversed on selection
       tooltipClass: () => 'text-caption elevation-1',
     }));
+    e.push(lezerParserLinter);
   }
 
   if (props.schema) {
