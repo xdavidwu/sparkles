@@ -35,36 +35,28 @@ const vColor = computed(() => colorToClass(hashColor(props.v, baseColors, varian
 </script>
 
 <template>
-  <div class="d-inline-block">
-    <span :class="[`text-${kColor}`, 'kv']">
-      {{ shortK }}<span :class="[`rounded-s-${pill ? 'pill' : 'sm'}`, 'underlay']" />
+  <div class="d-inline-block text-sm">
+    <span :class="[`text-${kColor}`, 'position-relative', 'px-1']">
+      {{ shortK }}<span :class="[`rounded-s-${pill ? 'pill' : 'sm'}`,
+        'underlay', 'position-absolute',
+        'top-0', 'left-0', 'bottom-0', 'right-0']" />
     </span>
-    <span :class="[`text-${vColor}`, 'kv']">
-      {{ shortV }}<span :class="[`rounded-e-${pill ? 'pill' : 'sm'}`, 'underlay']" />
+    <span :class="[`text-${vColor}`, 'position-relative', 'px-1']">
+      {{ shortV }}<span :class="[`rounded-e-${pill ? 'pill' : 'sm'}`,
+        'underlay', 'position-absolute',
+        'top-0', 'left-0', 'bottom-0', 'right-0']" />
     </span>
     <LinkedTooltip :text="title" activator="parent" />
   </div>
 </template>
 
 <style scoped>
-div {
-  font-weight: normal;
-  font-size: 0.75em;
-}
-
-.kv {
-  padding-left: 0.4em;
-  padding-right: 0.4em;
-  position: relative;
+.text-sm {
+  font-size: 0.625rem;
 }
 
 .underlay {
   opacity: var(--v-activated-opacity);
   background-color: currentColor;
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
 }
 </style>
