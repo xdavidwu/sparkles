@@ -44,7 +44,7 @@ const tokens = computed(() => {
 </script>
 
 <template>
-  <div class="bg-teal-darken-4 px-2 py-1 text-caption elevation-1 mw-40 text-pre-wrap text-denser">
+  <div class="bg-teal-darken-4 px-2 py-1 rounded elevation-1 mw-40 text-caption text-pre-wrap text-denser">
     <template v-for="(token, i) in tokens">
       <template v-if="token.type == 'plain'">
         {{ token.value }}

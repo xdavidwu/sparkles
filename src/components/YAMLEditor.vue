@@ -143,7 +143,7 @@ const extensions = computed(() => {
       // TODO: no bring-your-own-tooltip,
       // need to align it with LinkedTooltipContent as close as possible
       // XXX: default stying feels reversed on selection
-      tooltipClass: () => 'text-caption elevation-1',
+      tooltipClass: () => 'text-caption elevation-1 rounded',
     }));
     e.push(lezerParserLinter);
   }
@@ -164,7 +164,8 @@ const extensions = computed(() => {
 </script>
 
 <template>
-  <Codemirror :extensions="extensions" @ready="codemirrorReady" />
+  <Codemirror class="rounded overflow-hidden d-block elevation-1"
+    :extensions="extensions" @ready="codemirrorReady" />
 </template>
 
 <style scoped>
