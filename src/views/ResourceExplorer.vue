@@ -332,7 +332,7 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
         </span>
         <VBtn variant="text" size="x-small" color="primary" @click="listObjects">refresh</VBtn>
       </div>
-      <VDataTable hover fixed-header class="data-table-auto"
+      <VDataTable hover class="data-table-auto"
         items-per-page="-1" :items="objects.rows ?? []" :headers="columns"
         :loading="objectsLoading" :mobile="false">
         <!-- TODO: ask vuetify to open up VDataTableHeaderCell -->
