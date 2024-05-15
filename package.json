@@ -49,6 +49,7 @@
     "@rushstack/eslint-patch": "^1.1.4",
     "@types/golang-wasm-exec": "^1.15.0",
     "@types/json-schema": "^7.0.15",
+    "@types/semver": "^7.5.8",
     "@types/xxhashjs": "^0.2.4",
     "@vitejs/plugin-vue": "^5.0.3",
     "@vue/eslint-config-typescript": "^13.0.0",

@@ -186,7 +186,7 @@ const bell = (index: number) => {
     <VTab value="table">Pods</VTab>
     <DynamicTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id"
       :title="tab.title ?? tab.defaultTitle" :description="tab.description"
-      @click="() => tab.alerting = false" @close="closeTab(index)" />
+      @click="() => tab.alerting = false" @close="() => closeTab(index)" />
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="table">

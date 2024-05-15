@@ -185,7 +185,7 @@ onMounted(setupGo);
   <AppTabs v-model="tab">
     <VTab value="table">Releases</VTab>
     <DynamicTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id"
-      :title="`Values: ${ tab.id }`" @close="closeTab(index)" />
+      :title="`Values: ${ tab.id }`" @close="() => closeTab(index)" />
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="table">

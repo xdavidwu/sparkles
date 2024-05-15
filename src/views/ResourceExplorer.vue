@@ -298,7 +298,7 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
     <VTab value="explore">Explore</VTab>
     <DynamicTab v-for="[key, r] in inspectedObjects" :key="key"
       :value="key" :description="`${r.type.responseKind.kind}: ${nsName(r.metadata)}`"
-      :title="title(r)" :alerting="r.unsaved" @close="closeTab(key)" />
+      :title="title(r)" :alerting="r.unsaved" @close="() => closeTab(key)" />
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="explore">
