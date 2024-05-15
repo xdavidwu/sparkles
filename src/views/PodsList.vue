@@ -190,7 +190,7 @@ const bell = (index: number) => {
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="table">
-      <VDataTable hover :items="containers" :headers="columns" :mobile="false">
+      <VDataTable hover :items="containers" :headers="columns">
         <template #[`header._extra.pod.metadata.name`]>
           Pod
           <KeyValueBadge k="annotation" v="value" class="mr-1" />

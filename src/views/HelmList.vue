@@ -189,7 +189,7 @@ onMounted(setupGo);
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="table">
-      <VDataTable hover :items="releases" :headers="columns" :group-by="[{ key: 'name', order: 'asc'}]" :mobile="false">
+      <VDataTable hover :items="releases" :headers="columns" :group-by="[{ key: 'name', order: 'asc'}]">
         <template #group-header='groupProps'>
           <VDataTableRow v-bind='{ ...groupProps, item: latestRevision(groupProps.item.items) }' class="group-header">
             <template #[`item.data-table-group`]='{ value }'>
