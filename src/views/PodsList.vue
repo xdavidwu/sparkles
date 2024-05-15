@@ -119,12 +119,10 @@ const columns = [
     key: 'actions',
     value: () => '',
     sortable: false,
+    nowrap: true,
+    width: 0,
     headerProps: {
-      class: ['text-center'],
-    },
-    cellProps: {
-      class: ['text-no-wrap'],
-      width: 0,
+      class: ['text-center'], // XXX: align: center somehow does not pass typecheck yet
     },
   },
 ];
@@ -190,13 +188,12 @@ const bell = (index: number) => {
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="table">
-      <VDataTable hover :items="containers" :headers="columns">
+      <VDataTable hover :items="containers" :headers="columns" hide-default-footer>
         <template #[`header._extra.pod.metadata.name`]>
           Pod
           <KeyValueBadge k="annotation" v="value" class="mr-1" />
           <KeyValueBadge k="label" v="value" pill />
         </template>
-        <template #[`header.actions`]>Actions</template>
         <template #[`item._extra.pod.metadata.name`]="{ item: { _extra: { pod } }, value }">
           {{ value }}
           <br />
@@ -223,7 +220,6 @@ const bell = (index: number) => {
             :disabled="item._extra.mayReadLogs !== undefined && !item._extra.mayReadLogs"
             @click="createTab('log', item)" />
         </template>
-        <template #bottom />
       </VDataTable>
     </WindowItem>
     <WindowItem v-for="(tab, index) in tabs" :key="tab.id"

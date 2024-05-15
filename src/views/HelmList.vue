@@ -111,12 +111,10 @@ const columns = [
     key: 'actions',
     value: () => '',
     sortable: false,
+    nowrap: true,
+    width: 0,
     headerProps: {
       class: ['text-center'],
-    },
-    cellProps: {
-      class: ['text-no-wrap'],
-      width: 0,
     },
   },
 ];
@@ -189,7 +187,8 @@ onMounted(setupGo);
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="table">
-      <VDataTable hover :items="releases" :headers="columns" :group-by="[{ key: 'name', order: 'asc'}]">
+      <VDataTable hover :items="releases" :headers="columns"
+        :group-by="[{ key: 'name', order: 'asc'}]" hide-default-footer>
         <template #group-header='groupProps'>
           <VDataTableRow v-bind='{ ...groupProps, item: latestRevision(groupProps.item.items) }' class="group-header">
             <template #[`item.data-table-group`]='{ value }'>
@@ -226,7 +225,6 @@ onMounted(setupGo);
           <TippedBtn size="small" icon="mdi-file-document" tooltip="Values" variant="text"
             @click="createTab(item)" />
         </template>
-        <template #bottom />
       </VDataTable>
     </WindowItem>
     <WindowItem v-for="tab in tabs" :key="tab.id" :value="tab.id">
