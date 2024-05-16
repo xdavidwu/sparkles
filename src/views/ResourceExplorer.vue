@@ -40,6 +40,7 @@ import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscover
 import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
 import { truncate, truncateStart } from '@/utils/text';
+import { nonNullableRef } from '@/utils/reactivity';
 import { PresentedError } from '@/utils/PresentedError';
 import { stringify, parse } from 'yaml';
 
@@ -86,14 +87,14 @@ const groupVersions: Array<GroupVersion> = [];
     };
   }).filter((v) => v.resources.length));
 });
-const targetGroupVersion = ref(groupVersions[0]);
+const targetGroupVersion = nonNullableRef(groupVersions[0]);
 
 const types = computed(() => targetGroupVersion.value.resources);
 
 const defaultTargetType = () =>
   types.value.find((v) => v.verbs.includes('watch')) ?? types.value[0];
 
-const targetType = ref(defaultTargetType());
+const targetType = nonNullableRef(defaultTargetType());
 const objects = ref(EMPTY_V1_TABLE);
 const lastUpdatedAt = useLastChanged(objects, { initialValue: timestamp() });
 const lastUpdated = useTimeAgo(lastUpdatedAt);
@@ -305,11 +306,13 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
       <VRow class="mb-1" :dense="smAndDown">
         <VCol cols="6" sm="">
           <VAutocomplete label="API version" v-model="targetGroupVersion"
-            :items="groupVersions" return-object hide-details item-title="groupVersion" />
+            :items="groupVersions" return-object hide-details
+            item-title="groupVersion" auto-select-first />
         </VCol>
         <VCol cols="6" sm="">
           <VAutocomplete label="Type" v-model="targetType" :items="types"
-            return-object hide-details item-title="responseKind.kind" />
+            return-object hide-details item-title="responseKind.kind"
+            auto-select-first />
         </VCol>
         <VCol md="3" sm="4">
           <div>

@@ -128,7 +128,8 @@ watch(pendingToast, (toast) => {
     <VNavigationDrawer v-model="drawer">
       <VList>
         <VAutocomplete label="Namespace" variant="solo" :items="namespaces"
-          v-model="selectedNamespace" hide-details :loading="namespacesLoading" />
+          v-model="selectedNamespace" hide-details :loading="namespacesLoading"
+          auto-select-first />
         <VListItem v-for="route in namespacedRoutes"
           :disabled="!!route.unsupportedReason"
           :subtitle="route.unsupportedReason" :title="route.meta.name"

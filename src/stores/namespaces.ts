@@ -21,9 +21,14 @@ export const useNamespaces = defineStore('namespace', () => {
         selectedNamespace.value = namespaces[0];
       }
     } else {
-      selectedNamespace.value = '';
+      throw new Error('No namespaces available');
     }
   }
+
+  const rejectUnsetNamespace = computed({
+    get: () => selectedNamespace.value,
+    set: (v) => v && (selectedNamespace.value = v),
+  });
 
   const ensureNamespaces = () => {
     if (!_updatePromise) {
@@ -53,5 +58,5 @@ export const useNamespaces = defineStore('namespace', () => {
     }
   });
 
-  return { namespaces, selectedNamespace, loading, ensureNamespaces };
+  return { namespaces, selectedNamespace: rejectUnsetNamespace, loading, ensureNamespaces };
 });
