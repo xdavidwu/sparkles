@@ -47,6 +47,7 @@ const showsSnackbar = ref(false);
 const snackbarMessage = ref('');
 const failedResponse = ref<Response | null>(null);
 const failedResponseText = ref('');
+const loadError = ref(false);
 const router = useRouter();
 const route = router.currentRoute;
 const routes = computed(() => router.getRoutes().filter(r => !r.meta.hidden).map(r => {
@@ -62,6 +63,12 @@ useTitle(title);
 const { authScheme } = storeToRefs(useApiConfig());
 const isOIDC = computed(() => authScheme.value === AuthScheme.OIDC);
 const logoutHref = router.resolve('/oidc/logout').href;
+
+const reload = () => window.location.reload();
+
+window.addEventListener('vite:preloadError', () => {
+  loadError.value = true;
+});
 
 const handleError = (err: any) => {
   if (err instanceof ResponseError) {
@@ -170,6 +177,19 @@ watch(pendingToast, (toast) => {
       </VCard>
     </VDialog>
     <VMain>
+    <VDialog v-model="loadError">
+      <VCard title="Page load failed" class="align-self-center" style="max-width: 90%">
+        <VCardText>
+          If your network access is working,
+          this may indicates that a new version of {{ brand }} is available.
+          Reload the page to update to the new version.
+        </VCardText>
+        <VCardActions>
+          <VSpacer />
+          <VBtn color="primary" @click="reload">Reload</VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
       <VContainer fluid class="overflow-y-auto">
         <RouterView #="{ Component }">
           <Suspense timeout="16">
