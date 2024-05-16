@@ -201,7 +201,6 @@ const bell = (index: number) => {
             class="mr-1 mb-1"
             :key="key" :k="key as string" :v="value" />
           <br v-if="pod.metadata!.annotations" />
-          <!-- @vue-expect-error vue-tsc does not like pill on this one? -->
           <KeyValueBadge v-for="(value, key) in pod.metadata!.labels"
             class="mr-1 mb-1"
             :key="key" :k="key as string" :v="value" pill />
