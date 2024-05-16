@@ -206,11 +206,10 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
 
 const save = async (r: ObjectRecord) => {
   const method = r.metadata.name === NAME_NEW ? 'create' : 'replace';
+  let meta;
   if (method === 'create') {
     try {
-      const o = parse(r.object);
-      r.metadata.name = o?.metadata?.name;
-      r.metadata.namespace = o?.metadata?.namespace;
+      meta = parse(r.object)?.metadata;
     } catch (e) {
       throw new PresentedError(`Cannot parse YAML:\n${e}`);
     }
@@ -219,15 +218,19 @@ const save = async (r: ObjectRecord) => {
   // TODO create: we should set fieldmanager (seems to defaults to ua)
   // TODO apply: diff, ssa? how to delete field?
   r.object = await (await anyApi[
-    `${method}${r.metadata.namespace ? 'Namespaced' : 'Cluster'}CustomObjectRaw`
+    `${method}${r.type.scope === V2ResourceScope.Namespaced ? 'Namespaced' : 'Cluster'}CustomObjectRaw`
   ]({
     group: r.gv.group,
     version: r.gv.version,
     plural: r.type.resource,
-    name: r.metadata.name!,
-    namespace: r.metadata.namespace!,
+    name: method === 'create' ? meta?.name : r.metadata.name!,
+    namespace: method === 'create' ? meta?.namespace : r.metadata.namespace!,
     body: new Blob([r.object], { type: 'application/yaml' }),
   }, chainOverrideFunction(fromYAML, asYAML))).raw.text();
+  if (method === 'create') {
+    r.metadata.name = meta?.name;
+    r.metadata.namespace = meta?.namespace;
+  }
   r.unsaved = false;
   r.editing = false;
 
