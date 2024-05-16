@@ -215,7 +215,6 @@ const save = async (r: ObjectRecord) => {
     }
   }
 
-  // TODO create: we should set fieldmanager (seems to defaults to ua)
   // TODO apply: diff, ssa? how to delete field?
   r.object = await (await anyApi[
     `${method}${r.type.scope === V2ResourceScope.Namespaced ? 'Namespaced' : 'Cluster'}CustomObjectRaw`
@@ -225,6 +224,7 @@ const save = async (r: ObjectRecord) => {
     plural: r.type.resource,
     name: method === 'create' ? meta?.name : r.metadata.name!,
     namespace: method === 'create' ? meta?.namespace : r.metadata.namespace!,
+    fieldManager: import.meta.env.VITE_APP_BRANDING ?? 'Sparkles',
     body: new Blob([r.object], { type: 'application/yaml' }),
   }, chainOverrideFunction(fromYAML, asYAML))).raw.text();
   if (method === 'create') {
