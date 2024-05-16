@@ -250,10 +250,12 @@ const _delete = async (r: ObjectRecord, key: string) => {
 
 const newDraft = async () => {
   const gv = targetGroupVersion.value, type = targetType.value;
-  const templateMeta: V1ObjectMeta = { name: 'changeme' };
+  const templateMeta: V1ObjectMeta = {};
   if (type.scope === V2ResourceScope.Namespaced) {
     templateMeta.namespace = selectedNamespace.value;
   }
+  // make it order last to be friendlier
+  templateMeta.name = 'changeme';
   const template: KubernetesObject = {
     apiVersion: gv.groupVersion,
     kind: type.responseKind.kind,
