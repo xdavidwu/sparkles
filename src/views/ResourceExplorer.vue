@@ -22,7 +22,7 @@ import YAMLEditor from '@/components/YAMLEditor.vue';
 import { computed, watch, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDisplay } from 'vuetify';
-import { timestamp, useLastChanged, useTimeAgo } from '@vueuse/core';
+import { timestamp, useLastChanged, useNow, useTimeAgo } from '@vueuse/core';
 import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
 import { useNamespaces } from '@/stores/namespaces';
@@ -63,6 +63,7 @@ const EMPTY_V1_TABLE: V1Table<V1PartialObjectMetadata> = {
   rows: [],
 };
 const NAME_NEW = '(new)'; // must be invalid
+const CREATION_TIMESTAMP_COLUMN = 'creationTimestamp';
 
 const apiConfigStore = useApiConfig();
 const openAPISchemaDiscovery = useOpenAPISchemaDiscovery();
@@ -153,7 +154,7 @@ const columns = computed<Array<{
       .filter((c) => verbose.value || c.priority === 0)
       .map((c, i) => isCreationTimestamp(c) ? {
         title: c.name,
-        key: `creationTimestamp`,
+        key: CREATION_TIMESTAMP_COLUMN,
         value: (r: V1TableRow<V1PartialObjectMetadata>) => r.object.metadata!.creationTimestamp,
         description: c.description,
       } : {
@@ -163,6 +164,17 @@ const columns = computed<Array<{
       })
   ),
 );
+const columnsContainCreationTimestamp = computed(() =>
+  columns.value.some(c => c.key === CREATION_TIMESTAMP_COLUMN));
+
+const injectTime = useNow({ interval: 5000 });
+const table = computed(() => {
+  const rows = objects.value.rows ?? [];
+  if (rows.length && columnsContainCreationTimestamp.value) {
+    return { rows, _update: injectTime.value };
+  }
+  return { rows };
+});
 
 const maybeGetSchema = async (r: ObjectRecord) => {
   try {
@@ -353,7 +365,7 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
         <VBtn variant="text" size="x-small" color="primary" @click="listObjects">refresh</VBtn>
       </div>
       <VDataTable hover class="data-table-auto"
-        items-per-page="-1" :items="objects.rows ?? []" :headers="columns"
+        items-per-page="-1" :items="table.rows" :headers="columns"
         :loading="objectsLoading" hide-default-footer>
         <!-- TODO: ask vuetify to open up VDataTableHeaderCell -->
         <template v-for="(c, i) in columns" #[`header.${c.key}`]="{ column, getSortIcon }" :key="i">
@@ -365,7 +377,7 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
         </template>
         <template #item="{ props: itemProps }">
           <VDataTableRow v-bind="itemProps" @click="inspectObject(itemProps.item.raw.object)">
-            <template #[`item.creationTimestamp`]="{ value }">
+            <template #[`item.${CREATION_TIMESTAMP_COLUMN}`]="{ value }">
               <span>
                 {{ humanDuration((new Date()).valueOf() - (new Date(value)).valueOf()) }}
                 <LinkedTooltip :text="(new Date(value)).toLocaleString()" activator="parent" />
