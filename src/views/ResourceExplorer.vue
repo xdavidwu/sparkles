@@ -149,6 +149,7 @@ const columns = computed<Array<{
   ((targetType.value.scope === V2ResourceScope.Namespaced && allNamespaces.value) ? [{
     title: 'Namespace',
     key: 'object.metadata.namespace',
+    description: `Namespace defines the space within which each name must be unique. An empty namespace is equivalent to the "default" namespace, but "default" is the canonical representation. Not all objects are required to be scoped to a namespace - the value of this field for those objects will be empty.\n\nMust be a DNS_LABEL. Cannot be updated. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces`,
   }] : []).concat(
     objects.value.columnDefinitions
       .filter((c) => verbose.value || c.priority === 0)
