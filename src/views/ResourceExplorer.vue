@@ -22,10 +22,7 @@ import YAMLEditor from '@/components/YAMLEditor.vue';
 import { computed, watch, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDisplay } from 'vuetify';
-import {
-  formatTimeAgo, timestamp, useLastChanged, useTimeAgo,
-  type UseTimeAgoMessages, type UseTimeAgoUnitNamesDefault,
-} from '@vueuse/core';
+import { timestamp, useLastChanged, useTimeAgo } from '@vueuse/core';
 import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
 import { useNamespaces } from '@/stores/namespaces';
@@ -43,6 +40,7 @@ import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscover
 import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
 import { truncate, truncateStart } from '@/utils/text';
+import { humanDuration } from '@/utils/duration';
 import { nonNullableRef } from '@/utils/reactivity';
 import { PresentedError } from '@/utils/PresentedError';
 import { stringify, parse } from 'yaml';
@@ -65,36 +63,6 @@ const EMPTY_V1_TABLE: V1Table<V1PartialObjectMetadata> = {
   rows: [],
 };
 const NAME_NEW = '(new)'; // must be invalid
-
-const AGE_TIMEAGO_MESSAGES: UseTimeAgoMessages<UseTimeAgoUnitNamesDefault> = {
-  justNow: 'just now',
-  past: n => n, // title is age, adding "ago" feels wrong
-  future: n => n.match(/\d/) ? `in ${n}` : n, // possible with time skew
-  month: (n, past) => n === 1
-    ? past
-      ? 'last month'
-      : 'next month'
-    : `${n} month${n > 1 ? 's' : ''}`,
-  year: (n, past) => n === 1
-    ? past
-      ? 'last year'
-      : 'next year'
-    : `${n} year${n > 1 ? 's' : ''}`,
-  day: (n, past) => n === 1
-    ? past
-      ? 'yesterday'
-      : 'tomorrow'
-    : `${n} day${n > 1 ? 's' : ''}`,
-  week: (n, past) => n === 1
-    ? past
-      ? 'last week'
-      : 'next week'
-    : `${n} week${n > 1 ? 's' : ''}`,
-  hour: n => `${n} hour${n > 1 ? 's' : ''}`,
-  minute: n => `${n} minute${n > 1 ? 's' : ''}`,
-  second: n => `${n} second${n > 1 ? 's' : ''}`,
-  invalid: '',
-}
 
 const apiConfigStore = useApiConfig();
 const openAPISchemaDiscovery = useOpenAPISchemaDiscovery();
@@ -399,7 +367,7 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
           <VDataTableRow v-bind="itemProps" @click="inspectObject(itemProps.item.raw.object)">
             <template #[`item.creationTimestamp`]="{ value }">
               <span>
-                {{ formatTimeAgo(new Date(value), { showSecond: true, messages: AGE_TIMEAGO_MESSAGES }) }}
+                {{ humanDuration((new Date()).valueOf() - (new Date(value)).valueOf()) }}
                 <LinkedTooltip :text="(new Date(value)).toLocaleString()" activator="parent" />
               </span>
             </template>
