@@ -153,15 +153,29 @@ const columns = computed<Array<{
   }] : []).concat(
     objects.value.columnDefinitions
       .filter((c) => verbose.value || c.priority === 0)
-      .map((c, i) => isCreationTimestamp(c) ? {
-        title: c.name,
-        key: CREATION_TIMESTAMP_COLUMN,
-        value: (r: V1TableRow<V1PartialObjectMetadata>) => r.object.metadata!.creationTimestamp,
-        description: c.description,
-      } : {
-        title: c.name,
-        key: `cells.${i}`,
-        description: c.description,
+      .map((c, i) => {
+        if (isCreationTimestamp(c)){
+          return {
+            title: c.name,
+            key: CREATION_TIMESTAMP_COLUMN,
+            value: (r: V1TableRow<V1PartialObjectMetadata>) => r.object.metadata!.creationTimestamp,
+            description: c.description,
+          };
+        }
+
+        const column = {
+          title: c.name,
+          key: `cells.${i}`,
+          description: c.description,
+        };
+        // k8s.io/kubernetes/pkg/printers/internalversion.printPod
+        if (c.name === 'Restarts' && c.description === 'The number of times the containers in this pod have been restarted and when the last container in this pod has restarted.') {
+          return {
+            ...column,
+            sort: (a: string, b: string) => parseInt(a, 10) - parseInt(b, 10),
+          };
+        }
+        return column;
       })
   ),
 );
