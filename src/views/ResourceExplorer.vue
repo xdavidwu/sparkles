@@ -54,6 +54,7 @@ interface ObjectRecord {
   type: V2APIResourceDiscovery,
   editing: boolean,
   unsaved: boolean,
+  selection?: { anchor: number, head: number },
 }
 
 const EMPTY_V1_TABLE: V1Table<V1PartialObjectMetadata> = {
@@ -255,16 +256,15 @@ const newDraft = async () => {
     templateMeta.namespace = selectedNamespace.value;
   }
   // make it order last to be friendlier
-  templateMeta.name = 'changeme';
+  templateMeta.name = crypto.randomUUID();
   const template: KubernetesObject = {
     apiVersion: gv.groupVersion,
     kind: type.responseKind.kind,
     metadata: templateMeta,
   };
-  const key = crypto.randomUUID();
-  // TODO: editor: cursor to metadata.name
+  const doc = stringify(template, null, { indentSeq: true });
   const r: ObjectRecord = {
-    object: stringify(template, null, { indentSeq: true }),
+    object: doc,
     metadata: {
       name: NAME_NEW,
     },
@@ -272,12 +272,13 @@ const newDraft = async () => {
     type,
     editing: true,
     unsaved: true,
+    selection: { anchor: doc.length - 1, head: doc.length - 1 - templateMeta.name.length},
   };
 
   await maybeGetSchema(r);
 
-  inspectedObjects.value.set(key, r);
-  tab.value = key;
+  inspectedObjects.value.set(templateMeta.name, r);
+  tab.value = templateMeta.name;
 };
 
 const closeTab = (key: string) => {
@@ -360,7 +361,7 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
     <WindowItem v-for="[key, r] in inspectedObjects" :key="key" :value="key">
       <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
         v-model="r.object" :schema="r.schema" :disabled="!r.editing"
-        @change="() => r.unsaved = true" />
+        :selection="r.selection" @change="() => r.unsaved = true" />
       <SpeedDialFab v-if="!r.editing">
         <SpeedDialBtn key="1" label="Delete" icon="mdi-delete" @click="() => _delete(r, key)" />
         <SpeedDialBtn key="2" label="Edit" icon="$edit" @click="() => r.editing = true" />
