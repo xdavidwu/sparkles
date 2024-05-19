@@ -169,7 +169,8 @@ const listObjects = async () => {
 
 const isCreationTimestamp = (c: V1TableColumnDefinition) =>
   (c.name === 'Age' && c.description.startsWith('CreationTimestamp ')) ||
-  c.description.includes('.metadata.creationTimestamp');
+  // k8s.io/apiextensions-apiserver/pkg/registry/customresource/tableconverter.New
+  c.description === 'Custom resource definition column (in JSONPath format): .metadata.creationTimestamp';
 
 const columns = computed<Array<{
   title: string,
