@@ -160,6 +160,8 @@ const columns = computed<Array<{
             key: CREATION_TIMESTAMP_COLUMN,
             value: (r: V1TableRow<V1PartialObjectMetadata>) => r.object.metadata!.creationTimestamp,
             description: c.description,
+            // reverse (time-to-timestamp from timestamp)
+            sort: (a: string, b: string) => b.localeCompare(a),
           };
         }
 
