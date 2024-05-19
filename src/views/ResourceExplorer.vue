@@ -22,7 +22,10 @@ import YAMLEditor from '@/components/YAMLEditor.vue';
 import { computed, watch, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDisplay } from 'vuetify';
-import { timestamp, useLastChanged, useTimeAgo } from '@vueuse/core';
+import {
+  formatTimeAgo, timestamp, useLastChanged, useTimeAgo,
+  type UseTimeAgoMessages, type UseTimeAgoUnitNamesDefault,
+} from '@vueuse/core';
 import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
 import { useNamespaces } from '@/stores/namespaces';
@@ -33,7 +36,7 @@ import { useErrorPresentation } from '@/stores/errorPresentation';
 import type { V1ObjectMeta } from '@/kubernetes-api/src';
 import {
   AnyApi, asYAML, fromYAML, chainOverrideFunction,
-  type V1Table, type V1PartialObjectMetadata,
+  type V1Table, type V1PartialObjectMetadata, type V1TableColumnDefinition, type V1TableRow,
 } from '@/utils/AnyApi';
 import type { JSONSchema4 } from 'json-schema';
 import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscovery } from '@/utils/discoveryV2';
@@ -62,6 +65,36 @@ const EMPTY_V1_TABLE: V1Table<V1PartialObjectMetadata> = {
   rows: [],
 };
 const NAME_NEW = '(new)'; // must be invalid
+
+const AGE_TIMEAGO_MESSAGES: UseTimeAgoMessages<UseTimeAgoUnitNamesDefault> = {
+  justNow: 'just now',
+  past: n => n, // title is age, adding "ago" feels wrong
+  future: n => n.match(/\d/) ? `in ${n}` : n, // possible with time skew
+  month: (n, past) => n === 1
+    ? past
+      ? 'last month'
+      : 'next month'
+    : `${n} month${n > 1 ? 's' : ''}`,
+  year: (n, past) => n === 1
+    ? past
+      ? 'last year'
+      : 'next year'
+    : `${n} year${n > 1 ? 's' : ''}`,
+  day: (n, past) => n === 1
+    ? past
+      ? 'yesterday'
+      : 'tomorrow'
+    : `${n} day${n > 1 ? 's' : ''}`,
+  week: (n, past) => n === 1
+    ? past
+      ? 'last week'
+      : 'next week'
+    : `${n} week${n > 1 ? 's' : ''}`,
+  hour: n => `${n} hour${n > 1 ? 's' : ''}`,
+  minute: n => `${n} minute${n > 1 ? 's' : ''}`,
+  second: n => `${n} second${n > 1 ? 's' : ''}`,
+  invalid: '',
+}
 
 const apiConfigStore = useApiConfig();
 const openAPISchemaDiscovery = useOpenAPISchemaDiscovery();
@@ -134,6 +167,10 @@ const listObjects = async () => {
   objectsLoading.value = false;
 };
 
+const isCreationTimestamp = (c: V1TableColumnDefinition) =>
+  (c.name === 'Age' && c.description.startsWith('CreationTimestamp ')) ||
+  c.description.includes('.metadata.creationTimestamp');
+
 const columns = computed<Array<{
   title: string,
   key: string,
@@ -145,11 +182,16 @@ const columns = computed<Array<{
   }] : []).concat(
     objects.value.columnDefinitions
       .filter((c) => verbose.value || c.priority === 0)
-      .map((c, i) => ({
+      .map((c, i) => isCreationTimestamp(c) ? {
+        title: c.name,
+        key: `creationTimestamp`,
+        value: (r: V1TableRow<V1PartialObjectMetadata>) => r.object.metadata!.creationTimestamp,
+        description: c.description,
+      } : {
         title: c.name,
         key: `cells.${i}`,
         description: c.description,
-      }))
+      })
   ),
 );
 
@@ -353,7 +395,14 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
           </div>
         </template>
         <template #item="{ props: itemProps }">
-          <VDataTableRow v-bind="itemProps" @click="inspectObject(itemProps.item.raw.object)" />
+          <VDataTableRow v-bind="itemProps" @click="inspectObject(itemProps.item.raw.object)">
+            <template #[`item.creationTimestamp`]="{ value }">
+              <span>
+                {{ formatTimeAgo(new Date(value), { showSecond: true, messages: AGE_TIMEAGO_MESSAGES }) }}
+                <LinkedTooltip :text="(new Date(value)).toLocaleString()" activator="parent" />
+              </span>
+            </template>
+          </VDataTableRow>
         </template>
       </VDataTable>
       <FixedFab icon="$plus" @click="newDraft" />
