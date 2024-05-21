@@ -451,7 +451,7 @@ export class AnyApi extends CustomObjectsApi {
     const headerParameters: HTTPHeaders = {};
 
     if (this.configuration && this.configuration.apiKey) {
-        headerParameters["authorization"] = this.configuration.apiKey("authorization"); // BearerToken authentication
+        headerParameters["authorization"] = await this.configuration.apiKey("authorization"); // BearerToken authentication
     }
 
     const response = await this.request({
