@@ -25,8 +25,7 @@ const createLineDelimitedJSONStream = () => {
   });
 };
 
-export async function* rawResponseToWatchEvents<T>(raw: ApiResponse<T>,
-    expectAbort = false) {
+export async function* rawResponseToWatchEvents<T>(raw: ApiResponse<T>) {
   const reader = raw.raw.body!
     .pipeThrough(new TextDecoderStream())
     .pipeThrough(createLineDelimitedJSONStream())
@@ -42,7 +41,7 @@ export async function* rawResponseToWatchEvents<T>(raw: ApiResponse<T>,
 
       yield V1WatchEventFromJSON(value);
     } catch (e) {
-      if (expectAbort && e instanceof DOMException && e.name === 'AbortError') {
+      if (e instanceof DOMException && e.name === 'AbortError') {
         return;
       }
       throw e;
@@ -54,20 +53,19 @@ export const watch = async (
     dest: Ref<Array<KubernetesObject>>,
     transformer: (obj: any) => KubernetesObject,
     watcher: () => Promise<ApiResponse<KubernetesList>>,
-    expectAbort: boolean = true,
   ) => {
   let updates: ApiResponse<KubernetesList> | null = null;
   try {
     updates = await watcher();
   } catch (e) {
-    if (expectAbort && e instanceof FetchError &&
+    if (e instanceof FetchError &&
         e.cause instanceof DOMException && e.cause.name === 'AbortError') {
       return;
     }
     throw e;
   }
 
-  for await (const event of rawResponseToWatchEvents(updates!, expectAbort)) {
+  for await (const event of rawResponseToWatchEvents(updates!)) {
     if (event.type === 'ADDED') {
       const obj = transformer(event.object);
       dest.value.push(obj);
@@ -82,31 +80,12 @@ export const watch = async (
   }
 };
 
-export const listAndWatch = async<ListOpt> (
-    dest: Ref<Array<KubernetesObject>>,
-    transformer: (obj: any) => KubernetesObject,
-    lister: (opt: ListOpt) => Promise<ApiResponse<KubernetesList>>,
-    opt: ListOpt,
-    expectAbortOnWatch: boolean = true,
-  ) => {
-  const listResponse = await (await lister(opt)).value();
-  dest.value = listResponse.items;
-
-  await watch(
-    dest,
-    transformer,
-    () => lister({ ...opt, resourceVersion: listResponse.metadata!.resourceVersion, watch: true }),
-    expectAbortOnWatch,
-  );
-};
-
 export const listAndUnwaitedWatch = async<ListOpt> (
     dest: Ref<Array<KubernetesObject>>,
     transformer: (obj: any) => KubernetesObject,
     lister: (opt: ListOpt) => Promise<ApiResponse<KubernetesList>>,
     opt: ListOpt,
     catcher: Parameters<Promise<void>['catch']>[0],
-    expectAbortOnWatch: boolean = true,
   ) => {
   const listResponse = await (await lister(opt)).value();
   dest.value = listResponse.items;
@@ -115,7 +94,6 @@ export const listAndUnwaitedWatch = async<ListOpt> (
     dest,
     transformer,
     () => lister({ ...opt, resourceVersion: listResponse.metadata!.resourceVersion, watch: true }),
-    expectAbortOnWatch,
   ).catch(catcher);
 };
 
@@ -129,7 +107,6 @@ export const listAndUnwaitedWatchTable = async<ListOpt> (
     lister: (opt: ListOpt) => Promise<ApiResponse<V1Table<V1PartialObjectMetadata>>>,
     opt: ListOpt,
     catcher: Parameters<Promise<void>['catch']>[0],
-    expectAbortOnWatch: boolean = true,
   ) => {
   const listResponse = await (await lister(opt)).value();
   if (listResponse.rows === undefined) {
@@ -146,14 +123,14 @@ export const listAndUnwaitedWatchTable = async<ListOpt> (
         watch: true
       });
     } catch (e) {
-      if (expectAbortOnWatch && e instanceof FetchError &&
+      if (e instanceof FetchError &&
           e.cause instanceof DOMException && e.cause.name === 'AbortError') {
         return;
       }
       throw e;
     }
 
-    for await (const event of rawResponseToWatchEvents(updates!, expectAbortOnWatch)) {
+    for await (const event of rawResponseToWatchEvents(updates!)) {
       const obj = <V1Table<V1PartialObjectMetadata>> event.object;
       if (event.type === 'ADDED') {
         dest.value.rows!.push(...obj.rows!);

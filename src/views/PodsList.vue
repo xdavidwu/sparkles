@@ -27,7 +27,7 @@ import {
   type V1Pod, V1PodFromJSON, type V1Container, type V1ContainerStatus,
 } from '@/kubernetes-api/src';
 import { truncateStart } from '@/utils/text';
-import { listAndWatch } from '@/utils/watch';
+import { listAndUnwaitedWatch } from '@/utils/watch';
 
 interface ContainerSpec {
   pod: string,
@@ -136,10 +136,11 @@ watch(selectedNamespace, async (namespace) => {
   }
   abortRequests();
 
-  listAndWatch(_pods, V1PodFromJSON,
+  await listAndUnwaitedWatch(_pods, V1PodFromJSON,
     (opt) => api.listNamespacedPodRaw(opt, { signal: signal.value }),
-    { namespace })
-      .catch((e) => useErrorPresentation().pendingError = e);
+    { namespace },
+    (e) => useErrorPresentation().pendingError = e,
+  );
 }, { immediate: true });
 
 const closeTab = (index: number) => {

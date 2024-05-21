@@ -13,7 +13,7 @@ import {
   type V1Pod, V1PodFromJSON,
 } from '@/kubernetes-api/src';
 import { uniqueKeyForObject } from '@/utils/objects';
-import { listAndWatch } from '@/utils/watch';
+import { listAndUnwaitedWatch } from '@/utils/watch';
 import { real } from '@ragnarpa/quantity';
 
 const namespacesStore = useNamespaces();
@@ -84,15 +84,17 @@ watch(selectedNamespace, async (namespace) => {
   }
   abortRequests();
 
-  listAndWatch(quotas, V1ResourceQuotaFromJSON,
+  await listAndUnwaitedWatch(quotas, V1ResourceQuotaFromJSON,
     (opt) => api.listNamespacedResourceQuotaRaw(opt, { signal: signal.value }),
-    { namespace })
-      .catch((e) => useErrorPresentation().pendingError = e);
+    { namespace },
+    (e) => useErrorPresentation().pendingError = e,
+  );
 
-  listAndWatch(pods, V1PodFromJSON,
+  await listAndUnwaitedWatch(pods, V1PodFromJSON,
     (opt) => api.listNamespacedPodRaw(opt, { signal: signal.value }),
-    { namespace })
-      .catch((e) => useErrorPresentation().pendingError = e);
+    { namespace },
+    (e) => useErrorPresentation().pendingError = e,
+  );
 }, { immediate: true });
 </script>
 

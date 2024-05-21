@@ -22,7 +22,7 @@ import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
 import { stringify } from 'yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
-import { listAndWatch } from '@/utils/watch';
+import { listAndUnwaitedWatch } from '@/utils/watch';
 import '@/vendor/wasm_exec';
 
 interface ValuesTab {
@@ -170,10 +170,11 @@ watch(selectedNamespace, async (namespace) => {
     return;
   }
   abortRequests();
-  listAndWatch(secrets, V1SecretFromJSON,
+  await listAndUnwaitedWatch(secrets, V1SecretFromJSON,
     (opt) => api.listNamespacedSecretRaw(opt, { signal: signal.value }),
-    { namespace, labelSelector: 'owner=helm' })
-      .catch((e) => useErrorPresentation().pendingError = e);
+    { namespace, labelSelector: 'owner=helm' },
+    (e) => useErrorPresentation().pendingError = e,
+  );
 }, { immediate: true });
 
 onMounted(setupGo);
