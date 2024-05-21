@@ -44,29 +44,16 @@ const tabs = ref<Array<ValuesTab>>([]);
 // helm.sh/helm/v3/pkg/storage/driver.Secrets.List
 const releases = computedAsync(async () => (await Promise.all(secrets.value.map(async (s) => {
   // TODO handle malformed secrets
-  const gzipped = Uint8Array.from(atob(atob(s.data?.release!)), (c) => c.codePointAt(0)!);
-  const gunzip = new DecompressionStream('gzip');
-  const w = gunzip.writable.getWriter();
-  const write = async () => {
-    await w.write(gzipped);
-    await w.close();
+  const gzipped = (await fetch(
+    `data:application/octet-stream;base64,${atob(s.data?.release!)}`,
+  )).body!;
+  const stream = gzipped.pipeThrough(new DecompressionStream('gzip'));
+
+  const release = await (new Response(stream)).json();
+  return {
+    ...release,
+    labels: s.metadata!.labels,
   };
-  write();
-  const r = gunzip.readable.pipeThrough(new TextDecoderStream()).getReader();
-  let json = '';
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const { value, done } = await r.read();
-
-    if (done) {
-      break;
-    }
-
-    json += value;
-  }
-  const release = JSON.parse(json);
-  release.labels = s.metadata!.labels;
-  return release;
 }))).sort((a: any, b: any) => {
   if (a.chart.metadata.name !== b.chart.metadata.name) {
     return a.chart.metadata.name.localeCompare(b.chart.metadata.name);
