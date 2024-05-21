@@ -24,6 +24,20 @@ const createLineDelimitedJSONStream = () => {
   });
 };
 
+async function* streamToGenerator<T>(r: ReadableStream<T>) {
+  const reader = r.getReader();
+
+  while (true) {
+      const { value, done } = await reader.read();
+
+      if (done) {
+        return;
+      }
+
+      yield value;
+  }
+}
+
 type TypedV1WatchEvent<T extends object> = V1WatchEvent & {
   object: T,
 };
@@ -33,16 +47,16 @@ function rawResponseToWatchEvents<T extends KubernetesObject>(
   transformer: (obj: any) => T,
 ): AsyncGenerator<TypedV1WatchEvent<T>>;
 
-  function rawResponseToWatchEvents(
+function rawResponseToWatchEvents(
   raw: ApiResponse<V1Table>,
 ): AsyncGenerator<TypedV1WatchEvent<V1Table<V1PartialObjectMetadata>>>;
 
 // TODO support table with transformer?
-async function* rawResponseToWatchEvents(
-    raw: ApiResponse<any>,
-    transformer: (obj: any) => any = (v) => v,
+function rawResponseToWatchEvents(
+  raw: ApiResponse<any>,
+  transformer: (obj: any) => any = (v) => v,
 ) {
-  const reader = raw.raw.body!
+  const stream = raw.raw.body!
     .pipeThrough(new TextDecoderStream())
     .pipeThrough(createLineDelimitedJSONStream())
     .pipeThrough(new TransformStream({
@@ -55,35 +69,18 @@ async function* rawResponseToWatchEvents(
         controller.enqueue(ev);
       },
       flush: () => {},
-    }))
-    .getReader();
-
-  while (true) {
-    try {
-      const { value, done } = await reader.read();
-
-      if (done) {
-        return;
-      }
-
-      yield value;
-    } catch (e) {
-      if (e instanceof DOMException && e.name === 'AbortError') {
-        return;
-      }
-      throw e;
-    }
-  }
+    }));
+  return streamToGenerator(stream);
 }
 
-export const watch = async<T extends KubernetesObject> (
+const watch = async<T extends KubernetesObject> (
     dest: Ref<Array<T>>,
     transformer: (obj: any) => T,
-    watcher: () => Promise<ApiResponse<KubernetesList<T>>>,
+    watchResponse: Promise<ApiResponse<KubernetesList<T>>>,
   ) => {
   let updates: ApiResponse<KubernetesList<T>> | null = null;
   try {
-    updates = await watcher();
+    updates = await watchResponse;
   } catch (e) {
     if (e instanceof FetchError &&
         e.cause instanceof DOMException && e.cause.name === 'AbortError') {
@@ -92,15 +89,22 @@ export const watch = async<T extends KubernetesObject> (
     throw e;
   }
 
-  for await (const event of rawResponseToWatchEvents(updates!, transformer)) {
-    if (event.type === 'ADDED') {
-      dest.value.push(event.object);
-    } else if (event.type === 'DELETED') {
-      dest.value = dest.value.filter((v) => !isSameKubernetesObject(event.object, v));
-    } else if (event.type === 'MODIFIED') {
-      const index = dest.value.findIndex((v) => isSameKubernetesObject(event.object, v));
-      dest.value[index] = event.object;
+  try {
+    for await (const event of rawResponseToWatchEvents(updates!, transformer)) {
+      if (event.type === 'ADDED') {
+        dest.value.push(event.object);
+      } else if (event.type === 'DELETED') {
+        dest.value = dest.value.filter((v) => !isSameKubernetesObject(event.object, v));
+      } else if (event.type === 'MODIFIED') {
+        const index = dest.value.findIndex((v) => isSameKubernetesObject(event.object, v));
+        dest.value[index] = event.object;
+      }
     }
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      return;
+    }
+    throw e;
   }
 };
 
@@ -117,7 +121,7 @@ export const listAndUnwaitedWatch = async<T extends KubernetesObject, ListOpt> (
   watch(
     dest,
     transformer,
-    () => lister({ ...opt, resourceVersion: listResponse.metadata!.resourceVersion, watch: true }),
+    lister({ ...opt, resourceVersion: listResponse.metadata!.resourceVersion, watch: true }),
   ).catch(catcher);
 };
 
@@ -154,19 +158,26 @@ export const listAndUnwaitedWatchTable = async<ListOpt> (
       throw e;
     }
 
-    for await (const event of rawResponseToWatchEvents(updates!)) {
-      if (event.type === 'ADDED') {
-        dest.value.rows!.push(...event.object.rows!);
-      } else if (event.type === 'DELETED') {
-        dest.value.rows = dest.value.rows!.filter((v) => !isKubernetesObjectInRows(v, event.object.rows!));
-      } else if (event.type === 'MODIFIED') {
-        for (const r of event.object.rows!) {
-          const index = dest.value.rows!.findIndex(
-            (v) => isSameKubernetesObject(v.object, r.object)
-          );
-          dest.value.rows![index] = r;
+    try {
+      for await (const event of rawResponseToWatchEvents(updates!)) {
+        if (event.type === 'ADDED') {
+          dest.value.rows!.push(...event.object.rows!);
+        } else if (event.type === 'DELETED') {
+          dest.value.rows = dest.value.rows!.filter((v) => !isKubernetesObjectInRows(v, event.object.rows!));
+        } else if (event.type === 'MODIFIED') {
+          for (const r of event.object.rows!) {
+            const index = dest.value.rows!.findIndex(
+              (v) => isSameKubernetesObject(v.object, r.object)
+            );
+            dest.value.rows![index] = r;
+          }
         }
       }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        return;
+      }
+      throw e;
     }
   })().catch(catcher);
 };
