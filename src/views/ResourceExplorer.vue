@@ -221,17 +221,16 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     return;
   }
 
-  const options = {
-    group: targetGroupVersion.value.group,
-    version: targetGroupVersion.value.version,
-    plural: targetType.value.resource,
-    name: obj.metadata!.name!,
-    namespace: obj.metadata!.namespace,
-  };
   const r: ObjectRecord = {
     object: await (await anyApi[
       `get${obj.metadata!.namespace ? 'Namespaced' : 'Cluster'}CustomObjectRaw`
-    ](options as typeof options & { namespace: string }, asYAML)).raw.text(),
+      ]({
+        group: targetGroupVersion.value.group,
+        version: targetGroupVersion.value.version,
+        plural: targetType.value.resource,
+        name: obj.metadata!.name!,
+        namespace: obj.metadata!.namespace!,
+      }, asYAML)).raw.text(),
     metadata: obj.metadata!,
     gv,
     type,
