@@ -24,6 +24,10 @@ Notes:
 ## Optional
 
 - metrics.k8s.io v1beta1
+- [KEP 2885](https://github.com/kubernetes/enhancements/issues/2885) ServerSideFieldValidation
+  - Alpha: 1.23
+  - Beta: 1.25 (enabled by default)
+  - GA: 1.27
 - [KEP 2896](https://github.com/kubernetes/enhancements/issues/2896) OpenAPI v3
   - Alpha: 1.23
   - Beta: 1.24

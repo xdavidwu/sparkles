@@ -266,6 +266,7 @@ const save = async (r: ObjectRecord) => {
     name: method === 'create' ? meta?.name : r.metadata.name!,
     namespace: method === 'create' ? meta?.namespace : r.metadata.namespace!,
     fieldManager: import.meta.env.VITE_APP_BRANDING ?? 'Sparkles',
+    fieldValidation: 'Strict',
     body: new Blob([r.object], { type: 'application/yaml' }),
   }, chainOverrideFunction(fromYAML, asYAML))).raw.text();
   if (method === 'create') {
