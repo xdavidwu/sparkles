@@ -158,8 +158,10 @@ watch(selectedNamespace, async (namespace) => {
   }
   abortRequests();
   await listAndUnwaitedWatch(secrets, V1SecretFromJSON,
-    (opt) => api.listNamespacedSecretRaw(opt, { signal: signal.value }),
-    { namespace, labelSelector: 'owner=helm' },
+    (opt) => api.listNamespacedSecretRaw(
+      { ...opt, namespace, labelSelector: 'owner=helm' },
+      { signal: signal.value },
+    ),
     (e) => useErrorPresentation().pendingError = e,
   );
 }, { immediate: true });

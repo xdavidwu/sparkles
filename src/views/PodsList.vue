@@ -137,8 +137,7 @@ watch(selectedNamespace, async (namespace) => {
   abortRequests();
 
   await listAndUnwaitedWatch(_pods, V1PodFromJSON,
-    (opt) => api.listNamespacedPodRaw(opt, { signal: signal.value }),
-    { namespace },
+    (opt) => api.listNamespacedPodRaw({ ...opt, namespace }, { signal: signal.value }),
     (e) => useErrorPresentation().pendingError = e,
   );
 }, { immediate: true });

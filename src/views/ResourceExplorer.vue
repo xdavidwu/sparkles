@@ -126,8 +126,7 @@ const listObjects = async () => {
   if (targetType.value.verbs.includes('watch')) {
     await listAndUnwaitedWatchTable(
       objects,
-      (opt) => anyApi[`list${listType}CustomObjectAsTableRaw`](opt, { signal: signal.value }),
-      options,
+      (opt) => anyApi[`list${listType}CustomObjectAsTableRaw`]({ ...opt, ...options }, { signal: signal.value }),
       (e) => useErrorPresentation().pendingError = e,
     );
   } else {

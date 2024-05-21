@@ -85,14 +85,12 @@ watch(selectedNamespace, async (namespace) => {
   abortRequests();
 
   await listAndUnwaitedWatch(quotas, V1ResourceQuotaFromJSON,
-    (opt) => api.listNamespacedResourceQuotaRaw(opt, { signal: signal.value }),
-    { namespace },
+    (opt) => api.listNamespacedResourceQuotaRaw({ ...opt, namespace }, { signal: signal.value }),
     (e) => useErrorPresentation().pendingError = e,
   );
 
   await listAndUnwaitedWatch(pods, V1PodFromJSON,
-    (opt) => api.listNamespacedPodRaw(opt, { signal: signal.value }),
-    { namespace },
+    (opt) => api.listNamespacedPodRaw({ ...opt, namespace }, { signal: signal.value }),
     (e) => useErrorPresentation().pendingError = e,
   );
 }, { immediate: true });

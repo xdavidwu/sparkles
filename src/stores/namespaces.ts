@@ -39,7 +39,6 @@ export const useNamespaces = defineStore('namespace', () => {
           _namespaces,
           V1NamespaceFromJSON,
           (opt) => api.listNamespaceRaw(opt),
-          {},
           (e) => useErrorPresentation().pendingError = e,
         )
         setDefaultNamespace(namespaces.value);

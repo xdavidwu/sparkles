@@ -39,7 +39,7 @@ async function* streamToGenerator<T>(r: ReadableStream<T>) {
 }
 
 type TypedV1WatchEvent<T extends object> = V1WatchEvent & {
-  object: T,
+  object: T;
 };
 
 function rawResponseToWatchEvents<T extends KubernetesObject>(
@@ -108,20 +108,24 @@ const watch = async<T extends KubernetesObject> (
   }
 };
 
-export const listAndUnwaitedWatch = async<T extends KubernetesObject, ListOpt> (
+interface WatchOpt {
+  watch?: boolean;
+  resourceVersion?: string;
+}
+
+export const listAndUnwaitedWatch = async<T extends KubernetesObject> (
     dest: Ref<Array<T>>,
     transformer: (obj: any) => T,
-    lister: (opt: ListOpt) => Promise<ApiResponse<KubernetesList<T>>>,
-    opt: ListOpt,
+    lister: (opt: WatchOpt) => Promise<ApiResponse<KubernetesList<T>>>,
     catcher: Parameters<Promise<void>['catch']>[0],
   ) => {
-  const listResponse = await (await lister(opt)).value();
+  const listResponse = await (await lister({})).value();
   dest.value = listResponse.items;
 
   watch(
     dest,
     transformer,
-    lister({ ...opt, resourceVersion: listResponse.metadata!.resourceVersion, watch: true }),
+    lister({ resourceVersion: listResponse.metadata!.resourceVersion, watch: true }),
   ).catch(catcher);
 };
 
@@ -130,13 +134,12 @@ const isKubernetesObjectInRows = (
   b: Array<V1TableRow<V1PartialObjectMetadata>>,
 ) => b.some((v) => isSameKubernetesObject(a.object, v.object));
 
-export const listAndUnwaitedWatchTable = async<ListOpt> (
+export const listAndUnwaitedWatchTable = async (
     dest: Ref<V1Table<V1PartialObjectMetadata>>,
-    lister: (opt: ListOpt) => Promise<ApiResponse<V1Table<V1PartialObjectMetadata>>>,
-    opt: ListOpt,
+    lister: (opt: WatchOpt) => Promise<ApiResponse<V1Table<V1PartialObjectMetadata>>>,
     catcher: Parameters<Promise<void>['catch']>[0],
   ) => {
-  const listResponse = await (await lister(opt)).value();
+  const listResponse = await (await lister({})).value();
   if (listResponse.rows === undefined) {
     listResponse.rows = [];
   }
@@ -146,7 +149,6 @@ export const listAndUnwaitedWatchTable = async<ListOpt> (
     let updates: ApiResponse<V1Table> | null = null;
     try {
       updates = await lister({
-        ...opt,
         resourceVersion: listResponse.metadata!.resourceVersion,
         watch: true
       });
