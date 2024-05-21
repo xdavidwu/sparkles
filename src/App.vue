@@ -203,7 +203,7 @@ watch(pendingToast, (toast) => {
           </Suspense>
         </RouterView>
       </VContainer>
-      <VSnackbar v-model="showsSnackbar">
+      <VSnackbar v-model="showsSnackbar" class="text-pre-wrap">
         {{ snackbarMessage }}
         <template #actions>
           <VBtn variant="text" @click="showsSnackbar = false">Close</VBtn>
