@@ -5,7 +5,8 @@ import type { Terminal } from '@xterm/xterm';
 import { openpty } from 'xterm-pty';
 import { useAbortController } from '@/composables/abortController';
 import { useApiConfig } from '@/stores/apiConfig';
-import { CoreV1Api, FetchError } from '@/kubernetes-api/src';
+import { CoreV1Api } from '@/kubernetes-api/src';
+import { errorIsAborted, rawErrorIsAborted } from '@/utils/api';
 
 const props = defineProps<{
   containerSpec: {
@@ -39,8 +40,7 @@ const display = async (terminal: Terminal) => {
       signal: signal.value,
     })).raw.body!.pipeThrough(new TextDecoderStream()).getReader();
   } catch (e) {
-    if (e instanceof FetchError &&
-        e.cause instanceof DOMException && e.cause.name === 'AbortError') {
+    if (errorIsAborted(e)) {
       return;
     }
     throw e;
@@ -49,7 +49,7 @@ const display = async (terminal: Terminal) => {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const { value, done } = await response.read().catch((e) => {
-      if (e instanceof DOMException && e.name === 'AbortError') {
+      if (rawErrorIsAborted(e)) {
         return { value: '', done: true };
       }
       throw e;

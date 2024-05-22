@@ -2,6 +2,7 @@ import {
   AuthenticationV1Api,
   AuthenticationV1beta1Api,
   Configuration,
+  FetchError,
   ResponseError,
   type V1SelfSubjectReview,
   V1StatusFromJSON,
@@ -17,6 +18,12 @@ export const errorIsTypeUnsupported = async (err: any) => {
   }
   return false;
 }
+
+export const rawErrorIsAborted = (err: any) =>
+  err instanceof DOMException && err.name === 'AbortError';
+
+export const errorIsAborted = (err: any) =>
+  err instanceof FetchError && rawErrorIsAborted(err.cause);
 
 // v1beta1 and v1 SelfSubjectReview is actually the same
 export const doSelfSubjectReview = async (config: Configuration): Promise<V1SelfSubjectReview> => {

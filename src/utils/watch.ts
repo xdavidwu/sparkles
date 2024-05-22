@@ -1,9 +1,10 @@
 import {
-  FetchError, V1WatchEventFromJSON,
+  V1WatchEventFromJSON,
   type ApiResponse, type V1WatchEvent,
 } from '@/kubernetes-api/src';
 import type { V1PartialObjectMetadata, V1Table, V1TableRow } from '@/utils/AnyApi';
 import { isSameKubernetesObject, type KubernetesObject, type KubernetesList } from '@/utils/objects';
+import { rawErrorIsAborted, errorIsAborted } from '@/utils/api';
 import type { Ref } from 'vue';
 
 const createLineDelimitedJSONStream = () => {
@@ -82,8 +83,7 @@ const watch = async<T extends KubernetesObject> (
   try {
     updates = await watchResponse;
   } catch (e) {
-    if (e instanceof FetchError &&
-        e.cause instanceof DOMException && e.cause.name === 'AbortError') {
+    if (errorIsAborted(e)) {
       return;
     }
     throw e;
@@ -101,7 +101,7 @@ const watch = async<T extends KubernetesObject> (
       }
     }
   } catch (e) {
-    if (e instanceof DOMException && e.name === 'AbortError') {
+    if (rawErrorIsAborted(e)) {
       return;
     }
     throw e;
@@ -153,8 +153,7 @@ export const listAndUnwaitedWatchTable = async (
         watch: true
       });
     } catch (e) {
-      if (e instanceof FetchError &&
-          e.cause instanceof DOMException && e.cause.name === 'AbortError') {
+      if (errorIsAborted(e)) {
         return;
       }
       throw e;
@@ -176,7 +175,7 @@ export const listAndUnwaitedWatchTable = async (
         }
       }
     } catch (e) {
-      if (e instanceof DOMException && e.name === 'AbortError') {
+      if (rawErrorIsAborted(e)) {
         return;
       }
       throw e;
