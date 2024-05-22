@@ -59,10 +59,6 @@ interface ObjectRecord {
   selection?: { anchor: number, head: number },
 }
 
-const EMPTY_V1_TABLE: V1Table<V1PartialObjectMetadata> = {
-  columnDefinitions: [],
-  rows: [],
-};
 const NAME_NEW = '(new)'; // must be invalid
 const CREATION_TIMESTAMP_COLUMN = 'creationTimestamp';
 
@@ -99,7 +95,10 @@ const defaultTargetType = () =>
   types.value.find((v) => v.verbs.includes('watch')) ?? types.value[0];
 
 const targetType = nonNullableRef(defaultTargetType());
-const objects = ref(EMPTY_V1_TABLE);
+const objects = ref<V1Table<V1PartialObjectMetadata>>({
+  columnDefinitions: [],
+  rows: [],
+});
 const lastUpdatedAt = useLastChanged(objects, { initialValue: timestamp() });
 const lastUpdated = useTimeAgo(lastUpdatedAt);
 const objectsLoading = ref(false);
@@ -121,9 +120,7 @@ const listObjects = async () => {
     plural: targetType.value.resource,
     namespace: selectedNamespace.value,
   };
-  const listType =
-    (targetType.value.scope === V2ResourceScope.Namespaced && !allNamespaces.value) ?
-    'Namespaced' : 'Cluster';
+  const listType = allNamespaces.value ? 'Cluster' : targetType.value.scope;
   if (targetType.value.verbs.includes('watch')) {
     await listAndUnwaitedWatchTable(
       objects,
@@ -193,28 +190,20 @@ const table = computed(() => {
   return { rows };
 });
 
-const maybeGetSchema = async (r: ObjectRecord) => {
-  try {
-    r.schema = await openAPISchemaDiscovery.getJSONSchema({
-      group: r.gv.group,
-      version: r.gv.version,
-      type: r.type,
-    });
-  } catch (e) {
-    //shrug
-    console.log('Failed to get schema', e);
-  }
-};
-
+const maybeGetSchema = (r: ObjectRecord) =>
+  openAPISchemaDiscovery.getJSONSchema({
+    group: r.gv.group,
+    version: r.gv.version,
+    type: r.type,
+  }).catch((e) => console.log('Failed to get schema', e));
 
 const inspectObject = async (obj: V1PartialObjectMetadata) => {
   const gv = targetGroupVersion.value, type = targetType.value;
-  const objWithKind = {
-    ...obj,
+  const key = uniqueKeyForObject({
     apiVersion: gv.groupVersion,
     kind: type.responseKind.kind,
-  };
-  const key = uniqueKeyForObject(objWithKind);
+    metadata: obj.metadata,
+  });
   const entry = inspectedObjects.value.get(key);
   if (entry) {
     tab.value = key;
@@ -223,11 +212,11 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
 
   const r: ObjectRecord = {
     object: await (await anyApi[
-      `get${obj.metadata!.namespace ? 'Namespaced' : 'Cluster'}CustomObjectRaw`
+      `get${type.scope}CustomObjectRaw`
       ]({
-        group: targetGroupVersion.value.group,
-        version: targetGroupVersion.value.version,
-        plural: targetType.value.resource,
+        group: gv.group,
+        version: gv.version,
+        plural: type.resource,
         name: obj.metadata!.name!,
         namespace: obj.metadata!.namespace!,
       }, asYAML)).raw.text(),
@@ -238,7 +227,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     unsaved: false,
   };
 
-  await maybeGetSchema(r);
+  r.schema = await maybeGetSchema(r) ?? undefined;
 
   inspectedObjects.value.set(key, r);
   tab.value = key;
@@ -246,10 +235,10 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
 
 const save = async (r: ObjectRecord) => {
   const method = r.metadata.name === NAME_NEW ? 'create' : 'replace';
-  let meta;
+  let createMeta;
   if (method === 'create') {
     try {
-      meta = parse(r.object)?.metadata;
+      createMeta = parse(r.object)?.metadata;
     } catch (e) {
       throw new PresentedError(`Cannot parse YAML:\n${e}`);
     }
@@ -257,29 +246,29 @@ const save = async (r: ObjectRecord) => {
 
   // TODO apply: diff, ssa? how to delete field?
   r.object = await (await anyApi[
-    `${method}${r.type.scope === V2ResourceScope.Namespaced ? 'Namespaced' : 'Cluster'}CustomObjectRaw`
+    `${method}${r.type.scope}CustomObjectRaw`
   ]({
     group: r.gv.group,
     version: r.gv.version,
     plural: r.type.resource,
-    name: method === 'create' ? meta?.name : r.metadata.name!,
-    namespace: method === 'create' ? meta?.namespace : r.metadata.namespace!,
+    name: method === 'create' ? createMeta?.name : r.metadata.name!,
+    namespace: method === 'create' ? createMeta?.namespace : r.metadata.namespace!,
     fieldManager: import.meta.env.VITE_APP_BRANDING ?? 'Sparkles',
     fieldValidation: 'Strict',
     body: new Blob([r.object], { type: 'application/yaml' }),
   }, chainOverrideFunction(fromYAML, asYAML))).raw.text();
   if (method === 'create') {
-    r.metadata.name = meta?.name;
-    r.metadata.namespace = meta?.namespace;
+    r.metadata.name = createMeta?.name;
+    r.metadata.namespace = createMeta?.namespace;
   }
   r.unsaved = false;
   r.editing = false;
 
-  // TODO create: reset key
+  // TODO create: reset key?
 };
 
 const _delete = async (r: ObjectRecord, key: string) => {
-  await anyApi[`delete${r.metadata.namespace ? 'Namespaced' : 'Cluster'}CustomObject`]({
+  await anyApi[`delete${r.type.scope}CustomObject`]({
     group: r.gv.group,
     version: r.gv.version,
     plural: r.type.resource,
@@ -291,16 +280,14 @@ const _delete = async (r: ObjectRecord, key: string) => {
 
 const newDraft = async () => {
   const gv = targetGroupVersion.value, type = targetType.value;
-  const templateMeta: V1ObjectMeta = {};
-  if (type.scope === V2ResourceScope.Namespaced) {
-    templateMeta.namespace = selectedNamespace.value;
-  }
-  // make it order last to be friendlier
-  templateMeta.name = crypto.randomUUID();
   const template: KubernetesObject = {
     apiVersion: gv.groupVersion,
     kind: type.responseKind.kind,
-    metadata: templateMeta,
+    metadata: {
+      namespace: type.scope === V2ResourceScope.Namespaced ? selectedNamespace.value : undefined,
+      // make it order last to be friendlier
+      name: crypto.randomUUID(),
+    },
   };
   const doc = stringify(template, null, { indentSeq: true });
   const r: ObjectRecord = {
@@ -312,13 +299,13 @@ const newDraft = async () => {
     type,
     editing: true,
     unsaved: true,
-    selection: { anchor: doc.length - 1, head: doc.length - 1 - templateMeta.name.length},
+    selection: { anchor: doc.length - 1, head: doc.length - 1 - template.metadata!.name!.length},
   };
 
-  await maybeGetSchema(r);
+  r.schema = await maybeGetSchema(r) ?? undefined;
 
-  inspectedObjects.value.set(templateMeta.name, r);
-  tab.value = templateMeta.name;
+  inspectedObjects.value.set(template.metadata!.name!, r);
+  tab.value = template.metadata!.name!;
 };
 
 const closeTab = (key: string) => {
