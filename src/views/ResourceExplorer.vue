@@ -32,10 +32,10 @@ import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import type { V1ObjectMeta } from '@/kubernetes-api/src';
 import {
-  AnyApi, asYAML, fromYAML, chainOverrideFunction,
+  AnyApi,
   type V1Table, type V1PartialObjectMetadata, type V1TableColumnDefinition, type V1TableRow,
 } from '@/utils/AnyApi';
-import type { JSONSchema4 } from 'json-schema';
+import { asYAML, fromYAML, chainOverrideFunction } from '@/utils/api';
 import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscovery } from '@/utils/discoveryV2';
 import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
@@ -43,6 +43,7 @@ import { truncate, truncateStart } from '@/utils/text';
 import { humanDuration } from '@/utils/duration';
 import { nonNullableRef } from '@/utils/reactivity';
 import { PresentedError } from '@/utils/PresentedError';
+import type { JSONSchema4 } from 'json-schema';
 import { stringify, parse } from 'yaml';
 
 type GroupVersion = V2APIVersionDiscovery & { group?: string, groupVersion: string };

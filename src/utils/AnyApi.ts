@@ -17,12 +17,12 @@ import {
   type V1ListMeta,
   type V1ObjectMeta,
   type HTTPHeaders,
-  type HTTPRequestInit,
   type Middleware,
   type InitOverrideFunction,
 } from '@/kubernetes-api/src';
 import type { OpenAPIV3 } from 'openapi-types';
 import type { KubernetesObject } from '@/utils/objects';
+import { chainOverrideFunction, type ChainableInitOverrideFunction } from '@/utils/api';
 
 type PartiallyRequired<T, C extends keyof T> = Omit<T, C> & Partial<Pick<T, C>>;
 
@@ -71,9 +71,6 @@ const toCore: Middleware['pre'] = async (context) => ({
   url: context.url.replace(`apis/${corePlaceholder}`, 'api'),
 });
 
-type ChainableInitOverrideFunction = (...p: Parameters<InitOverrideFunction>) =>
-  (Promise<Awaited<ReturnType<InitOverrideFunction>> & HTTPRequestInit & { headers: HTTPHeaders }>);
-
 const asTable: ChainableInitOverrideFunction = async (context) => {
   const overridden = {
     ...context.init,
@@ -82,36 +79,6 @@ const asTable: ChainableInitOverrideFunction = async (context) => {
   overridden.headers['accept'] = 'application/json;as=Table;g=meta.k8s.io;v=v1';
   return overridden;
 };
-
-export const asYAML: ChainableInitOverrideFunction = async (context) => {
-  const overridden = {
-    ...context.init,
-    headers: context.init.headers ?? {},
-  };
-  overridden.headers['accept'] = 'application/yaml';
-  return overridden;
-};
-
-export const fromYAML: ChainableInitOverrideFunction = async (context) => {
-  const overridden = {
-    ...context.init,
-    headers: context.init.headers ?? {},
-  };
-  overridden.headers['Content-Type'] = 'application/yaml';
-  return overridden;
-};
-
-const identityOverrideFn: InitOverrideFunction = async ({ init }) => init;
-
-export const chainOverrideFunction = (
-  a: ChainableInitOverrideFunction,
-  b?: RequestInit | InitOverrideFunction,
-): InitOverrideFunction =>
-  async (c) => {
-    const fn = b === undefined ? identityOverrideFn : (
-      typeof b === 'function' ? b : async () => b);
-    return await fn({ init: await a(c), context: c.context });
-  };
 
 // https://github.com/kubernetes/apimachinery/blob/master/pkg/apis/meta/v1/types.go
 

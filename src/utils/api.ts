@@ -1,12 +1,43 @@
 import {
-  AuthenticationV1Api,
-  AuthenticationV1beta1Api,
-  Configuration,
-  FetchError,
-  ResponseError,
-  type V1SelfSubjectReview,
+  AuthenticationV1Api, AuthenticationV1beta1Api,
   V1StatusFromJSON,
+  type V1SelfSubjectReview,
+  Configuration, FetchError, ResponseError,
+  type InitOverrideFunction, type HTTPRequestInit, type HTTPHeaders,
 } from '@/kubernetes-api/src';
+
+export type ChainableInitOverrideFunction = (...p: Parameters<InitOverrideFunction>) =>
+  (Promise<Awaited<ReturnType<InitOverrideFunction>> & HTTPRequestInit & { headers: HTTPHeaders }>);
+
+export const asYAML: ChainableInitOverrideFunction = async (context) => {
+  const overridden = {
+    ...context.init,
+    headers: context.init.headers ?? {},
+  };
+  overridden.headers['accept'] = 'application/yaml';
+  return overridden;
+};
+
+export const fromYAML: ChainableInitOverrideFunction = async (context) => {
+  const overridden = {
+    ...context.init,
+    headers: context.init.headers ?? {},
+  };
+  overridden.headers['Content-Type'] = 'application/yaml';
+  return overridden;
+};
+
+const identityOverrideFn: InitOverrideFunction = async ({ init }) => init;
+
+export const chainOverrideFunction = (
+  a: ChainableInitOverrideFunction,
+  b?: RequestInit | InitOverrideFunction,
+): InitOverrideFunction =>
+  async (c) => {
+    const fn = b === undefined ? identityOverrideFn : (
+      typeof b === 'function' ? b : async () => b);
+    return await fn({ init: await a(c), context: c.context });
+  };
 
 export const errorIsTypeUnsupported = async (err: any) => {
   if (err instanceof ResponseError && err.response.status === 404) {
