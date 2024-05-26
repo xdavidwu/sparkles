@@ -20,10 +20,11 @@ import { useNamespaces } from '@/stores/namespaces';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
-import { stringify } from 'yaml';
+import { stringify, parseAllDocuments } from 'yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
 import { listAndUnwaitedWatch } from '@/utils/watch'
 import type { Release, ReleaseWithLabels } from '@/utils/helm';
+import { type KubernetesObject, isSameKubernetesObject } from '@/utils/objects';
 import '@/vendor/wasm_exec';
 
 interface ValuesTab {
@@ -169,7 +170,36 @@ watch(selectedNamespace, async (namespace) => {
 
 const rollback = (target: Release) => {
   const latest = releases.value.filter((r) => r.name == target.name)[0];
-  alert(`TODO rollback from ${latest.version} to ${target.version}`);
+
+  // TODO create release object
+
+  const targetResources = parseAllDocuments(target.manifest).map((d) => d.toJS() as KubernetesObject);
+  const latestResources = parseAllDocuments(latest.manifest).map((d) => d.toJS() as KubernetesObject);
+
+  const ops = [];
+  targetResources.forEach((r) => {
+    if (latestResources.some((t) => isSameKubernetesObject(r, t))) {
+      ops.push({
+        op: 'replace',
+        target: r,
+      });
+    } else {
+      ops.push({
+        op: 'create',
+        target: r,
+      });
+    }
+  });
+  ops.push(
+    ...latestResources.filter(
+      (r) => !targetResources.some((t) => isSameKubernetesObject(r, t)),
+    ).map((r) => ({
+      op: 'delete',
+      target: r,
+    })),
+  );
+  const summary = ops.map((o) => `${o.op}: ${o.target.apiVersion} ${o.target.kind} ${o.target.metadata!.name}`).join('\n');
+  alert(`TODO rollback from ${latest.version} to ${target.version}:\n${summary}`);
 };
 
 onMounted(setupGo);
