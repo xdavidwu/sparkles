@@ -255,11 +255,11 @@ onMounted(setupGo);
   max-width: 2em;
 }
 
-:deep(tr) {
-  opacity: var(--v-medium-emphasis-opacity);
+:deep(tbody > tr) {
+  background-color: rgb(var(--v-theme-background));
 }
 
 tr.group-header {
-  opacity: 1;
+  background-color: unset;
 }
 </style>
