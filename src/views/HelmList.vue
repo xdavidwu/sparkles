@@ -69,6 +69,11 @@ const columns = [
     sortable: false,
   },
   {
+    title: 'Revision',
+    key: 'version',
+    sortable: false,
+  },
+  {
     title: 'Chart',
     key: 'chart.metadata.name',
     sortable: false,
@@ -86,11 +91,6 @@ const columns = [
   {
     title: 'Status',
     key: 'info.status',
-    sortable: false,
-  },
-  {
-    title: 'Revision',
-    key: 'version',
     sortable: false,
   },
   {
@@ -166,6 +166,11 @@ watch(selectedNamespace, async (namespace) => {
   );
 }, { immediate: true });
 
+const rollback = (target: any) => {
+  const latest = releases.value.filter((r) => r.name == target.name)[0];
+  alert(`TODO rollback from ${latest.version} to ${target.version}`);
+};
+
 onMounted(setupGo);
 </script>
 
@@ -197,7 +202,7 @@ onMounted(setupGo);
             </template>
             <template #[`item.actions`]='{ item }'>
               <TippedBtn size="small" icon="mdi-file-document" tooltip="Values" variant="text"
-                @click="createTab(item)" />
+                @click="() => createTab(item)" />
             </template>
           </VDataTableRow>
         </template>
@@ -213,7 +218,9 @@ onMounted(setupGo);
         </template>
         <template #[`item.actions`]='{ item }'>
           <TippedBtn size="small" icon="mdi-file-document" tooltip="Values" variant="text"
-            @click="createTab(item)" />
+            @click="() => createTab(item)" />
+          <TippedBtn v-if="item.info.status == 'superseded'" size="small"
+            icon="mdi-reload" tooltip="Rollback" variant="text" @click="() => rollback(item)" />
         </template>
       </VDataTable>
     </WindowItem>
