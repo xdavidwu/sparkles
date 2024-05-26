@@ -5,6 +5,7 @@ import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { parse } from 'yaml';
 import { satisfies } from 'semver';
 import { BaseColor, ColorVariant, colorToClass, hashColor } from '@/utils/colors';
+import type { ChartVersion, IndexFile } from '@/utils/helm';
 
 const repo = `${window.__base_url}charts`;
 const useProxy = false;
@@ -13,14 +14,14 @@ const indexURL = `${repo}/index.yaml`;
 const baseColors = Object.values(BaseColor);
 const variants = [ ColorVariant.Lighten3 ];
 
-const charts = ref<Array<any>>([]);
+const charts = ref<Array<ChartVersion>>([]);
 
 const chipColor = (s: string) => colorToClass(hashColor(s, baseColors, variants));
 
 onMounted(async () => {
   const response = await fetch(useProxy ? `https://corsproxy.io?${encodeURIComponent(indexURL)}` : indexURL);
   const text = await response.text();
-  let index: any;
+  let index: IndexFile;
   try {
     index = JSON.parse(text);
   } catch {
@@ -30,10 +31,10 @@ onMounted(async () => {
   const versionInfo = await useApisDiscovery().getVersionInfo();
   const repoCharts = Object.keys(index.entries)
     .map((key) => index.entries[key][0])
-    .filter((c: any) => c.type !== 'library')
-    .filter((c: any) => c.deprecated !== true)
-    .filter((c: any) => c.kubeVersion ? satisfies(versionInfo.gitVersion, c.kubeVersion): true);
-  repoCharts.forEach((c: any) => {
+    .filter((c) => c.type !== 'library')
+    .filter((c) => c.deprecated !== true)
+    .filter((c) => c.kubeVersion ? satisfies(versionInfo.gitVersion, c.kubeVersion): true);
+  repoCharts.forEach((c) => {
     c.keywords?.sort();
   })
   charts.value = repoCharts;

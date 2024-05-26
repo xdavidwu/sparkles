@@ -22,7 +22,8 @@ import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
 import { stringify } from 'yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
-import { listAndUnwaitedWatch } from '@/utils/watch';
+import { listAndUnwaitedWatch } from '@/utils/watch'
+import type { Release, ReleaseWithLabels } from '@/utils/helm';
 import '@/vendor/wasm_exec';
 
 interface ValuesTab {
@@ -49,12 +50,12 @@ const releases = computedAsync(async () => (await Promise.all(secrets.value.map(
   )).body!;
   const stream = gzipped.pipeThrough(new DecompressionStream('gzip'));
 
-  const release = await (new Response(stream)).json();
+  const release: Release = await (new Response(stream)).json();
   return {
     ...release,
     labels: s.metadata!.labels,
-  };
-}))).sort((a: any, b: any) => {
+  } as ReleaseWithLabels;
+}))).sort((a, b) => {
   if (a.chart.metadata.name !== b.chart.metadata.name) {
     return a.chart.metadata.name.localeCompare(b.chart.metadata.name);
   }
@@ -65,7 +66,7 @@ const columns = [
   {
     title: 'Release',
     key: 'data-table-group',
-    value: (r: Record<string, any>) => r.name,
+    value: (r: Release) => r.name,
     sortable: false,
   },
   {
@@ -135,7 +136,7 @@ const setupGo = async () => {
   });
 };
 
-const createTab = (release: any) => {
+const createTab = (release: Release) => {
   const id = `${release.name}@${release.version}`;
   if (!tabs.value.some((t) => t.id === id)) {
     tabs.value.push({
@@ -166,7 +167,7 @@ watch(selectedNamespace, async (namespace) => {
   );
 }, { immediate: true });
 
-const rollback = (target: any) => {
+const rollback = (target: Release) => {
   const latest = releases.value.filter((r) => r.name == target.name)[0];
   alert(`TODO rollback from ${latest.version} to ${target.version}`);
 };
@@ -196,19 +197,22 @@ onMounted(setupGo);
             <template #[`item.version`]='{ item, value }'>
               <span>
                 {{ value }}
-                <LinkedTooltip :text="`Last deployed: ${new Date((item as any).info.last_deployed)}`" activator="parent" />
+                <LinkedTooltip :text="`Last deployed: ${new Date((item as Release).info.last_deployed!)}`" activator="parent" />
               </span>
             </template>
             <template #[`item.chart.metadata.name`]='{ item, value }'>
               <div class="d-flex align-center">
-                <img :src="(item as any).chart.metadata.icon" class="chart-icon mr-2" />
+                <img :src="(item as Release).chart.metadata.icon" class="chart-icon mr-2" />
                 {{ value }}
-                <LinkedTooltip :text="(item as any).chart.metadata.description" activator="parent" />
+                <LinkedTooltip
+                  v-if="(item as Release).chart.metadata.description"
+                  :text="(item as Release).chart.metadata.description!"
+                  activator="parent" />
               </div>
             </template>
             <template #[`item.actions`]='{ item }'>
               <TippedBtn size="small" icon="mdi-file-document" tooltip="Values" variant="text"
-                @click="() => createTab(item)" />
+                @click="() => createTab(item as Release)" />
             </template>
           </VDataTableRow>
         </template>
@@ -218,14 +222,15 @@ onMounted(setupGo);
         <template #[`item.version`]='{ item, value }'>
           <span>
             {{ value }}
-            <LinkedTooltip :text="`Last deployed: ${new Date(item.info.last_deployed)}`" activator="parent" />
+            <LinkedTooltip :text="`Last deployed: ${new Date(item.info.last_deployed!)}`" activator="parent" />
           </span>
         </template>
         <template #[`item.chart.metadata.name`]='{ item, value }'>
           <div class="d-flex align-center">
-            <img :src="(item as any).chart.metadata.icon" class="chart-icon mr-2" />
+            <img :src="item.chart.metadata.icon" class="chart-icon mr-2" />
             {{ value }}
-            <LinkedTooltip :text="(item as any).chart.metadata.description" activator="parent" />
+            <LinkedTooltip v-if="item.chart.metadata.description"
+              :text="item.chart.metadata.description" activator="parent" />
           </div>
         </template>
         <template #[`item.actions`]='{ item }'>
