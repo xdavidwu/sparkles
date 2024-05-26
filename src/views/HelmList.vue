@@ -176,6 +176,18 @@ const rollback = (target: Release) => {
   const targetResources = parseAllDocuments(target.manifest).map((d) => d.toJS() as KubernetesObject);
   const latestResources = parseAllDocuments(latest.manifest).map((d) => d.toJS() as KubernetesObject);
 
+  targetResources.forEach((r) => {
+    if (!r.metadata!.annotations) {
+      r.metadata!.annotations = {};
+    }
+    if (!r.metadata!.labels) {
+      r.metadata!.labels = {};
+    }
+    r.metadata!.labels['app.kubernetes.io/managed-by'] = 'Helm';
+    r.metadata!.annotations['meta.helm.sh/release-name'] = target.name;
+    r.metadata!.annotations['meta.helm.sh/release-namespace'] = target.namespace;
+  });
+
   const ops = [];
   targetResources.forEach((r) => {
     if (latestResources.some((t) => isSameKubernetesObject(r, t))) {
@@ -200,6 +212,11 @@ const rollback = (target: Release) => {
   );
   const summary = ops.map((o) => `${o.op}: ${o.target.apiVersion} ${o.target.kind} ${o.target.metadata!.name}`).join('\n');
   alert(`TODO rollback from ${latest.version} to ${target.version}:\n${summary}`);
+  console.log(ops);
+  // TODO recreate? (delete old pod to trigger a rollout?), wait?, hooks?
+  // TODO set all existing versions to superseded
+  // TODO persist new release
+  // TODO history retention
 };
 
 onMounted(setupGo);
