@@ -193,6 +193,12 @@ onMounted(setupGo);
                 @click="groupProps.toggleGroup(groupProps.item)" />
               {{ value }}
             </template>
+            <template #[`item.version`]='{ item, value }'>
+              <span>
+                {{ value }}
+                <LinkedTooltip :text="`Last deployed: ${new Date((item as any).info.last_deployed)}`" activator="parent" />
+              </span>
+            </template>
             <template #[`item.chart.metadata.name`]='{ item, value }'>
               <div class="d-flex align-center">
                 <img :src="(item as any).chart.metadata.icon" class="chart-icon mr-2" />
@@ -208,6 +214,12 @@ onMounted(setupGo);
         </template>
         <template #[`item.data-table-group`]>
           <VBtn size="small" variant="text" disabled icon="mdi-circle-small" />
+        </template>
+        <template #[`item.version`]='{ item, value }'>
+          <span>
+            {{ value }}
+            <LinkedTooltip :text="`Last deployed: ${new Date(item.info.last_deployed)}`" activator="parent" />
+          </span>
         </template>
         <template #[`item.chart.metadata.name`]='{ item, value }'>
           <div class="d-flex align-center">
