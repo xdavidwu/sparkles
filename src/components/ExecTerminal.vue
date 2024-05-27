@@ -3,7 +3,8 @@ import XTerm from '@/components/XTerm.vue';
 import { onUnmounted } from 'vue';
 import type { Terminal } from '@xterm/xterm';
 import { useApiConfig } from '@/stores/apiConfig';
-import { V1StatusFromJSON } from '@/kubernetes-api/src';
+import { CoreV1Api, V1StatusFromJSON } from '@/kubernetes-api/src';
+import { ExtractedRequestContext, extractRequestContext } from '@/utils/api';
 import { PresentedError } from '@/utils/PresentedError';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 
@@ -37,22 +38,38 @@ let socket: WebSocket | null = null;
 
 const commandOpts = (props.command ?? ['/bin/sh', '-c', findShell]).reduce(
   (a, v) => `${a}&command=${encodeURIComponent(v)}`, '');
-const url = `/api/v1/namespaces/${props.containerSpec.namespace}/pods/${props.containerSpec.pod}/exec?container=${encodeURIComponent(props.containerSpec.container)}&stdout=true&stdin=true&tty=true${commandOpts}`;
 
 const base64url = (s: string) => btoa(s).replace(/=+$/g, '').replace(/\+/g, '-').replace(/\\/g, '_');
 const configStore = useApiConfig();
+const token = await configStore.getBearerToken();
+const api = new CoreV1Api(await configStore.getConfig());
+
+let url = '';
+try {
+  // XXX naming?
+  await api.withPreMiddleware(extractRequestContext).connectGetNamespacedPodExec({
+    namespace: props.containerSpec.namespace,
+    name: props.containerSpec.pod,
+    container: props.containerSpec.container,
+    stdin: true,
+    stdout: true,
+    tty: true,
+  });
+} catch (e) {
+  if (e instanceof ExtractedRequestContext) {
+    url = `${e.context.url}${commandOpts}`.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
+  } else {
+    throw e;
+  }
+}
 
 const encoder = new TextEncoder();
 
 const display = async (terminal: Terminal) => {
   terminal.write('Connecting...');
 
-  const token = await configStore.getBearerToken();
-  const socketBase = configStore.fullApiBasePath
-    .replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://');
-
   // k8s.io/kubelet/pkg/cri/streaming/remotecommand.createWebSocketStreams
-  socket = new WebSocket(`${socketBase}${url}`, token ? supportedProtocols.concat([
+  socket = new WebSocket(url, token ? supportedProtocols.concat([
     // https://github.com/kubernetes/kubernetes/pull/47740
     `base64url.bearer.authorization.k8s.io.${base64url(token)}`
   ]) : supportedProtocols);

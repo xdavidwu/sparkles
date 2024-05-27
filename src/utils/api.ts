@@ -3,7 +3,7 @@ import {
   V1StatusFromJSON,
   type V1SelfSubjectReview,
   Configuration, FetchError, ResponseError,
-  type InitOverrideFunction, type HTTPRequestInit, type HTTPHeaders,
+  type InitOverrideFunction, type HTTPRequestInit, type HTTPHeaders, type RequestContext, type Middleware,
 } from '@/kubernetes-api/src';
 
 export type ChainableInitOverrideFunction = (...p: Parameters<InitOverrideFunction>) =>
@@ -38,6 +38,14 @@ export const chainOverrideFunction = (
       typeof b === 'function' ? b : async () => b);
     return await fn({ init: await a(c), context: c.context });
   };
+
+export class ExtractedRequestContext {
+  constructor(public context: RequestContext) {}
+}
+
+export const extractRequestContext: Middleware['pre'] = (context) => {
+  throw new ExtractedRequestContext(context);
+}
 
 export const errorIsTypeUnsupported = async (err: any) => {
   if (err instanceof ResponseError && err.response.status === 404) {
