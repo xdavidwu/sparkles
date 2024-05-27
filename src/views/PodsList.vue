@@ -97,28 +97,23 @@ const columns = [
       rowspan: item._extra.pod.spec!.containers.length,
       style: item.name === item._extra.pod.spec!.containers[0].name ? '' : 'display: none',
     }),
-    sortable: false,
   },
   {
     title: 'Container',
     key: 'name',
-    sortable: false,
   },
   {
     title: 'Image',
     key: 'image',
-    sortable: false,
   },
   {
     title: 'Ready',
     key: 'ready',
-    sortable: false,
   },
   {
     title: 'Actions',
     key: 'actions',
     value: () => '',
-    sortable: false,
     nowrap: true,
     width: 0,
     headerProps: {
@@ -184,7 +179,8 @@ const bell = (index: number) => {
   </AppTabs>
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="table">
-      <VDataTable hover :items="containers" :headers="columns" hide-default-footer>
+      <VDataTable hover :items="containers" :headers="columns"
+        hide-default-footer disable-sort>
         <template #[`header._extra.pod.metadata.name`]>
           Pod
           <KeyValueBadge k="annotation" v="value" class="mr-1" />

@@ -56,38 +56,31 @@ const columns = [
     title: 'Release',
     key: 'data-table-group',
     value: (r: Release) => r.name,
-    sortable: false,
   },
   {
     title: 'Revision',
     key: 'version',
-    sortable: false,
   },
   {
     title: 'Chart',
     key: 'chart.metadata.name',
-    sortable: false,
   },
   {
     title: 'Version',
     key: 'chart.metadata.version',
-    sortable: false,
   },
   {
     title: 'App version',
     key: 'chart.metadata.appVersion',
-    sortable: false,
   },
   {
     title: 'Status',
     key: 'info.status',
-    sortable: false,
   },
   {
     title: 'Actions',
     key: 'actions',
     value: () => '',
-    sortable: false,
     nowrap: true,
     width: 0,
     headerProps: {
@@ -216,7 +209,7 @@ onMounted(setupGo);
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="table">
       <VDataTable hover :items="releases" :headers="columns"
-        :group-by="[{ key: 'name', order: 'asc'}]" hide-default-footer>
+        :group-by="[{ key: 'name', order: 'asc'}]" hide-default-footer disable-sort>
         <template #group-header='groupProps'>
           <VDataTableRow v-bind='{ ...groupProps, item: latestRevision(groupProps.item.items) }' class="group-header">
             <template #[`item.data-table-group`]='{ value }'>
