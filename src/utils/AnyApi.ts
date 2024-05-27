@@ -1,6 +1,6 @@
 import {
-  CoreV1Api,
   CustomObjectsApi,
+  DefaultConfig,
   type ApiResponse,
   type CustomObjectsApiCreateClusterCustomObjectRequest,
   type CustomObjectsApiCreateNamespacedCustomObjectRequest,
@@ -66,10 +66,13 @@ export interface AnyApiGetOpenAPISchemaRequest {
 
 const corePlaceholder = '~core~';
 
-const toCore: Middleware['pre'] = async (context) => ({
+const patchCore: Middleware['pre'] = async (context) => ({
   ...context,
   url: context.url.replace(`apis/${corePlaceholder}`, 'api'),
 });
+
+const armCoreParam = <T extends { group?: string }>(p: T): T & { group: string } =>
+  ({ ...p, group: p.group ?? corePlaceholder });
 
 const asTable: ChainableInitOverrideFunction = async (context) => {
   const overridden = {
@@ -116,295 +119,185 @@ export interface V1Table<
 
 export class AnyApi extends CustomObjectsApi {
 
-  async getAPIResources(requestParameters: AnyApiGetAPIResourcesRequest): Promise<V1APIResourceList> {
-    if (requestParameters.group) {
-      return super.getAPIResources({ group: requestParameters.group!, version: requestParameters.version });
-    } else {
-      return new CoreV1Api(this.configuration).getAPIResources();
-    }
+  constructor(config = DefaultConfig) {
+    config.middleware.push({ pre: patchCore });
+    super(config);
   }
 
-  // TODO: type this
+  async getAPIResources(requestParameters: AnyApiGetAPIResourcesRequest): Promise<V1APIResourceList> {
+    return super.getAPIResources(armCoreParam(requestParameters));
+  }
+
   async listClusterCustomObjectRaw(
-      requestParameters: AnyApiListClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<ApiResponse<object>> {
-    if (requestParameters.group) {
-      return super.listClusterCustomObjectRaw({
-        ...requestParameters,
-        group: requestParameters.group!,
-      }, initOverrides);
-    } else {
-      return super.withPreMiddleware(toCore)
-        .listClusterCustomObjectRaw({
-          ...requestParameters,
-          group: corePlaceholder,
-        }, initOverrides);
-    }
+    requestParameters: AnyApiListClusterCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<ApiResponse<object>> {
+    return super.listClusterCustomObjectRaw(armCoreParam(requestParameters), initOverrides);
   }
 
   async listNamespacedCustomObjectRaw(
-      requestParameters: AnyApiListNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<ApiResponse<object>> {
-    if (requestParameters.group) {
-      return super.listNamespacedCustomObjectRaw({
-        ...requestParameters,
-        group: requestParameters.group!,
-      }, initOverrides);
-    } else {
-      return super.withPreMiddleware(toCore)
-        .listNamespacedCustomObjectRaw({
-          ...requestParameters,
-          group: corePlaceholder,
-        }, initOverrides);
-    }
+    requestParameters: AnyApiListNamespacedCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<ApiResponse<object>> {
+    return super.listNamespacedCustomObjectRaw(armCoreParam(requestParameters), initOverrides);
   }
 
   async listClusterCustomObject(
-      requestParameters: AnyApiListClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<object> {
+    requestParameters: AnyApiListClusterCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<object> {
     const response = await this.listClusterCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
   async listNamespacedCustomObject(
-      requestParameters: AnyApiListNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<object> {
+    requestParameters: AnyApiListNamespacedCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<object> {
     const response = await this.listNamespacedCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
   async listClusterCustomObjectAsTableRaw<
-      ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
-    >(
-      requestParameters: AnyApiListClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<ApiResponse<V1Table<ObjectType>>> {
-    return <ApiResponse<V1Table<ObjectType>>> await this.listClusterCustomObjectRaw(
-        requestParameters, chainOverrideFunction(asTable, initOverrides));
+    ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
+  >(
+    requestParameters: AnyApiListClusterCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<ApiResponse<V1Table<ObjectType>>> {
+    return await this.listClusterCustomObjectRaw(
+        requestParameters, chainOverrideFunction(asTable, initOverrides)) as ApiResponse<V1Table<ObjectType>>;
   }
 
   async listNamespacedCustomObjectAsTableRaw<
-      ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
-    >(
-      requestParameters: AnyApiListNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<ApiResponse<V1Table<ObjectType>>> {
-    return <ApiResponse<V1Table<ObjectType>>> await this.listNamespacedCustomObjectRaw(
-      requestParameters, chainOverrideFunction(asTable, initOverrides));
+    ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
+  >(
+    requestParameters: AnyApiListNamespacedCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<ApiResponse<V1Table<ObjectType>>> {
+    return await this.listNamespacedCustomObjectRaw(
+      requestParameters, chainOverrideFunction(asTable, initOverrides)) as ApiResponse<V1Table<ObjectType>>;
   }
 
   async listClusterCustomObjectAsTable<
-      ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
-    >(
-      requestParameters: AnyApiListClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<V1Table<ObjectType>> {
+    ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
+  >(
+    requestParameters: AnyApiListClusterCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<V1Table<ObjectType>> {
     const response = await this.listClusterCustomObjectAsTableRaw<ObjectType>(requestParameters, initOverrides);
     return await response.value();
   }
 
   async listNamespacedCustomObjectAsTable<
-      ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
-    >(
-        requestParameters: AnyApiListNamespacedCustomObjectRequest,
-        initOverrides?: RequestInit | InitOverrideFunction,
-        ): Promise<V1Table<ObjectType>> {
+    ObjectType = V1PartialObjectMetadata | KubernetesObject | null,
+  >(
+    requestParameters: AnyApiListNamespacedCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<V1Table<ObjectType>> {
     const response = await this.listNamespacedCustomObjectAsTableRaw<ObjectType>(requestParameters, initOverrides);
     return await response.value();
   }
 
   async getClusterCustomObjectRaw(
-      requestParameters: AnyApiGetClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
+    requestParameters: AnyApiGetClusterCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
   ): Promise<ApiResponse<object>> {
-    if (requestParameters.group) {
-      return super.getClusterCustomObjectRaw(
-        { ...requestParameters, group: requestParameters.group! },
-        initOverrides,
-      );
-    } else {
-      return super.withPreMiddleware(toCore)
-        .getClusterCustomObjectRaw(
-          { ...requestParameters, group: corePlaceholder },
-          initOverrides,
-        );
-    }
+    return super.getClusterCustomObjectRaw(armCoreParam(requestParameters), initOverrides);
   }
 
   async getNamespacedCustomObjectRaw(
-      requestParameters: AnyApiGetNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
+    requestParameters: AnyApiGetNamespacedCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
   ): Promise<ApiResponse<object>> {
-    if (requestParameters.group) {
-      return super.getNamespacedCustomObjectRaw(
-        { ...requestParameters, group: requestParameters.group! },
-        initOverrides,
-      );
-    } else {
-      return super.withPreMiddleware(toCore)
-        .getNamespacedCustomObjectRaw(
-          { ...requestParameters, group: corePlaceholder },
-          initOverrides,
-        );
-    }
+    return super.getNamespacedCustomObjectRaw(armCoreParam(requestParameters), initOverrides);
   }
 
   async deleteClusterCustomObjectRaw(
-      requestParameters: AnyApiDeleteClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<ApiResponse<object>> {
-    if (requestParameters.group) {
-      return super.deleteClusterCustomObjectRaw({
-        ...requestParameters,
-        group: requestParameters.group!,
-      }, initOverrides);
-    } else {
-      return super.withPreMiddleware(toCore)
-        .deleteClusterCustomObjectRaw({
-          ...requestParameters,
-          group: corePlaceholder,
-        }, initOverrides);
-    }
+    requestParameters: AnyApiDeleteClusterCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<ApiResponse<object>> {
+    return super.deleteClusterCustomObjectRaw(armCoreParam(requestParameters), initOverrides);
   }
 
   async deleteNamespacedCustomObjectRaw(
-      requestParameters: AnyApiDeleteNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<ApiResponse<object>> {
-    if (requestParameters.group) {
-      return super.deleteNamespacedCustomObjectRaw({
-        ...requestParameters,
-        group: requestParameters.group!,
-      }, initOverrides);
-    } else {
-      return super.withPreMiddleware(toCore)
-        .deleteNamespacedCustomObjectRaw({
-          ...requestParameters,
-          group: corePlaceholder,
-        }, initOverrides);
-    }
+    requestParameters: AnyApiDeleteNamespacedCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<ApiResponse<object>> {
+    return super.deleteNamespacedCustomObjectRaw(armCoreParam(requestParameters), initOverrides);
   }
 
   async deleteClusterCustomObject(
-      requestParameters: AnyApiDeleteClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<object> {
+    requestParameters: AnyApiDeleteClusterCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<object> {
     const response = await this.deleteClusterCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
   async deleteNamespacedCustomObject(
-      requestParameters: AnyApiDeleteNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<object> {
+    requestParameters: AnyApiDeleteNamespacedCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<object> {
     const response = await this.deleteNamespacedCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
   async replaceClusterCustomObjectRaw(
-      requestParameters: AnyApiReplaceClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<ApiResponse<object>> {
-    if (requestParameters.group) {
-      return super.replaceClusterCustomObjectRaw({
-        ...requestParameters,
-        group: requestParameters.group!,
-      }, initOverrides);
-    } else {
-      return super.withPreMiddleware(toCore)
-        .replaceClusterCustomObjectRaw({
-          ...requestParameters,
-          group: corePlaceholder,
-        }, initOverrides);
-    }
+    requestParameters: AnyApiReplaceClusterCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<ApiResponse<object>> {
+    return super.replaceClusterCustomObjectRaw(armCoreParam(requestParameters), initOverrides);
   }
 
   async replaceNamespacedCustomObjectRaw(
-      requestParameters: AnyApiReplaceNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<ApiResponse<object>> {
-    if (requestParameters.group) {
-      return super.replaceNamespacedCustomObjectRaw({
-        ...requestParameters,
-        group: requestParameters.group!,
-      }, initOverrides);
-    } else {
-      return super.withPreMiddleware(toCore)
-        .replaceNamespacedCustomObjectRaw({
-          ...requestParameters,
-          group: corePlaceholder,
-        }, initOverrides);
-    }
+    requestParameters: AnyApiReplaceNamespacedCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<ApiResponse<object>> {
+    return super.replaceNamespacedCustomObjectRaw(armCoreParam(requestParameters), initOverrides);
   }
 
   async replaceClusterCustomObject(
-      requestParameters: AnyApiReplaceClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<object> {
+    requestParameters: AnyApiReplaceClusterCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<object> {
     const response = await this.replaceClusterCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
   async replaceNamespacedCustomObject(
-      requestParameters: AnyApiReplaceNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<object> {
+    requestParameters: AnyApiReplaceNamespacedCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<object> {
     const response = await this.replaceNamespacedCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
   async createClusterCustomObjectRaw(
-      requestParameters: AnyApiCreateClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<ApiResponse<object>> {
-    if (requestParameters.group) {
-      return super.createClusterCustomObjectRaw({
-        ...requestParameters,
-        group: requestParameters.group!,
-      }, initOverrides);
-    } else {
-      return super.withPreMiddleware(toCore)
-        .createClusterCustomObjectRaw({
-          ...requestParameters,
-          group: corePlaceholder,
-        }, initOverrides);
-    }
+    requestParameters: AnyApiCreateClusterCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<ApiResponse<object>> {
+    return super.createClusterCustomObjectRaw(armCoreParam(requestParameters), initOverrides);
   }
 
   async createNamespacedCustomObjectRaw(
-      requestParameters: AnyApiCreateNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<ApiResponse<object>> {
-    if (requestParameters.group) {
-      return super.createNamespacedCustomObjectRaw({
-        ...requestParameters,
-        group: requestParameters.group!,
-      }, initOverrides);
-    } else {
-      return super.withPreMiddleware(toCore)
-        .createNamespacedCustomObjectRaw({
-          ...requestParameters,
-          group: corePlaceholder,
-        }, initOverrides);
-    }
+    requestParameters: AnyApiCreateNamespacedCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<ApiResponse<object>> {
+    return super.createNamespacedCustomObjectRaw(armCoreParam(requestParameters), initOverrides);
   }
 
   async createClusterCustomObject(
-      requestParameters: AnyApiCreateClusterCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<object> {
+    requestParameters: AnyApiCreateClusterCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<object> {
     const response = await this.createClusterCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
   async createNamespacedCustomObject(
-      requestParameters: AnyApiCreateNamespacedCustomObjectRequest,
-      initOverrides?: RequestInit | InitOverrideFunction,
-      ): Promise<object> {
+    requestParameters: AnyApiCreateNamespacedCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<object> {
     const response = await this.createNamespacedCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
   }
@@ -418,7 +311,7 @@ export class AnyApi extends CustomObjectsApi {
     const headerParameters: HTTPHeaders = {};
 
     if (this.configuration && this.configuration.apiKey) {
-        headerParameters["authorization"] = await this.configuration.apiKey("authorization"); // BearerToken authentication
+      headerParameters["authorization"] = await this.configuration.apiKey("authorization"); // BearerToken authentication
     }
 
     const response = await this.request({
