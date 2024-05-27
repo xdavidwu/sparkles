@@ -24,40 +24,40 @@ import type { OpenAPIV3 } from 'openapi-types';
 import type { KubernetesObject } from '@/utils/objects';
 import { chainOverrideFunction, type ChainableInitOverrideFunction } from '@/utils/api';
 
-type PartiallyRequired<T, C extends keyof T> = Omit<T, C> & Partial<Pick<T, C>>;
+type MakePartial<T, C extends keyof T> = Omit<T, C> & Partial<Pick<T, C>>;
 
 export type AnyApiGetAPIResourcesRequest =
-  PartiallyRequired<CustomObjectsApiGetAPIResourcesRequest, 'group'>;
+  MakePartial<CustomObjectsApiGetAPIResourcesRequest, 'group'>;
 
 export type AnyApiGetClusterCustomObjectRequest =
-  PartiallyRequired<CustomObjectsApiGetClusterCustomObjectRequest, 'group'>;
+  MakePartial<CustomObjectsApiGetClusterCustomObjectRequest, 'group'>;
 
 export type AnyApiGetNamespacedCustomObjectRequest =
-  PartiallyRequired<CustomObjectsApiGetNamespacedCustomObjectRequest, 'group'>;
+  MakePartial<CustomObjectsApiGetNamespacedCustomObjectRequest, 'group'>;
 
 export type AnyApiListClusterCustomObjectRequest =
-  PartiallyRequired<CustomObjectsApiListClusterCustomObjectRequest, 'group'>;
+  MakePartial<CustomObjectsApiListClusterCustomObjectRequest, 'group'>;
 
 export type AnyApiListNamespacedCustomObjectRequest =
-  PartiallyRequired<CustomObjectsApiListNamespacedCustomObjectRequest, 'group'>;
+  MakePartial<CustomObjectsApiListNamespacedCustomObjectRequest, 'group'>;
 
 export type AnyApiDeleteClusterCustomObjectRequest =
-  PartiallyRequired<CustomObjectsApiDeleteClusterCustomObjectRequest, 'group'>;
+  MakePartial<CustomObjectsApiDeleteClusterCustomObjectRequest, 'group'>;
 
 export type AnyApiDeleteNamespacedCustomObjectRequest =
-  PartiallyRequired<CustomObjectsApiDeleteNamespacedCustomObjectRequest, 'group'>;
+  MakePartial<CustomObjectsApiDeleteNamespacedCustomObjectRequest, 'group'>;
 
 export type AnyApiReplaceClusterCustomObjectRequest =
-  PartiallyRequired<CustomObjectsApiReplaceClusterCustomObjectRequest, 'group'>;
+  MakePartial<CustomObjectsApiReplaceClusterCustomObjectRequest, 'group'>;
 
 export type AnyApiReplaceNamespacedCustomObjectRequest =
-  PartiallyRequired<CustomObjectsApiReplaceNamespacedCustomObjectRequest, 'group'>;
+  MakePartial<CustomObjectsApiReplaceNamespacedCustomObjectRequest, 'group'>;
 
 export type AnyApiCreateClusterCustomObjectRequest =
-  PartiallyRequired<CustomObjectsApiCreateClusterCustomObjectRequest, 'group'>;
+  MakePartial<CustomObjectsApiCreateClusterCustomObjectRequest, 'group'>;
 
 export type AnyApiCreateNamespacedCustomObjectRequest =
-  PartiallyRequired<CustomObjectsApiCreateNamespacedCustomObjectRequest, 'group'>;
+  MakePartial<CustomObjectsApiCreateNamespacedCustomObjectRequest, 'group'>;
 
 export interface AnyApiGetOpenAPISchemaRequest {
   group?: string;
