@@ -1,3 +1,5 @@
+import type { V1Secret } from '@/kubernetes-api/src';
+
 // XXX: why omitempty everywhere?
 
 // helm.sh/helm/v3/pkg/release.Info
@@ -112,3 +114,20 @@ export interface IndexFile {
     [key: string]: string;
   };
 }
+
+// helm.sh/helm/v3/pkg/storage/driver.Secrets.List
+export const secretsLabelSelector = 'owner=helm';
+export const parseSecret = async (s: V1Secret): Promise<ReleaseWithLabels> => {
+  // TODO handle malformed secrets
+  const gzipped = (await fetch(
+    `data:application/octet-stream;base64,${atob(s.data?.release!)}`,
+  )).body!;
+  const stream = gzipped.pipeThrough(new DecompressionStream('gzip'));
+
+  const release: Release = await (new Response(stream)).json();
+
+  return {
+    ...release,
+    labels: s.metadata!.labels ?? {},
+  };
+};

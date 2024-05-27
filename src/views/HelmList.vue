@@ -23,7 +23,7 @@ import { useAppTabs } from '@/composables/appTabs';
 import { stringify, parseAllDocuments } from 'yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
 import { listAndUnwaitedWatch } from '@/utils/watch'
-import type { Release, ReleaseWithLabels } from '@/utils/helm';
+import { type Release, parseSecret, secretsLabelSelector } from '@/utils/helm';
 import { type KubernetesObject, isSameKubernetesObject } from '@/utils/objects';
 import '@/vendor/wasm_exec';
 
@@ -43,25 +43,13 @@ const secrets = ref<Array<V1Secret>>([]);
 const tab = ref('table');
 const tabs = ref<Array<ValuesTab>>([]);
 
-// helm.sh/helm/v3/pkg/storage/driver.Secrets.List
-const releases = computedAsync(async () => (await Promise.all(secrets.value.map(async (s) => {
-  // TODO handle malformed secrets
-  const gzipped = (await fetch(
-    `data:application/octet-stream;base64,${atob(s.data?.release!)}`,
-  )).body!;
-  const stream = gzipped.pipeThrough(new DecompressionStream('gzip'));
-
-  const release: Release = await (new Response(stream)).json();
-  return {
-    ...release,
-    labels: s.metadata!.labels,
-  } as ReleaseWithLabels;
-}))).sort((a, b) => {
-  if (a.chart.metadata.name !== b.chart.metadata.name) {
-    return a.chart.metadata.name.localeCompare(b.chart.metadata.name);
-  }
-  return b.version - a.version;
-}), []);
+const releases = computedAsync(async () =>
+  (await Promise.all(secrets.value.map(parseSecret))).sort((a, b) => {
+    if (a.chart.metadata.name !== b.chart.metadata.name) {
+      return a.chart.metadata.name.localeCompare(b.chart.metadata.name);
+    }
+    return b.version - a.version;
+  }), []);
 
 const columns = [
   {
@@ -161,7 +149,7 @@ watch(selectedNamespace, async (namespace) => {
   abortRequests();
   await listAndUnwaitedWatch(secrets, V1SecretFromJSON,
     (opt) => api.listNamespacedSecretRaw(
-      { ...opt, namespace, labelSelector: 'owner=helm' },
+      { ...opt, namespace, labelSelector: secretsLabelSelector },
       { signal: signal.value },
     ),
     (e) => useErrorPresentation().pendingError = e,
