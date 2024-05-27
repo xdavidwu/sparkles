@@ -39,6 +39,7 @@ const brand = import.meta.env.VITE_APP_BRANDING ?? 'Sparkles';
 
 const { namespaces, selectedNamespace, loading: namespacesLoading } = storeToRefs(useNamespaces());
 const { pendingError, pendingToast } = storeToRefs(useErrorPresentation());
+const { authScheme, fullApiBasePath } = storeToRefs(useApiConfig());
 
 const drawer = ref<boolean | null>(null);
 const { expandAppBar } = useAppTabs();
@@ -46,6 +47,10 @@ const showsDialog = ref(false);
 const showsSnackbar = ref(false);
 const snackbarMessage = ref('');
 const failedResponse = ref<Response | null>(null);
+const failedResponseUrl = computed(() => failedResponse.value ?
+  failedResponse.value.url.replace(fullApiBasePath.value.endsWith('/') ?
+    fullApiBasePath.value.substring(0, fullApiBasePath.value.length - 1)
+    : fullApiBasePath.value, '') : '');
 const failedResponseText = ref('');
 const loadError = ref(false);
 const router = useRouter();
@@ -60,7 +65,6 @@ const namespacedRoutes = computed(() => routes.value.filter(r => r.meta.namespac
 const globalRoutes = computed(() => routes.value.filter(r => !r.meta.namespaced));
 const title = computed(() => `${route.value.meta.name} - ${brand}`);
 useTitle(title);
-const { authScheme } = storeToRefs(useApiConfig());
 const isOIDC = computed(() => authScheme.value === AuthScheme.OIDC);
 const logoutHref = router.resolve('/oidc/logout').href;
 
@@ -166,7 +170,7 @@ watch(pendingToast, (toast) => {
           <p v-if="failedResponse" class="mb-1">
             Kubernetes returned error:<br>
             {{ failedResponse.status }} {{ failedResponse.statusText }}
-            <span class="text-caption text-medium-emphasis">at {{ failedResponse.url }}</span>
+            <span class="text-caption text-medium-emphasis">at {{ failedResponseUrl }}</span>
             <br>
           </p>
           <pre class="text-pre-wrap">{{ failedResponseText }}</pre>
