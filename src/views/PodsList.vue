@@ -130,10 +130,6 @@ const columns = [
 const { abort: abortRequests, signal } = useAbortController();
 
 watch(selectedNamespace, async (namespace) => {
-  if (namespace === '') {
-    _pods.value = [];
-    return;
-  }
   abortRequests();
 
   await listAndUnwaitedWatch(_pods, V1PodFromJSON,

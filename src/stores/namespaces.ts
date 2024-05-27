@@ -10,16 +10,13 @@ export const useNamespaces = defineStore('namespace', () => {
   const _namespaces = ref<Array<V1Namespace>>([]);
   let _updatePromise: Promise<void> | null = null;
   const namespaces = computed(() => _namespaces.value.map((v) => v.metadata!.name!));
-  const selectedNamespace = ref('');
+  const selectedNamespace = ref('default');
   const loading = ref(true);
 
-  const setDefaultNamespace = (namespaces: Array<string>) => {
-    if (namespaces.length) {
-      if (namespaces.indexOf('default') !== -1) {
-        selectedNamespace.value = 'default';
-      } else {
-        selectedNamespace.value = namespaces[0];
-      }
+  const setDefaultNamespace = () => {
+    if (namespaces.value.length) {
+      selectedNamespace.value = namespaces.value.includes('default') ? 'default'
+        : namespaces.value[0];
     } else {
       throw new Error('No namespaces available');
     }
@@ -41,7 +38,7 @@ export const useNamespaces = defineStore('namespace', () => {
           (opt) => api.listNamespaceRaw(opt),
           (e) => useErrorPresentation().pendingError = e,
         )
-        setDefaultNamespace(namespaces.value);
+        setDefaultNamespace();
         loading.value = false;
       })().catch((e) => useErrorPresentation().pendingError = e);
     }
@@ -51,9 +48,9 @@ export const useNamespaces = defineStore('namespace', () => {
   ensureNamespaces();
 
   watchArray(namespaces, (newNamespaces, old, added, removed) => {
-    if (old.length === 0 || removed.indexOf(selectedNamespace.value) !== -1) {
-      // TODO fire a notification on removed?
-      setDefaultNamespace(newNamespaces);
+    if (removed.indexOf(selectedNamespace.value) !== -1) {
+      useErrorPresentation().pendingToast = `Namespace ${selectedNamespace.value} deleted on server`;
+      setDefaultNamespace();
     }
   });
 

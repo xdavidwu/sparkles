@@ -143,9 +143,6 @@ const closeTab = (idx: number) => {
 };
 
 watch(selectedNamespace, async (namespace) => {
-  if (namespace === '') {
-    return;
-  }
   abortRequests();
   await listAndUnwaitedWatch(secrets, V1SecretFromJSON,
     (opt) => api.listNamespacedSecretRaw(

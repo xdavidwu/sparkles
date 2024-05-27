@@ -78,10 +78,6 @@ const podsResourceUsage = computed(() => {
 const { abort: abortRequests, signal } = useAbortController();
 
 watch(selectedNamespace, async (namespace) => {
-  if (namespace === '') {
-    quotas.value = [];
-    return;
-  }
   abortRequests();
 
   await listAndUnwaitedWatch(quotas, V1ResourceQuotaFromJSON,
