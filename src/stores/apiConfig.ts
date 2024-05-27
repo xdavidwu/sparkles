@@ -184,8 +184,7 @@ export const useApiConfig = defineStore('api-config', {
   },
   getters: {
     fullApiBasePath() {
-      return import.meta.env.VITE_KUBERNETES_API === '' ?
-        document.location.origin : import.meta.env.VITE_KUBERNETES_API;
+      return (new URL(import.meta.env.VITE_KUBERNETES_API, document.location.origin)).href;
     },
   },
 });
