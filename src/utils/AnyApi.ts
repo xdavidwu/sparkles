@@ -83,7 +83,7 @@ const asTable: ChainableInitOverrideFunction = async (context) => {
   return overridden;
 };
 
-// https://github.com/kubernetes/apimachinery/blob/master/pkg/apis/meta/v1/types.go
+// k8s.io/apimachinery/pkg/apis/meta/v1
 
 export interface V1TableColumnDefinition {
   name: string;

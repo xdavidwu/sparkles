@@ -51,7 +51,7 @@ const display = async (terminal: Terminal) => {
   const socketBase = configStore.fullApiBasePath
     .replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://');
 
-  // https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/pkg/cri/streaming/remotecommand/websocket.go
+  // k8s.io/kubelet/pkg/cri/streaming/remotecommand.createWebSocketStreams
   socket = new WebSocket(`${socketBase}${url}`, token ? supportedProtocols.concat([
     // https://github.com/kubernetes/kubernetes/pull/47740
     `base64url.bearer.authorization.k8s.io.${base64url(token)}`
@@ -82,7 +82,7 @@ const display = async (terminal: Terminal) => {
     if (stream === Streams.STDOUT || stream === Streams.STDERR) {
       terminal.write(data.subarray(1));
     } else if (stream === Streams.ERROR) {
-      // https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/pkg/cri/streaming/remotecommand/httpstream.go
+      // k8s.io/kubelet/pkg/cri/streaming/remotecommand.v4WriteStatusFunc
       const status = V1StatusFromJSON(JSON.parse(
         new TextDecoder().decode(data.subarray(1))
       ));
