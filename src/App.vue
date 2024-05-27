@@ -161,8 +161,8 @@ watch(pendingToast, (toast) => {
       </template>
     </VNavigationDrawer>
     <VDialog v-model="showsDialog">
-      <VCard title="Operation failed" class="align-self-center" style="max-width: 90%">
-        <VCardText>
+      <VCard title="Operation failed" class="align-self-center mw-100">
+        <VCardText><VContainer class="pa-0">
           <p v-if="failedResponse" class="mb-1">
             Kubernetes returned error:<br>
             {{ failedResponse.status }} {{ failedResponse.statusText }}
@@ -170,7 +170,7 @@ watch(pendingToast, (toast) => {
             <br>
           </p>
           <pre class="text-pre-wrap">{{ failedResponseText }}</pre>
-        </VCardText>
+        </VContainer></VCardText>
         <VCardActions>
           <VSpacer />
           <VBtn color="primary" @click="showsDialog = false">Close</VBtn>
@@ -179,12 +179,12 @@ watch(pendingToast, (toast) => {
     </VDialog>
     <VMain>
     <VDialog v-model="loadError">
-      <VCard title="Page load failed" class="align-self-center" style="max-width: 90%">
-        <VCardText>
+      <VCard title="Page load failed" class="align-self-center mw-100">
+        <VCardText><VContainer class="pa-0">
           If your network access is working,
           this may indicates that a new version of {{ brand }} is available.
           Reload the page to update to the new version.
-        </VCardText>
+        </VContainer></VCardText>
         <VCardActions>
           <VSpacer />
           <VBtn color="primary" @click="reload">Reload</VBtn>
@@ -215,6 +215,10 @@ watch(pendingToast, (toast) => {
 </template>
 
 <style scoped>
+.mw-100 {
+  max-width: 100%;
+}
+
 .full-height {
   height: calc(100dvh - 96px);
 }
