@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { watchArray } from '@vueuse/core';
+import { useLocalStorage, watchArray } from '@vueuse/core';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api, type V1Namespace, V1NamespaceFromJSON } from '@/kubernetes-api/src';
@@ -10,7 +10,7 @@ export const useNamespaces = defineStore('namespace', () => {
   const _namespaces = ref<Array<V1Namespace>>([]);
   let _updatePromise: Promise<void> | null = null;
   const namespaces = computed(() => _namespaces.value.map((v) => v.metadata!.name!));
-  const selectedNamespace = ref('default');
+  const selectedNamespace = useLocalStorage('namespace', 'default');
   const loading = ref(true);
 
   const setDefaultNamespace = () => {
@@ -38,14 +38,11 @@ export const useNamespaces = defineStore('namespace', () => {
           (opt) => api.listNamespaceRaw(opt),
           (e) => useErrorPresentation().pendingError = e,
         )
-        setDefaultNamespace();
         loading.value = false;
       })().catch((e) => useErrorPresentation().pendingError = e);
     }
     return _updatePromise;
   }
-
-  ensureNamespaces();
 
   watchArray(namespaces, (newNamespaces, old, added, removed) => {
     if (removed.indexOf(selectedNamespace.value) !== -1) {
@@ -53,6 +50,8 @@ export const useNamespaces = defineStore('namespace', () => {
       setDefaultNamespace();
     }
   });
+
+  ensureNamespaces();
 
   return { namespaces, selectedNamespace: rejectUnsetNamespace, loading, ensureNamespaces };
 });
