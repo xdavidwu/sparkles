@@ -120,6 +120,7 @@ export interface V1Table<
 export class AnyApi extends CustomObjectsApi {
 
   constructor(config = DefaultConfig) {
+    // XXX this only work if middleware is specified in config (including empty array)
     config.middleware.push({ pre: patchCore });
     super(config);
   }

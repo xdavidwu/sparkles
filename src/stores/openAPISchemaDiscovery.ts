@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
+import { Configuration } from '@/kubernetes-api/src';
 import { AnyApi, type AnyApiGetOpenAPISchemaRequest } from '@/utils/AnyApi';
+import { ExtractedRequestContext, extractRequestContext } from '@/utils/api';
+import type { V2APIResourceDiscovery } from '@/utils/discoveryV2';
 import { openapiSchemaToJsonSchema } from '@openapi-contrib/openapi-schema-to-json-schema';
-import { V2ResourceScope, type V2APIResourceDiscovery } from '@/utils/discoveryV2'; 
 import type { OpenAPIV3 } from 'openapi-types';
 import type { JSONSchema4 } from 'json-schema';
 
@@ -33,10 +35,26 @@ export const useOpenAPISchemaDiscovery = defineStore('openapi-discovery', () => 
     type: V2APIResourceDiscovery,
   }): Promise<JSONSchema4> => {
     const root = await getSchema(r);
-    const groupVersion = r.group ? `${r.group}/${r.version}` : r.version;
 
-    const apiBase = `/api${r.group ? 's' : ''}/${groupVersion}`;
-    const path = `${apiBase}/${r.type.scope === V2ResourceScope.Namespaced ? 'namespaces/{namespace}/' : ''}${r.type.resource}/{name}`;
+    let path = '';
+    const fakeApi = new AnyApi(
+      new Configuration({ basePath: '', middleware: [] }),
+    ).withPreMiddleware(extractRequestContext);
+    try {
+      await fakeApi[`get${r.type.scope}CustomObjectRaw`]({
+        group: r.group,
+        version: r.version,
+        plural: r.type.resource,
+        namespace: '{namespace}',
+        name: '{name}',
+      });
+    } catch (e) {
+      if (e instanceof ExtractedRequestContext) {
+        path = decodeURIComponent(e.context.url);
+      } else {
+        throw e;
+      }
+    }
     const response = (root.paths[path]?.get?.responses['200'] as OpenAPIV3.ResponseObject | undefined)
       ?.content?.['application/json']?.schema;
 
@@ -44,6 +62,7 @@ export const useOpenAPISchemaDiscovery = defineStore('openapi-discovery', () => 
       throw new Error(`schema discovered, but no response definition for: ${path}`);
     }
 
+    const groupVersion = r.group ? `${r.group}/${r.version}` : r.version;
     return {
       title: `OpenAPI schema of ${groupVersion} ${r.type.responseKind.kind}`,
       allOf: [
