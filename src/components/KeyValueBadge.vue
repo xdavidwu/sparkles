@@ -30,21 +30,18 @@ const shortK = computed(() => {
 });
 const shortV = computed(() => truncate(props.v, 10));
 
-const kColor = computed(() => colorToClass(hashColor(props.k, baseColors, variants)));
 const vColor = computed(() => colorToClass(hashColor(props.v, baseColors, variants)));
 </script>
 
 <template>
   <div class="d-inline-block text-sm">
-    <span :class="[`text-${kColor}`, 'position-relative', 'px-1']">
-      {{ shortK }}<span :class="[`rounded-s-${pill ? 'pill' : 'sm'}`,
-        'underlay', 'position-absolute',
-        'top-0', 'left-0', 'bottom-0', 'right-0']" />
+    <span class="bg-brown-darken-4 text-medium-emphasis px-1"
+      :class="`rounded-s-${pill ? 'pill' : 'sm'}`">
+      {{ shortK }}
     </span>
     <span :class="[`text-${vColor}`, 'position-relative', 'px-1']">
-      {{ shortV }}<span :class="[`rounded-e-${pill ? 'pill' : 'sm'}`,
-        'underlay', 'position-absolute',
-        'top-0', 'left-0', 'bottom-0', 'right-0']" />
+      {{ shortV }}<span :class="`rounded-e-${pill ? 'pill' : 'sm'}`"
+        class="underlay position-absolute top-0 left-0 bottom-0 right-0" />
     </span>
     <LinkedTooltip :text="title" activator="parent" />
   </div>
