@@ -8,8 +8,6 @@ import {
   VAutocomplete,
   VBtn,
   VCard,
-  VCardActions,
-  VCardText,
   VContainer,
   VDialog,
   VDivider,
@@ -20,7 +18,6 @@ import {
   VNavigationDrawer,
   VProgressCircular,
   VSnackbar,
-  VSpacer,
 } from 'vuetify/components';
 import IdentityIndicator from '@/components/IdentityIndicator.vue';
 import { useNamespaces } from '@/stores/namespaces';
@@ -166,7 +163,7 @@ watch(pendingToast, (toast) => {
     </VNavigationDrawer>
     <VDialog v-model="showsDialog">
       <VCard title="Operation failed" class="align-self-center mw-100">
-        <VCardText><VContainer class="pa-0">
+        <template #text><VContainer class="pa-0">
           <p v-if="failedResponse" class="mb-1">
             Kubernetes returned error:<br>
             {{ failedResponse.status }} {{ failedResponse.statusText }}
@@ -174,27 +171,25 @@ watch(pendingToast, (toast) => {
             <br>
           </p>
           <pre class="text-pre-wrap">{{ failedResponseText }}</pre>
-        </VContainer></VCardText>
-        <VCardActions>
-          <VSpacer />
+        </VContainer></template>
+        <template #actions>
           <VBtn color="primary" @click="showsDialog = false">Close</VBtn>
-        </VCardActions>
+        </template>
       </VCard>
     </VDialog>
-    <VMain>
     <VDialog v-model="loadError">
       <VCard title="Page load failed" class="align-self-center mw-100">
-        <VCardText><VContainer class="pa-0">
+        <template #text><VContainer class="pa-0">
           If your network access is working,
           this may indicates that a new version of {{ brand }} is available.
           Reload the page to update to the new version.
-        </VContainer></VCardText>
-        <VCardActions>
-          <VSpacer />
+        </VContainer></template>
+        <template #actions>
           <VBtn color="primary" @click="reload">Reload</VBtn>
-        </VCardActions>
+        </template>
       </VCard>
     </VDialog>
+    <VMain>
       <VContainer fluid class="overflow-y-auto">
         <RouterView #="{ Component }">
           <Suspense timeout="16">

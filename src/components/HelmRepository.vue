@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { VCard, VCardText, VCardTitle, VChip } from 'vuetify/components';
+import { VCard, VChip } from 'vuetify/components';
 import { ref, onMounted } from 'vue';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { parse } from 'yaml';
@@ -48,16 +48,14 @@ onMounted(async () => {
       :subtitle="`Chart version: ${chart.version}, App version: ${chart.appVersion}`"
       class="mb-4">
       <template #title>
-        <VCardTitle>
-          {{ chart.name }}
-          <VChip v-for="keyword in chart.keywords" :key="keyword"
-            :color="chipColor(keyword)"
-            size="x-small" class="ml-1">
-            {{ keyword }}
-          </VChip>
-        </VCardTitle>
+        {{ chart.name }}
+        <VChip v-for="keyword in chart.keywords" :key="keyword"
+          :color="chipColor(keyword)"
+          size="x-small" class="ml-1">
+          {{ keyword }}
+        </VChip>
       </template>
-      <VCardText>{{ chart.description }}</VCardText>
+      <template #text>{{ chart.description }}</template>
     </VCard>
   </div>
 </template>

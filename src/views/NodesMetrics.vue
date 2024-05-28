@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref, onUnmounted, computed } from 'vue';
-import { VCard, VCardText, VRow, VCol, VSwitch } from 'vuetify/components';
+import { VCard, VRow, VCol, VSwitch } from 'vuetify/components';
 import { Line } from 'vue-chartjs';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
@@ -125,47 +125,47 @@ onUnmounted(pause);
   </div>
   <VRow>
     <VCol cols="12" md="6">
-      <VCard><VCardText style="height: 250px">
-        <Line :data="chartData" :options="{
+      <VCard><template #text>
+        <Line style="height: 250px" :data="chartData" :options="{
             responsive: true, maintainAspectRatio: false,
             plugins: { title: { display: true, text: 'CPU usage' } },
             scales: { x: { type: 'time' }, y: { stacked } },
             parsing: { yAxisKey: 'cpu' },
             datasets: { line: { fill: stacked ? 'stack' : false } },
           }" />
-      </VCardText></VCard>
+      </template></VCard>
     </VCol>
     <VCol cols="12" md="6">
-      <VCard><VCardText style="height: 250px">
-        <Line :data="chartData" :options="{
+      <VCard><template #text>
+        <Line style="height: 250px" :data="chartData" :options="{
             responsive: true, maintainAspectRatio: false,
             plugins: { title: { display: true, text: 'Memory usage' } },
             scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => fromBytes(+v, { mode: 'IEC' }) }, stacked } },
             parsing: { yAxisKey: 'mem' },
             datasets: { line: { fill: stacked ? 'stack' : false } },
           }" />
-      </VCardText></VCard>
+      </template></VCard>
     </VCol>
     <template v-if="capacityAvailable">
       <VCol cols="12" md="6">
-        <VCard><VCardText style="height: 250px">
-          <Line :data="chartData" :options="{
+        <VCard><template #text>
+          <Line style="height: 250px" :data="chartData" :options="{
               responsive: true, maintainAspectRatio: false,
               plugins: { title: { display: true, text: 'CPU usage (%)' } },
               scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
               parsing: { yAxisKey: 'cpuPercentage' },
             }" />
-        </VCardText></VCard>
+        </template></VCard>
       </VCol>
       <VCol cols="12" md="6">
-        <VCard><VCardText style="height: 250px">
-          <Line :data="chartData" :options="{
+        <VCard><template #text>
+          <Line style="height: 250px" :data="chartData" :options="{
               responsive: true, maintainAspectRatio: false,
               plugins: { title: { display: true, text: 'Memory usage (%)' } },
               scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
               parsing: { yAxisKey: 'memPercentage' },
             }" />
-        </VCardText></VCard>
+        </template></VCard>
       </VCol>
     </template>
   </VRow>

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { VCard, VCardText } from 'vuetify/components';
+import { VCard } from 'vuetify/components';
 import QuotaDoughnut from '@/components/QuotaDoughnut.vue';
 import { computed, ref, watch } from 'vue';
 import { useAbortController } from '@/composables/abortController';
@@ -97,16 +97,18 @@ watch(selectedNamespace, async (namespace) => {
   <div class="d-flex align-center flex-wrap ga-4">
     <VCard v-for="quota in quotas" :key="uniqueKeyForObject(quota)"
       :title="quota.metadata!.name">
-      <VCardText class="d-flex justify-space-evenly align-center flex-wrap ga-8 px-8">
-        <QuotaDoughnut v-for="(value, key) of quota.spec!.hard" :key="key"
-          :title="key as string" :details="podsResourceUsage[key]"
-          :used="real(quota.status!.used![key])!" :total="real(value)!">
-          {{ quota.status!.used![key] }}/{{ value }}
-        </QuotaDoughnut>
-      </VCardText>
+      <template #text>
+        <div class="d-flex justify-space-evenly align-center flex-wrap ga-8 px-8">
+          <QuotaDoughnut v-for="(value, key) of quota.spec!.hard" :key="key"
+            :title="key as string" :details="podsResourceUsage[key]"
+            :used="real(quota.status!.used![key])!" :total="real(value)!">
+            {{ quota.status!.used![key] }}/{{ value }}
+          </QuotaDoughnut>
+        </div>
+      </template>
     </VCard>
+    <template v-if="!quotas.length">
+      No quota enforcement found in this namespace.
+    </template>
   </div>
-  <template v-if="!quotas.length">
-    No quota enforcement found in this namespace.
-  </template>
 </template>
