@@ -209,7 +209,8 @@ onMounted(setupGo);
   <VWindow v-model="tab" :touch="false">
     <WindowItem value="table">
       <VDataTable hover :items="releases" :headers="columns"
-        :group-by="[{ key: 'name', order: 'asc'}]" hide-default-footer disable-sort>
+        :row-props="{class: 'darken'}" :group-by="[{ key: 'name', order: 'asc'}]"
+        hide-default-footer disable-sort>
         <template #group-header='groupProps'>
           <VDataTableRow v-bind='{ ...groupProps, item: latestRevision(groupProps.item.items) }' class="group-header">
             <template #[`item.data-table-group`]='{ value }'>
@@ -280,11 +281,7 @@ onMounted(setupGo);
   max-width: 2em;
 }
 
-:deep(tbody > tr) {
-  background-color: rgb(var(--v-theme-background));
-}
-
-tr.group-header {
-  background-color: unset;
+:deep(.darken) {
+  background-color: rgba(var(--v-theme-background), var(--v-medium-emphasis-opacity));
 }
 </style>
