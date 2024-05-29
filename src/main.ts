@@ -14,8 +14,9 @@ import {
   ArcElement,
   LineElement,
   PointElement,
+  _adapters
 } from 'chart.js';
-import 'chartjs-adapter-date-std';
+import { StdDateAdapter } from 'chartjs-adapter-date-std';
 
 import App from '@/OIDCApp.vue';
 import router from '@/router';
@@ -33,6 +34,9 @@ Chart.register(
   PointElement,
   LineElement,
 );
+
+// XXX: on hmr we need to register ourselves
+_adapters._date.override(StdDateAdapter.chartJsStandardAdapter());
 
 Chart.defaults.color = '#fffd';
 Chart.defaults.borderColor = '#fff4';
