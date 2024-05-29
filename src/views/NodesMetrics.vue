@@ -1,13 +1,14 @@
 <script lang="ts" setup>
-import { ref, onUnmounted, computed } from 'vue';
+import { computed, ref, onUnmounted, watch } from 'vue';
 import { VCard, VRow, VCol, VSwitch } from 'vuetify/components';
 import { Line } from 'vue-chartjs';
 import type { ChartOptions } from 'chart.js';
+import { useIntervalFn } from '@vueuse/core';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
-import { CustomObjectsApi, CoreV1Api, ResponseError } from '@/kubernetes-api/src';
-import { useIntervalFn } from '@vueuse/core';
+import { CustomObjectsApi, CoreV1Api, ResponseError, V1NodeFromJSON, type V1Node } from '@/kubernetes-api/src';
+import { listAndUnwaitedWatch } from '@/utils/watch';
 import { BaseColor, ColorVariant, colorToCode } from '@/utils/colors';
 import type { KubernetesList } from '@/utils/objects';
 import parseDuration from 'parse-duration';
@@ -19,14 +20,41 @@ const coreApi = new CoreV1Api(config);
 const api = new CustomObjectsApi(config);
 
 const timeRange = 600;
+const _nodes = ref<Array<V1Node>>([]);
 const nodes = ref<{ [key: string]: { cpu?: number, mem?: number } }>({});
 const samples = ref<Array<{
   [key: string]: { cpu: number, mem: number, cpuPercentage?: number, memPercentage?: number }
 }>>(Array(timeRange).fill(false).map(() => ({})));
-const latestSample = ref(Math.floor(new Date().valueOf() / 1000));
-const capacityAvailable = ref(false);
 const stacked = ref(false);
 const { abort: abortRequests, signal } = useAbortController();
+let latestSample = Math.floor(new Date().valueOf() / 1000);
+let capacityAvailable = true;
+
+try {
+  const abort = new AbortController();
+  await listAndUnwaitedWatch(
+    _nodes,
+    V1NodeFromJSON,
+    (opt) => coreApi.listNodeRaw(opt, { signal: abort.signal }),
+    (e) => useErrorPresentation().pendingError = e,
+  );
+  onUnmounted(() => abort.abort());
+  watch(_nodes, () => {
+    _nodes.value.forEach((n) => {
+      nodes.value[n.metadata!.name!] = {
+        cpu: real(n.status!.capacity!.cpu)!,
+        mem: real(n.status!.capacity!.memory)!,
+      };
+    });
+  }, { immediate: true });
+} catch (e) {
+  capacityAvailable = false;
+  if (e instanceof ResponseError && e.response.status === 403) {
+    useErrorPresentation().pendingToast = 'Percentage graphs unavailable: Permission denied on nodes info.';
+  } else {
+    throw e;
+  }
+}
 
 const colors = [
   BaseColor.Red,
@@ -58,7 +86,7 @@ const chartData = computed(() => ({
   datasets: Object.keys(nodes.value).map((n) => ({
     ...datasetMetadata.value[n],
     data: samples.value.map((s, i) => (s[n] !== undefined ? {
-      x: (latestSample.value - samples.value.length + i) * 1000,
+      x: (latestSample - samples.value.length + i) * 1000,
       ...s[n],
     } : undefined)).filter((s) => s !== undefined),
   })),
@@ -84,7 +112,7 @@ const chartOptions = computed(() => {
     },
   ];
 
-  if (capacityAvailable.value) {
+  if (capacityAvailable) {
     res.push(
       {
         plugins: { title: { display: true, text: 'CPU usage (%)' } },
@@ -102,21 +130,6 @@ const chartOptions = computed(() => {
   return res.map((r) => ({ ...r, ...common }));
 });
 
-try {
-  (await coreApi.listNode()).items.forEach((n) => {
-    nodes.value[n.metadata!.name!] = {
-      cpu: real(n.status!.capacity!.cpu)!,
-      mem: real(n.status!.capacity!.memory)!,
-    };
-  });
-  capacityAvailable.value = true;
-} catch (e) {
-  if (e instanceof ResponseError && e.response.status === 403) {
-    useErrorPresentation().pendingToast = 'Percentage graphs unavailable: Permission denied on nodes info.';
-  } else {
-    throw e;
-  }
-}
 
 const metricsApi = {
   group: 'metrics.k8s.io',
@@ -130,7 +143,7 @@ const { pause } = useIntervalFn(() => {
       { signal: signal.value }) as KubernetesList<any>;
     response.items.forEach((i: any) => {
       const time = Math.floor(new Date(i.timestamp).valueOf() / 1000);
-      let index = time - (latestSample.value - timeRange);
+      let index = time - (latestSample - timeRange);
       if (index < 0) {
         return;
       }
@@ -141,12 +154,12 @@ const { pause } = useIntervalFn(() => {
           samples.value.shift();
           samples.value.push({});
         }
-        latestSample.value += room;
-        index = time - (latestSample.value - timeRange);
+        latestSample += room;
+        index = time - (latestSample - timeRange);
       }
 
       const cpu = real(i.usage.cpu)!, mem = real(i.usage.memory)!;
-      const metrics = capacityAvailable.value ? {
+      const metrics = capacityAvailable ? {
         cpu,
         mem,
         cpuPercentage: cpu / nodes.value[i.metadata.name].cpu! * 100,
