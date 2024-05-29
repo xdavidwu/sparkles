@@ -2,13 +2,26 @@ import type { V1Secret } from '@/kubernetes-api/src';
 
 // XXX: why omitempty everywhere?
 
+// helm.sh/helm/v3/pkg/release.Status
+enum Status {
+  UNKNOWN = "unknown",
+  DEPLOYED = "deployed",
+  UNINSTALLED = "uninstalled",
+  SUPERSEDED = "superseded",
+  FAILED = "failed",
+  UNINSTALLING = "uninstalling",
+  PENDING_INSTALL = "pending-install",
+  PENDING_UPGRADE = "pending-upgrade",
+  PENDING_ROLLBACK = "pending-rollback",
+}
+
 // helm.sh/helm/v3/pkg/release.Info
 export interface Info {
   first_deployed?: string;
   last_deployed?: string;
   deleted?: string;
   description?: string; // TODO is this always set?
-  status?: string; // TODO is this always set?
+  status?: Status; // TODO is this always set?
   notes?: string;
   resources?: object; // TODO is this even used now? Release.manifest?
 }
