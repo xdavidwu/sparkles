@@ -77,19 +77,23 @@ const podsResourceUsage = computed(() => {
 
 const { abort: abortRequests, signal } = useAbortController();
 
-watch(selectedNamespace, async (namespace) => {
+const load = async (namespace: string) => {
   abortRequests();
 
-  await listAndUnwaitedWatch(quotas, V1ResourceQuotaFromJSON,
-    (opt) => api.listNamespacedResourceQuotaRaw({ ...opt, namespace }, { signal: signal.value }),
-    (e) => useErrorPresentation().pendingError = e,
-  );
+  await Promise.all([
+    listAndUnwaitedWatch(quotas, V1ResourceQuotaFromJSON,
+      (opt) => api.listNamespacedResourceQuotaRaw({ ...opt, namespace }, { signal: signal.value }),
+      (e) => useErrorPresentation().pendingError = e,
+    ),
+    listAndUnwaitedWatch(pods, V1PodFromJSON,
+      (opt) => api.listNamespacedPodRaw({ ...opt, namespace }, { signal: signal.value }),
+      (e) => useErrorPresentation().pendingError = e,
+    ),
+  ]);
+};
+await load(selectedNamespace.value);
 
-  await listAndUnwaitedWatch(pods, V1PodFromJSON,
-    (opt) => api.listNamespacedPodRaw({ ...opt, namespace }, { signal: signal.value }),
-    (e) => useErrorPresentation().pendingError = e,
-  );
-}, { immediate: true });
+watch(selectedNamespace, load);
 </script>
 
 <template>
