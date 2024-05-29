@@ -7,7 +7,7 @@ import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
 import { CustomObjectsApi, CoreV1Api, ResponseError } from '@/kubernetes-api/src';
 import { useIntervalFn } from '@vueuse/core';
-import { BaseColor, ColorVariant, colorToCode, hashColor } from '@/utils/colors';
+import { BaseColor, ColorVariant, colorToCode } from '@/utils/colors';
 import type { KubernetesList } from '@/utils/objects';
 import parseDuration from 'parse-duration';
 import { real } from '@ragnarpa/quantity';
@@ -27,8 +27,23 @@ const capacityAvailable = ref(false);
 const stacked = ref(false);
 const { abort: abortRequests, signal } = useAbortController();
 
-const datasetMetadata = computed(() => Object.keys(nodes.value).reduce((r, n) => {
-  let color = colorToCode(hashColor(n, Object.values(BaseColor), [ColorVariant.Base]));
+const colors = [
+  BaseColor.Red,
+  BaseColor.Purple,
+  BaseColor.LightBlue,
+  BaseColor.Teal,
+  BaseColor.LightGreen,
+  BaseColor.Yellow,
+  BaseColor.Orange,
+  BaseColor.Brown,
+  BaseColor.Grey,
+];
+
+const datasetMetadata = computed(() => Object.keys(nodes.value).reduce((r, n, i) => {
+  let color = colorToCode({
+    color: colors[i % colors.length],
+    variant: ColorVariant.Base,
+  });
   r[n] = {
     label: n,
     backgroundColor: `${color}aa`,
