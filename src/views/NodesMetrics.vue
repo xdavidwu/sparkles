@@ -2,6 +2,7 @@
 import { ref, onUnmounted, computed } from 'vue';
 import { VCard, VRow, VCol, VSwitch } from 'vuetify/components';
 import { Line } from 'vue-chartjs';
+import type { ChartOptions } from 'chart.js';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
@@ -62,6 +63,44 @@ const chartData = computed(() => ({
     } : undefined)).filter((s) => s !== undefined),
   })),
 }));
+
+const chartOptions = computed(() => {
+  const common: ChartOptions<'line'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+  };
+  const res: Array<ChartOptions<'line'>> = [
+    {
+      plugins: { title: { display: true, text: 'CPU usage' } },
+      scales: { x: { type: 'time' }, y: { stacked: stacked.value } },
+      parsing: { yAxisKey: 'cpu' },
+      datasets: { line: { fill: stacked.value ? 'stack' : false } },
+    },
+    {
+      plugins: { title: { display: true, text: 'Memory usage' } },
+      scales: { x: { type: 'time' }, y: { stacked: stacked.value, ticks: { callback: (v) => fromBytes(+v, { mode: 'IEC' }) } } },
+      parsing: { yAxisKey: 'mem' },
+      datasets: { line: { fill: stacked.value ? 'stack' : false } },
+    },
+  ];
+
+  if (capacityAvailable.value) {
+    res.push(
+      {
+        plugins: { title: { display: true, text: 'CPU usage (%)' } },
+        scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
+        parsing: { yAxisKey: 'cpuPercentage' },
+      },
+      {
+        plugins: { title: { display: true, text: 'Memory usage (%)' } },
+        scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
+        parsing: { yAxisKey: 'memPercentage' },
+      },
+    );
+  }
+
+  return res.map((r) => ({ ...r, ...common }));
+});
 
 try {
   (await coreApi.listNode()).items.forEach((n) => {
@@ -139,49 +178,10 @@ onUnmounted(pause);
     <VSwitch v-model="stacked" label="Stacked" hide-details class="float-right" />
   </div>
   <VRow>
-    <VCol cols="12" md="6">
+    <VCol v-for="(opt, i) in chartOptions" :key="i" cols="12" md="6">
       <VCard><template #text>
-        <Line style="height: 250px" :data="chartData" :options="{
-            responsive: true, maintainAspectRatio: false,
-            plugins: { title: { display: true, text: 'CPU usage' } },
-            scales: { x: { type: 'time' }, y: { stacked } },
-            parsing: { yAxisKey: 'cpu' },
-            datasets: { line: { fill: stacked ? 'stack' : false } },
-          }" />
+        <Line style="height: 250px" :data="chartData" :options="opt" />
       </template></VCard>
     </VCol>
-    <VCol cols="12" md="6">
-      <VCard><template #text>
-        <Line style="height: 250px" :data="chartData" :options="{
-            responsive: true, maintainAspectRatio: false,
-            plugins: { title: { display: true, text: 'Memory usage' } },
-            scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => fromBytes(+v, { mode: 'IEC' }) }, stacked } },
-            parsing: { yAxisKey: 'mem' },
-            datasets: { line: { fill: stacked ? 'stack' : false } },
-          }" />
-      </template></VCard>
-    </VCol>
-    <template v-if="capacityAvailable">
-      <VCol cols="12" md="6">
-        <VCard><template #text>
-          <Line style="height: 250px" :data="chartData" :options="{
-              responsive: true, maintainAspectRatio: false,
-              plugins: { title: { display: true, text: 'CPU usage (%)' } },
-              scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
-              parsing: { yAxisKey: 'cpuPercentage' },
-            }" />
-        </template></VCard>
-      </VCol>
-      <VCol cols="12" md="6">
-        <VCard><template #text>
-          <Line style="height: 250px" :data="chartData" :options="{
-              responsive: true, maintainAspectRatio: false,
-              plugins: { title: { display: true, text: 'Memory usage (%)' } },
-              scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
-              parsing: { yAxisKey: 'memPercentage' },
-            }" />
-        </template></VCard>
-      </VCol>
-    </template>
   </VRow>
 </template>
