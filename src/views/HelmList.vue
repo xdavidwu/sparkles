@@ -16,6 +16,7 @@ import { onMounted, ref, watch } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
+import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useNamespaces } from '@/stores/namespaces';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
@@ -37,6 +38,7 @@ interface ValuesTab {
 const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces();
 const { selectedNamespace } = storeToRefs(namespacesStore);
+const discoveryStore = useApisDiscovery();
 
 const api = new CoreV1Api(await useApiConfig().getConfig());
 
@@ -149,7 +151,7 @@ const { loading, load } = useLoading(async () => {
 
 watch(selectedNamespace, load, { immediate: true });
 
-const rollback = (target: Release) => {
+const rollback = async (target: Release) => {
   const latest = releases.value.filter((r) => r.name == target.name)[0];
 
   // TODO create release object
@@ -169,29 +171,22 @@ const rollback = (target: Release) => {
     r.metadata!.annotations['meta.helm.sh/release-namespace'] = target.namespace;
   });
 
-  const ops = [];
-  targetResources.forEach((r) => {
-    if (latestResources.some((t) => isSameKubernetesObject(r, t))) {
-      ops.push({
-        op: 'replace',
-        target: r,
-      });
-    } else {
-      ops.push({
-        op: 'create',
-        target: r,
-      });
-    }
-  });
-  ops.push(
-    ...latestResources.filter(
-      (r) => !targetResources.some((t) => isSameKubernetesObject(r, t)),
-    ).map((r) => ({
-      op: 'delete',
-      target: r,
-    })),
-  );
-  const summary = ops.map((o) => `${o.op}: ${o.target.apiVersion} ${o.target.kind} ${o.target.metadata!.name}`).join('\n');
+  const ops = await Promise.all(targetResources.map((r) => ({
+    op: latestResources.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
+    target: r,
+  })).concat(latestResources.filter(
+    (r) => !targetResources.some((t) => isSameKubernetesObject(r, t)),
+  ).map((r) => ({
+    op: 'delete',
+    target: r,
+  }))).map(async (op) => ({
+    ...op,
+    kindInfo: await discoveryStore.getForObject(op.target),
+  })));
+
+  const summary = ops.map((o) =>
+    `${o.op}: ${o.kindInfo.group ?? 'core'} ${o.kindInfo.version} ${o.kindInfo.resource} (${o.kindInfo.scope}) ${o.target.metadata!.name}`,
+  ).join('\n');
   alert(`TODO rollback from ${latest.version} to ${target.version}:\n${summary}`);
   console.log(ops);
   // TODO recreate? (delete old pod to trigger a rollout?), wait?, hooks?

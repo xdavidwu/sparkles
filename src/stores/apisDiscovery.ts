@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreApi, ApisApi, VersionApi, type VersionInfo } from '@/kubernetes-api/src';
 import { toV2Discovery, type V2APIGroupDiscoveryList, type V2APIGroupDiscovery } from '@/utils/discoveryV2';
+import type { KubernetesObject } from '@/utils/objects';
 
 export const useApisDiscovery = defineStore('apisDiscovery', () => {
   let groups: Promise<Array<V2APIGroupDiscovery>> | null = null;
@@ -36,5 +37,22 @@ export const useApisDiscovery = defineStore('apisDiscovery', () => {
     return versionInfo;
   };
 
-  return { getGroups, getVersionInfo };
+  const getForGVK = async (group: string | undefined, version: string, kind: string) => {
+    const groups = await getGroups();
+    return groups.find((g) => g.metadata!.name === group)
+      ?.versions.find((v) => v.version === version)
+      ?.resources.find((r) => r.responseKind.kind === kind);
+  }
+
+  const getForObject = async (r: KubernetesObject) => {
+    const split = r.apiVersion!.split('/');
+    const gv = split.length == 1 ? { version: r.apiVersion! } : { group: split[0], version: split[1] };
+    const datum = await getForGVK(gv.group, gv.version, r.kind!);
+    return {
+      ...gv,
+      ...datum,
+    };
+  };
+
+  return { getGroups, getVersionInfo, getForGVK, getForObject };
 });
