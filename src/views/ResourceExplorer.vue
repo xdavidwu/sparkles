@@ -25,6 +25,7 @@ import { useDisplay } from 'vuetify';
 import { timestamp, useLastChanged, useNow, useTimeAgo } from '@vueuse/core';
 import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
+import { useLoading } from '@/composables/loading';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -101,7 +102,6 @@ const objects = ref<V1Table<V1PartialObjectMetadata>>({
 });
 const lastUpdatedAt = useLastChanged(objects, { initialValue: timestamp() });
 const lastUpdated = useTimeAgo(lastUpdatedAt);
-const objectsLoading = ref(false);
 const tab = ref('explore');
 const inspectedObjects = ref<Map<string, ObjectRecord>>(new Map());
 const { smAndDown, xlAndUp } = useDisplay();
@@ -110,10 +110,9 @@ const { appBarHeightPX } = useAppTabs();
 
 const { abort: abortRequests, signal } = useAbortController();
 
-const listObjects = async () => {
+const { loading, load } = useLoading(async () => {
   abortRequests();
 
-  objectsLoading.value = true;
   const options = {
     group: targetGroupVersion.value.group,
     version: targetGroupVersion.value.version,
@@ -130,8 +129,7 @@ const listObjects = async () => {
   } else {
     objects.value = await anyApi[`list${listType}CustomObjectAsTable`](options);
   }
-  objectsLoading.value = false;
-};
+});
 
 const isCreationTimestamp = (c: V1TableColumnDefinition) =>
   (c.name === 'Age' && c.description.startsWith('CreationTimestamp ')) ||
@@ -324,7 +322,7 @@ const title = (o: ObjectRecord) =>
   `${o.type.shortNames ? o.type.shortNames[0] : o.type.responseKind.kind}: ${nsNameShort(o.metadata)}`;
 
 watch(targetGroupVersion, () => targetType.value = defaultTargetType());
-watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: true });
+watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true });
 </script>
 
 <template>
@@ -366,11 +364,11 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
           {{ lastUpdated }}
           <LinkedTooltip :text="new Date(lastUpdatedAt).toLocaleString()" activator="parent" />
         </span>
-        <VBtn variant="text" size="x-small" color="primary" @click="listObjects">refresh</VBtn>
+        <VBtn variant="text" size="x-small" color="primary" @click="load">refresh</VBtn>
       </div>
       <VDataTable hover class="data-table-auto"
         items-per-page="-1" :items="table.rows" :headers="columns"
-        :loading="objectsLoading" hide-default-footer>
+        :loading="loading" hide-default-footer>
         <!-- TODO: ask vuetify to open up VDataTableHeaderCell -->
         <template v-for="(c, i) in columns" #[`header.${c.key}`]="{ column, getSortIcon }" :key="i">
           <div class="v-data-table-header__content h-100 width-fit-content">

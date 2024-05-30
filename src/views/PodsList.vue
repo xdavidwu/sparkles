@@ -17,6 +17,7 @@ import { computed, ref, watch } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
+import { useLoading } from '@/composables/loading';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -124,14 +125,16 @@ const columns = [
 
 const { abort: abortRequests, signal } = useAbortController();
 
-watch(selectedNamespace, async (namespace) => {
+const { load, loading } = useLoading(async () => {
   abortRequests();
 
   await listAndUnwaitedWatch(_pods, V1PodFromJSON,
-    (opt) => api.listNamespacedPodRaw({ ...opt, namespace }, { signal: signal.value }),
+    (opt) => api.listNamespacedPodRaw({ ...opt, namespace: selectedNamespace.value }, { signal: signal.value }),
     (e) => useErrorPresentation().pendingError = e,
   );
-}, { immediate: true });
+});
+
+watch(selectedNamespace, load, { immediate: true });
 
 const closeTab = (index: number) => {
   tab.value = 'table';
@@ -179,7 +182,7 @@ const bell = (index: number) => {
   </AppTabs>
   <TabsWindow v-model="tab">
     <WindowItem value="table">
-      <VDataTable hover :items="containers" :headers="columns"
+      <VDataTable hover :items="containers" :headers="columns" :loading="loading"
         hide-default-footer disable-sort>
         <template #[`header._extra.pod.metadata.name`]>
           Pod

@@ -20,6 +20,7 @@ import { useNamespaces } from '@/stores/namespaces';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
+import { useLoading } from '@/composables/loading';
 import { stringify, parseAllDocuments } from 'yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
 import { listAndUnwaitedWatch } from '@/utils/watch'
@@ -135,16 +136,18 @@ const closeTab = (idx: number) => {
   tabs.value.splice(idx, 1);
 };
 
-watch(selectedNamespace, async (namespace) => {
+const { loading, load } = useLoading(async () => {
   abortRequests();
   await listAndUnwaitedWatch(secrets, V1SecretFromJSON,
     (opt) => api.listNamespacedSecretRaw(
-      { ...opt, namespace, labelSelector: secretsLabelSelector },
+      { ...opt, namespace: selectedNamespace.value, labelSelector: secretsLabelSelector },
       { signal: signal.value },
     ),
     (e) => useErrorPresentation().pendingError = e,
   );
-}, { immediate: true });
+});
+
+watch(selectedNamespace, load, { immediate: true });
 
 const rollback = (target: Release) => {
   const latest = releases.value.filter((r) => r.name == target.name)[0];
@@ -208,7 +211,7 @@ onMounted(setupGo);
   </AppTabs>
   <TabsWindow v-model="tab">
     <WindowItem value="table">
-      <VDataTable hover :items="releases" :headers="columns"
+      <VDataTable hover :items="releases" :headers="columns" :loading="loading"
         :row-props="{class: 'darken'}" :group-by="[{ key: 'name', order: 'asc'}]"
         hide-default-footer disable-sort>
         <template #group-header='groupProps'>
