@@ -3,7 +3,6 @@ import {
   VDataTable,
   VIcon,
   VTab,
-  VWindow,
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
@@ -11,6 +10,7 @@ import ExecTerminal from '@/components/ExecTerminal.vue';
 import KeyValueBadge from '@/components/KeyValueBadge.vue';
 import LogViewer from '@/components/LogViewer.vue';
 import LinkedImage from '@/components/LinkedImage.vue';
+import TabsWindow from '@/components/TabsWindow.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
 import WindowItem from '@/components/WindowItem.vue';
 import { computed, ref, watch } from 'vue';
@@ -177,7 +177,7 @@ const bell = (index: number) => {
       :title="tab.title ?? tab.defaultTitle" :description="tab.description"
       @click="() => tab.alerting = false" @close="() => closeTab(index)" />
   </AppTabs>
-  <VWindow v-model="tab" :touch="false">
+  <TabsWindow v-model="tab">
     <WindowItem value="table">
       <VDataTable hover :items="containers" :headers="columns"
         hide-default-footer disable-sort>
@@ -222,5 +222,5 @@ const bell = (index: number) => {
         @bell="() => bell(index)"
         :container-spec="{ namespace: selectedNamespace, ...tab.spec}" />
     </WindowItem>
-  </VWindow>
+  </TabsWindow>
 </template>

@@ -4,11 +4,11 @@ import {
   VDataTable,
   VDataTableRow,
   VTab,
-  VWindow,
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import TabsWindow from '@/components/TabsWindow.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
 import WindowItem from '@/components/WindowItem.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
@@ -206,7 +206,7 @@ onMounted(setupGo);
     <DynamicTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id"
       :title="`Values: ${ tab.id }`" @close="() => closeTab(index)" />
   </AppTabs>
-  <VWindow v-model="tab" :touch="false">
+  <TabsWindow v-model="tab">
     <WindowItem value="table">
       <VDataTable hover :items="releases" :headers="columns"
         :row-props="{class: 'darken'}" :group-by="[{ key: 'name', order: 'asc'}]"
@@ -272,7 +272,7 @@ onMounted(setupGo);
         :model-value="stringify(tab.values, null, { indentSeq: true })"
         :schema="tab.schema" disabled />
     </WindowItem>
-  </VWindow>
+  </TabsWindow>
 </template>
 
 <style scoped>

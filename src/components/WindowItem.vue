@@ -1,17 +1,21 @@
 <script setup lang="ts">
-import { VWindowItem } from 'vuetify/components';
-import { provide, ref } from 'vue';
-import { windowVisibilityInjectionKey } from '@/utils/keys';
+import { VTabsWindowItem } from 'vuetify/components';
+import { computed, inject, provide, ref } from 'vue';
+import { windowSelectionInjectionKey, windowVisibilityInjectionKey } from '@/utils/keys';
 
-const visible = ref<boolean | null>(null);
+const props = defineProps<{
+  value: string;
+}>();
+
+const selection = inject(windowSelectionInjectionKey, ref(''));
+
+const visible = computed(() => selection.value === props.value);
 
 provide(windowVisibilityInjectionKey, visible);
-
-const track = ({ value }: { value: boolean }) => visible.value = value;
 </script>
 
 <template>
-  <VWindowItem @group:selected="track">
+  <VTabsWindowItem :value="props.value">
     <slot />
-  </VWindowItem>
+  </VTabsWindowItem>
 </template>

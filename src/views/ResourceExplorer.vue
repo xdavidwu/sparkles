@@ -9,7 +9,6 @@ import {
   VIcon,
   VRow,
   VTab,
-  VWindow,
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
@@ -17,6 +16,7 @@ import FixedFab from '@/components/FixedFab.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import SpeedDialBtn from '@/components/SpeedDialBtn.vue';
 import SpeedDialFab from '@/components/SpeedDialFab.vue';
+import TabsWindow from '@/components/TabsWindow.vue';
 import WindowItem from '@/components/WindowItem.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
 import { computed, watch, ref } from 'vue';
@@ -334,7 +334,7 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
       :value="key" :description="`${r.type.responseKind.kind}: ${nsName(r.metadata)}`"
       :title="title(r)" :alerting="r.unsaved" @close="() => closeTab(key)" />
   </AppTabs>
-  <VWindow v-model="tab" :touch="false">
+  <TabsWindow v-model="tab">
     <WindowItem value="explore">
       <VRow class="mb-1" :dense="smAndDown">
         <VCol cols="6" sm="">
@@ -408,7 +408,7 @@ watch([targetType, allNamespaces, selectedNamespace], listObjects, { immediate: 
           @click="() => r.editing = true" />
       </SpeedDialFab>
     </WindowItem>
-  </VWindow>
+  </TabsWindow>
 </template>
 
 <style>

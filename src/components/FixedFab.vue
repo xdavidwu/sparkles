@@ -1,17 +1,11 @@
 <script setup lang="ts">
 import { VFab, VScaleTransition } from 'vuetify/components';
-import { ref, inject, watch } from 'vue';
+import { ref, inject } from 'vue';
 import { windowVisibilityInjectionKey } from '@/utils/keys';
 
 defineOptions({ inheritAttrs: false });
 
-const visible = ref(true);
-
-const windowVisibility = inject(windowVisibilityInjectionKey, null);
-
-if (windowVisibility !== null) {
-  watch(windowVisibility, (windowVisible) => visible.value = windowVisible as boolean);
-}
+const visible = inject(windowVisibilityInjectionKey, ref(true));
 </script>
 
 <template>
