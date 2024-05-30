@@ -130,6 +130,7 @@ export interface IndexFile {
 
 // helm.sh/helm/v3/pkg/storage/driver.Secrets.List
 export const secretsLabelSelector = 'owner=helm';
+export const releaseSecretType = 'helm.sh/release.v1';
 export const parseSecret = async (s: V1Secret): Promise<ReleaseWithLabels> => {
   // TODO handle malformed secrets
   const gzipped = (await fetch(
@@ -142,5 +143,37 @@ export const parseSecret = async (s: V1Secret): Promise<ReleaseWithLabels> => {
   return {
     ...release,
     labels: s.metadata!.labels ?? {},
+  };
+};
+
+// helm.sh/helm/v3/pkg/storage/driver.Secrets.newSecretsObject
+export const encodeSecret = async (r: ReleaseWithLabels): Promise<V1Secret> => {
+  const datum = {
+    ...r,
+    labels: undefined,
+  };
+  const bytes = new Blob([JSON.stringify(datum)]);
+  const stream = bytes.stream().pipeThrough(new CompressionStream('gzip'));
+  const gzipped = new Uint8Array(await (new Response(stream)).arrayBuffer());
+  const base64d = btoa(Array.from(gzipped, (b) => String.fromCodePoint(b)).join(''));
+
+  return {
+    apiVersion: 'v1',
+    kind: 'Secret',
+    metadata: {
+      name: `sh.helm.release.v1.${r.name}.v${r.version}`,
+      namespace: r.namespace,
+      labels: {
+        ...r.labels,
+        name: r.name,
+        owner: 'helm',
+        status: r.info.status!,
+        version: `${r.version}`,
+      },
+    },
+    data: {
+      release: btoa(base64d),
+    },
+    type: releaseSecretType,
   };
 };

@@ -25,7 +25,7 @@ import { useLoading } from '@/composables/loading';
 import { stringify, parseAllDocuments } from 'yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
 import { listAndUnwaitedWatch } from '@/utils/watch'
-import { type Release, parseSecret, secretsLabelSelector, Status } from '@/utils/helm';
+import { type Release, encodeSecret, parseSecret, secretsLabelSelector, Status } from '@/utils/helm';
 import { type KubernetesObject, isSameKubernetesObject } from '@/utils/objects';
 import '@/vendor/wasm_exec';
 
@@ -160,6 +160,10 @@ const rollback = async (target: Release) => {
   release.info.status = Status.PENDING_ROLLBACK;
   release.info.description = `Rollback to ${release.version}`;
   release.version = latest.version + 1;
+
+  const secret = await encodeSecret(release);
+  // TODO what should we set fieldmanager to?
+  await api.createNamespacedSecret({ namespace: secret.metadata!.namespace!, body: secret });
 
   const targetResources = parseAllDocuments(target.manifest).map((d) => d.toJS() as KubernetesObject);
   const latestResources = parseAllDocuments(latest.manifest).map((d) => d.toJS() as KubernetesObject);
