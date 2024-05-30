@@ -3,7 +3,7 @@ import type { V1Secret } from '@/kubernetes-api/src';
 // XXX: why omitempty everywhere?
 
 // helm.sh/helm/v3/pkg/release.Status
-enum Status {
+export enum Status {
   UNKNOWN = "unknown",
   DEPLOYED = "deployed",
   UNINSTALLED = "uninstalled",

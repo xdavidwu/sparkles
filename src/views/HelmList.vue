@@ -25,7 +25,7 @@ import { useLoading } from '@/composables/loading';
 import { stringify, parseAllDocuments } from 'yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
 import { listAndUnwaitedWatch } from '@/utils/watch'
-import { type Release, parseSecret, secretsLabelSelector } from '@/utils/helm';
+import { type Release, parseSecret, secretsLabelSelector, Status } from '@/utils/helm';
 import { type KubernetesObject, isSameKubernetesObject } from '@/utils/objects';
 import '@/vendor/wasm_exec';
 
@@ -154,7 +154,12 @@ watch(selectedNamespace, load, { immediate: true });
 const rollback = async (target: Release) => {
   const latest = releases.value.filter((r) => r.name == target.name)[0];
 
-  // TODO create release object
+  // XXX: proxy, multiple layer
+  const release = JSON.parse(JSON.stringify(target));
+  release.info.last_deployed = (new Date()).toISOString();
+  release.info.status = Status.PENDING_ROLLBACK;
+  release.info.description = `Rollback to ${release.version}`;
+  release.version = latest.version + 1;
 
   const targetResources = parseAllDocuments(target.manifest).map((d) => d.toJS() as KubernetesObject);
   const latestResources = parseAllDocuments(latest.manifest).map((d) => d.toJS() as KubernetesObject);
