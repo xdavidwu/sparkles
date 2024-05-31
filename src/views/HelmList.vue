@@ -24,8 +24,12 @@ import { useAppTabs } from '@/composables/appTabs';
 import { useLoading } from '@/composables/loading';
 import { stringify, parseAllDocuments } from 'yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
+import { AnyApi } from '@/utils/AnyApi';
 import { listAndUnwaitedWatch } from '@/utils/watch'
-import { type Release, encodeSecret, parseSecret, secretsLabelSelector, Status } from '@/utils/helm';
+import {
+  type Release, type ReleaseWithLabels,
+  encodeSecret, parseSecret, secretsLabelSelector, Status,
+} from '@/utils/helm';
 import { type KubernetesObject, isSameKubernetesObject } from '@/utils/objects';
 import '@/vendor/wasm_exec';
 
@@ -40,7 +44,9 @@ await namespacesStore.ensureNamespaces();
 const { selectedNamespace } = storeToRefs(namespacesStore);
 const discoveryStore = useApisDiscovery();
 
-const api = new CoreV1Api(await useApiConfig().getConfig());
+const config = await useApiConfig().getConfig();
+const api = new CoreV1Api(config);
+const anyApi = new AnyApi(config);
 
 const secrets = ref<Array<V1Secret>>([]);
 const tab = ref('table');
@@ -151,11 +157,12 @@ const { loading, load } = useLoading(async () => {
 
 watch(selectedNamespace, load, { immediate: true });
 
+// helm.sh/helm/v3/pkg/action/rollback.Run
 const rollback = async (target: Release) => {
   const latest = releases.value.filter((r) => r.name == target.name)[0];
 
   // XXX: proxy, multiple layer
-  const release = JSON.parse(JSON.stringify(target));
+  const release: ReleaseWithLabels = JSON.parse(JSON.stringify(target));
   release.info.last_deployed = (new Date()).toISOString();
   release.info.status = Status.PENDING_ROLLBACK;
   release.info.description = `Rollback to ${release.version}`;
@@ -193,14 +200,59 @@ const rollback = async (target: Release) => {
     kindInfo: await discoveryStore.getForObject(op.target),
   })));
 
-  const summary = ops.map((o) =>
-    `${o.op}: ${o.kindInfo.group ?? 'core'} ${o.kindInfo.version} ${o.kindInfo.resource} (${o.kindInfo.scope}) ${o.target.metadata!.name}`,
-  ).join('\n');
-  alert(`TODO rollback from ${latest.version} to ${target.version}:\n${summary}`);
-  console.log(ops);
+  await Promise.all(ops.map((op) => {
+    switch (op.op) {
+    case 'create':
+      return anyApi[`create${op.kindInfo.scope!}CustomObject`]({
+        group: op.kindInfo.group,
+        version: op.kindInfo.version,
+        plural: op.kindInfo.resource!,
+        namespace: op.target.metadata!.namespace!,
+        body: op.target,
+      });
+    case 'replace':
+      return anyApi[`replace${op.kindInfo.scope!}CustomObject`]({
+        group: op.kindInfo.group,
+        version: op.kindInfo.version,
+        plural: op.kindInfo.resource!,
+        namespace: op.target.metadata!.namespace!,
+        name: op.target.metadata!.name!,
+        body: op.target,
+      });
+    case 'delete':
+      return anyApi[`delete${op.kindInfo.scope!}CustomObject`]({
+        group: op.kindInfo.group,
+        version: op.kindInfo.version,
+        plural: op.kindInfo.resource!,
+        namespace: op.target.metadata!.namespace!,
+        name: op.target.metadata!.name!,
+      });
+    }
+  }));
+  // TODO error handling, undo on failure?
+
   // TODO recreate? (delete old pod to trigger a rollout?), wait?, hooks?
-  // TODO set all existing versions to superseded
-  // TODO persist new release
+
+  await Promise.all(releases.value.filter(
+    (r) => r.name == target.name && r.info.status == Status.DEPLOYED,
+  ).map(async (r) => {
+    const copy: ReleaseWithLabels = JSON.parse(JSON.stringify(r));
+    copy.info.status = Status.SUPERSEDED;
+    const updatedSecret = await encodeSecret(copy);
+    return await api.replaceNamespacedSecret({
+      namespace: updatedSecret.metadata!.namespace!,
+      name: updatedSecret.metadata!.name!,
+      body: updatedSecret,
+    });
+  }));
+
+  release.info.status = Status.DEPLOYED;
+  const finalSecret = await encodeSecret(release);
+  await api.replaceNamespacedSecret({
+    namespace: finalSecret.metadata!.namespace!,
+    name: finalSecret.metadata!.name!,
+    body: finalSecret,
+  });
   // TODO history retention
 };
 
