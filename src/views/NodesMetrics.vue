@@ -19,7 +19,7 @@ const config = await useApiConfig().getConfig();
 const coreApi = new CoreV1Api(config);
 const api = new CustomObjectsApi(config);
 
-const timeRange = 600;
+const timeRange = 60 * 60;
 const _nodes = ref<Array<V1Node>>([]);
 const nodes = ref<{ [key: string]: { cpu?: number, mem?: number } }>({});
 const samples = ref<Array<{
