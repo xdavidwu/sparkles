@@ -157,7 +157,7 @@ const { loading, load } = useLoading(async () => {
 
 watch(selectedNamespace, load, { immediate: true });
 
-// helm.sh/helm/v3/pkg/action/rollback.Run
+// helm.sh/helm/v3/pkg/action.Rollback.Run
 const rollback = async (target: Release) => {
   const latest = releases.value.filter((r) => r.name == target.name)[0];
 
@@ -256,6 +256,47 @@ const rollback = async (target: Release) => {
   // TODO history retention
 };
 
+// helm.sh/helm/v3/pkg/action.Uninstall.Run
+const uninstall = async (target: Release) => {
+  const update: ReleaseWithLabels = JSON.parse(JSON.stringify(target));
+  update.info.status = Status.UNINSTALLING;
+  update.info.deleted = (new Date()).toISOString();
+  update.info.description = 'Deletion in progress (or sliently failed)';
+  const updatedSecret = await encodeSecret(update);
+  await api.replaceNamespacedSecret({
+    namespace: updatedSecret.metadata!.namespace!,
+    name: updatedSecret.metadata!.name!,
+    body: updatedSecret,
+  });
+
+  const targetResources = parseAllDocuments(target.manifest).map((d) => d.toJS() as KubernetesObject);
+  // TODO sort? helm.sh/helm/v3/pkg/releaseutil.UninstallOrder
+  const toDelete = targetResources.filter((r) => r.metadata!.annotations?.['helm.sh/resource-policy'] !== 'keep');
+  await Promise.all(toDelete.map(async (r) => {
+    const info = await discoveryStore.getForObject(r);
+    await anyApi[`delete${info.scope!}CustomObject`]({
+      group: info.group,
+      version: info.version,
+      plural: info.resource!,
+      namespace: r.metadata!.namespace!,
+      name: r.metadata!.name!,
+    });
+  }));
+
+  // TODO perhaps tell user what are kept
+  // TODO wait, hook
+  // TODO do we want to impl hard delete (remove history)?
+
+  update.info.status = Status.UNINSTALLED;
+  update.info.description = 'Uninstallation complete';
+  const finalSecret = await encodeSecret(update);
+  await api.replaceNamespacedSecret({
+    namespace: finalSecret.metadata!.namespace!,
+    name: finalSecret.metadata!.name!,
+    body: finalSecret,
+  });
+};
+
 onMounted(setupGo);
 </script>
 
@@ -298,6 +339,9 @@ onMounted(setupGo);
             <template #[`item.actions`]='{ item }'>
               <TippedBtn size="small" icon="mdi-file-document" tooltip="Values" variant="text"
                 @click="() => createTab(item as Release)" />
+              <TippedBtn v-if="(item as Release).info.status == Status.DEPLOYED"
+                size="small" icon="mdi-delete" tooltip="Uninstall" variant="text"
+                @click="() => uninstall(item as Release)" />
             </template>
           </VDataTableRow>
         </template>
