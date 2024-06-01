@@ -54,8 +54,8 @@ const tabs = ref<Array<ValuesTab>>([]);
 
 const releases = computedAsync(async () =>
   (await Promise.all(secrets.value.map(parseSecret))).sort((a, b) => {
-    if (a.chart.metadata.name !== b.chart.metadata.name) {
-      return a.chart.metadata.name.localeCompare(b.chart.metadata.name);
+    if (a.name !== b.name) {
+      return a.name.localeCompare(b.name);
     }
     return b.version - a.version;
   }), []);
