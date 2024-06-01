@@ -1,4 +1,5 @@
 import type { V1Secret } from '@/kubernetes-api/src';
+import type { KubernetesObject } from '@/utils/objects';
 
 // XXX: why omitempty everywhere?
 
@@ -177,3 +178,7 @@ export const encodeSecret = async (r: ReleaseWithLabels): Promise<V1Secret> => {
     type: releaseSecretType,
   };
 };
+
+// helm.sh/v3/pkg/kube.ResourcePolicyAnno, KeepPolicy
+export const shouldKeepResource = (r: KubernetesObject) =>
+  r.metadata?.annotations?.['helm.sh/resource-policy'] === 'keep';

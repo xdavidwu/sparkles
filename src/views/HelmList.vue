@@ -29,7 +29,7 @@ import { errorIsResourceNotFound } from '@/utils/api';
 import { listAndUnwaitedWatch } from '@/utils/watch'
 import {
   type Release, type ReleaseWithLabels,
-  encodeSecret, parseSecret, secretsLabelSelector, Status,
+  encodeSecret, parseSecret, secretsLabelSelector, shouldKeepResource, Status,
 } from '@/utils/helm';
 import { type KubernetesObject, isSameKubernetesObject } from '@/utils/objects';
 import '@/vendor/wasm_exec';
@@ -196,7 +196,7 @@ const rollback = async (target: Release) => {
     op: latestResources.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
     target: r,
   })).concat(latestResources.filter(
-    (r) => !targetResources.some((t) => isSameKubernetesObject(r, t)),
+    (r) => !targetResources.some((t) => isSameKubernetesObject(r, t)) && !shouldKeepResource(r),
   ).map((r) => ({
     op: 'delete',
     target: r,
@@ -285,7 +285,7 @@ const uninstall = async (target: Release) => {
 
   const targetResources = parseAllDocuments(target.manifest).map((d) => d.toJS() as KubernetesObject);
   // TODO sort? helm.sh/helm/v3/pkg/releaseutil.UninstallOrder
-  const toDelete = targetResources.filter((r) => r.metadata!.annotations?.['helm.sh/resource-policy'] !== 'keep');
+  const toDelete = targetResources.filter((r) => !shouldKeepResource(r));
   await Promise.all(toDelete.map(async (r) => {
     const info = await discoveryStore.getForObject(r);
     await anyApi[`delete${info.scope!}CustomObject`]({
