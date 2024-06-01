@@ -47,9 +47,19 @@ export const extractRequestContext: Middleware['pre'] = (context) => {
   throw new ExtractedRequestContext(context);
 }
 
+export const errorIsResourceNotFound = async (err: any) => {
+  if (err instanceof ResponseError && err.response.status === 404) {
+    const status = V1StatusFromJSON(await err.response.json());
+    if (status.status === 'Failure' && status.reason === 'NotFound') {
+      return true;
+    }
+  }
+  return false;
+}
+
 export const errorIsTypeUnsupported = async (err: any) => {
   if (err instanceof ResponseError && err.response.status === 404) {
-    const status = V1StatusFromJSON(JSON.parse(await err.response.text()));
+    const status = V1StatusFromJSON(await err.response.json());
     if (status.status === 'Failure' && status.reason === 'NotFound' &&
         status.message === 'the server could not find the requested resource') {
       return true;

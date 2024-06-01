@@ -25,6 +25,7 @@ import { useLoading } from '@/composables/loading';
 import { stringify, parseAllDocuments } from 'yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
 import { AnyApi } from '@/utils/AnyApi';
+import { errorIsResourceNotFound } from '@/utils/api';
 import { listAndUnwaitedWatch } from '@/utils/watch'
 import {
   type Release, type ReleaseWithLabels,
@@ -163,9 +164,13 @@ const rollback = async (target: Release) => {
 
   // XXX: proxy, multiple layer
   const release: ReleaseWithLabels = JSON.parse(JSON.stringify(target));
-  release.info.last_deployed = (new Date()).toISOString();
-  release.info.status = Status.PENDING_ROLLBACK;
-  release.info.description = `Rollback to ${release.version}`;
+  release.info = {
+    first_deployed: latest.info.first_deployed,
+    last_deployed: (new Date()).toISOString(),
+    status: Status.PENDING_ROLLBACK,
+    notes: release.info.notes,
+    description: `Rollback to ${release.version}`,
+  };
   release.version = latest.version + 1;
 
   const secret = await encodeSecret(release);
@@ -200,27 +205,36 @@ const rollback = async (target: Release) => {
     kindInfo: await discoveryStore.getForObject(op.target),
   })));
 
-  await Promise.all(ops.map((op) => {
+  await Promise.all(ops.map(async (op) => {
+    const create = () => anyApi[`create${op.kindInfo.scope!}CustomObject`]({
+      group: op.kindInfo.group,
+      version: op.kindInfo.version,
+      plural: op.kindInfo.resource!,
+      namespace: op.target.metadata!.namespace!,
+      body: op.target,
+    });
     switch (op.op) {
     case 'create':
-      return anyApi[`create${op.kindInfo.scope!}CustomObject`]({
-        group: op.kindInfo.group,
-        version: op.kindInfo.version,
-        plural: op.kindInfo.resource!,
-        namespace: op.target.metadata!.namespace!,
-        body: op.target,
-      });
+      return await create();
     case 'replace':
-      return anyApi[`replace${op.kindInfo.scope!}CustomObject`]({
-        group: op.kindInfo.group,
-        version: op.kindInfo.version,
-        plural: op.kindInfo.resource!,
-        namespace: op.target.metadata!.namespace!,
-        name: op.target.metadata!.name!,
-        body: op.target,
-      });
+      try {
+        return await anyApi[`replace${op.kindInfo.scope!}CustomObject`]({
+          group: op.kindInfo.group,
+          version: op.kindInfo.version,
+          plural: op.kindInfo.resource!,
+          namespace: op.target.metadata!.namespace!,
+          name: op.target.metadata!.name!,
+          body: op.target,
+        });
+      } catch (e) {
+        // some (apps/v1 Deployment) does not treat PUT without existing resource as create, but the others does
+        if (await errorIsResourceNotFound(e)) {
+          return await create();
+        }
+        throw e;
+      }
     case 'delete':
-      return anyApi[`delete${op.kindInfo.scope!}CustomObject`]({
+      return await anyApi[`delete${op.kindInfo.scope!}CustomObject`]({
         group: op.kindInfo.group,
         version: op.kindInfo.version,
         plural: op.kindInfo.resource!,
@@ -342,6 +356,9 @@ onMounted(setupGo);
               <TippedBtn v-if="(item as Release).info.status == Status.DEPLOYED"
                 size="small" icon="mdi-delete" tooltip="Uninstall" variant="text"
                 @click="() => uninstall(item as Release)" />
+              <TippedBtn v-if="(item as Release).info.status == Status.UNINSTALLED"
+                size="small" icon="mdi-reload" tooltip="Restore" variant="text"
+                @click="() => rollback(item as Release)" />
             </template>
           </VDataTableRow>
         </template>
@@ -365,7 +382,7 @@ onMounted(setupGo);
         <template #[`item.actions`]='{ item }'>
           <TippedBtn size="small" icon="mdi-file-document" tooltip="Values" variant="text"
             @click="() => createTab(item)" />
-          <TippedBtn v-if="item.info.status == 'superseded'" size="small"
+          <TippedBtn v-if="item.info.status == Status.SUPERSEDED" size="small"
             icon="mdi-reload" tooltip="Rollback" variant="text" @click="() => rollback(item)" />
         </template>
       </VDataTable>
