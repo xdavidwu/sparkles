@@ -12,7 +12,7 @@ import TabsWindow from '@/components/TabsWindow.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
 import WindowItem from '@/components/WindowItem.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch, toRaw } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -54,7 +54,8 @@ const tab = ref('table');
 const tabs = ref<Array<ValuesTab>>([]);
 
 const releases = computedAsync(async () =>
-  (await Promise.all(secrets.value.map(parseSecret))).sort((a, b) => {
+  // avoid multiple layer of proxy via toRaw, for easier cloning
+  (await Promise.all(secrets.value.map((s) => parseSecret(toRaw(s))))).sort((a, b) => {
     if (a.name !== b.name) {
       return a.name.localeCompare(b.name);
     }
@@ -159,11 +160,10 @@ const { loading, load } = useLoading(async () => {
 watch(selectedNamespace, load, { immediate: true });
 
 // helm.sh/helm/v3/pkg/action.Rollback.Run
-const rollback = async (target: Release) => {
+const rollback = async (target: ReleaseWithLabels) => {
   const latest = releases.value.filter((r) => r.name == target.name)[0];
 
-  // XXX: proxy, multiple layer
-  const release: ReleaseWithLabels = JSON.parse(JSON.stringify(target));
+  const release = structuredClone(toRaw(target));
   release.info = {
     first_deployed: latest.info.first_deployed,
     last_deployed: (new Date()).toISOString(),
@@ -250,7 +250,7 @@ const rollback = async (target: Release) => {
   await Promise.all(releases.value.filter(
     (r) => r.name == target.name && r.info.status == Status.DEPLOYED,
   ).map(async (r) => {
-    const copy: ReleaseWithLabels = JSON.parse(JSON.stringify(r));
+    const copy = structuredClone(toRaw(r));
     copy.info.status = Status.SUPERSEDED;
     const updatedSecret = await encodeSecret(copy);
     return await api.replaceNamespacedSecret({
@@ -271,8 +271,8 @@ const rollback = async (target: Release) => {
 };
 
 // helm.sh/helm/v3/pkg/action.Uninstall.Run
-const uninstall = async (target: Release) => {
-  const update: ReleaseWithLabels = JSON.parse(JSON.stringify(target));
+const uninstall = async (target: ReleaseWithLabels) => {
+  const update = structuredClone(toRaw(target));
   update.info.status = Status.UNINSTALLING;
   update.info.deleted = (new Date()).toISOString();
   update.info.description = 'Deletion in progress (or sliently failed)';
@@ -355,10 +355,10 @@ onMounted(setupGo);
                 @click="() => createTab(item as Release)" />
               <TippedBtn v-if="(item as Release).info.status == Status.DEPLOYED"
                 size="small" icon="mdi-delete" tooltip="Uninstall" variant="text"
-                @click="() => uninstall(item as Release)" />
+                @click="() => uninstall(item as ReleaseWithLabels)" />
               <TippedBtn v-if="(item as Release).info.status == Status.UNINSTALLED"
                 size="small" icon="mdi-reload" tooltip="Restore" variant="text"
-                @click="() => rollback(item as Release)" />
+                @click="() => rollback(item as ReleaseWithLabels)" />
             </template>
           </VDataTableRow>
         </template>
