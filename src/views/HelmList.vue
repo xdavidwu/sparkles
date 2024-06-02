@@ -28,7 +28,7 @@ import { AnyApi } from '@/utils/AnyApi';
 import { errorIsResourceNotFound } from '@/utils/api';
 import { listAndUnwaitedWatch } from '@/utils/watch'
 import {
-  type Release, type ReleaseWithLabels,
+  type Release,
   encodeSecret, parseSecret, secretsLabelSelector, shouldKeepResource, Status,
 } from '@/utils/helm';
 import { type KubernetesObject, isSameKubernetesObject } from '@/utils/objects';
@@ -160,7 +160,7 @@ const { loading, load } = useLoading(async () => {
 watch(selectedNamespace, load, { immediate: true });
 
 // helm.sh/helm/v3/pkg/action.Rollback.Run
-const rollback = async (target: ReleaseWithLabels) => {
+const rollback = async (target: Release) => {
   const latest = releases.value.filter((r) => r.name == target.name)[0];
 
   const release = structuredClone(toRaw(target));
@@ -271,7 +271,7 @@ const rollback = async (target: ReleaseWithLabels) => {
 };
 
 // helm.sh/helm/v3/pkg/action.Uninstall.Run
-const uninstall = async (target: ReleaseWithLabels) => {
+const uninstall = async (target: Release) => {
   const update = structuredClone(toRaw(target));
   update.info.status = Status.UNINSTALLING;
   update.info.deleted = (new Date()).toISOString();
@@ -355,10 +355,10 @@ onMounted(setupGo);
                 @click="() => createTab(item as Release)" />
               <TippedBtn v-if="(item as Release).info.status == Status.DEPLOYED"
                 size="small" icon="mdi-delete" tooltip="Uninstall" variant="text"
-                @click="() => uninstall(item as ReleaseWithLabels)" />
+                @click="() => uninstall(item as Release)" />
               <TippedBtn v-if="(item as Release).info.status == Status.UNINSTALLED"
                 size="small" icon="mdi-reload" tooltip="Restore" variant="text"
-                @click="() => rollback(item as ReleaseWithLabels)" />
+                @click="() => rollback(item as Release)" />
             </template>
           </VDataTableRow>
         </template>

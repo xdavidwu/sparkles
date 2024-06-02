@@ -90,7 +90,8 @@ export interface Chart {
 }
 
 // helm.sh/helm/v3/pkg/release.Release
-export interface Release {
+// labels are serialized externally
+export interface ReleaseWithoutLabels {
   name: string;
   info: Info;
   chart: Chart;
@@ -101,7 +102,7 @@ export interface Release {
   namespace: string;
 }
 
-export interface ReleaseWithLabels extends Release {
+export interface Release extends ReleaseWithoutLabels {
   labels: {
     [key: string]: string;
   };
@@ -132,7 +133,7 @@ export interface IndexFile {
 // helm.sh/helm/v3/pkg/storage/driver.Secrets.List
 export const secretsLabelSelector = 'owner=helm';
 export const releaseSecretType = 'helm.sh/release.v1';
-export const parseSecret = async (s: V1Secret): Promise<ReleaseWithLabels> => {
+export const parseSecret = async (s: V1Secret): Promise<Release> => {
   // TODO handle malformed secrets
   const gzipped = (await fetch(
     `data:application/octet-stream;base64,${atob(s.data?.release!)}`,
@@ -148,7 +149,7 @@ export const parseSecret = async (s: V1Secret): Promise<ReleaseWithLabels> => {
 };
 
 // helm.sh/helm/v3/pkg/storage/driver.Secrets.newSecretsObject
-export const encodeSecret = async (r: ReleaseWithLabels): Promise<V1Secret> => {
+export const encodeSecret = async (r: Release): Promise<V1Secret> => {
   const datum = {
     ...r,
     labels: undefined,
