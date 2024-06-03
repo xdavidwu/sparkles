@@ -88,7 +88,7 @@ export interface Chart {
   lock?: Lock;
   templates: Array<File>;
   values: object;
-  schema: string; // base64'd json schema
+  schema?: string; // base64'd json schema
   files: Array<File>;
 }
 
@@ -210,7 +210,7 @@ const loadChartsFromFiles = async (rawFiles: { [name: string]: Blob }): Promise<
   ).join(''));
   const optionalBase64 = async (name: string) => {
     const data = extractFile(name);
-    return data ? await base64(data) : '';
+    return data ? await base64(data) : undefined;
   };
   const extractSerializedFile = async (name: string) =>
     ({ name, data: await base64(extractFile(name))});

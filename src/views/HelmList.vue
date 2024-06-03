@@ -12,7 +12,7 @@ import TabsWindow from '@/components/TabsWindow.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
 import WindowItem from '@/components/WindowItem.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
-import { onMounted, ref, watch, toRaw } from 'vue';
+import { ref, watch, toRaw } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -32,7 +32,6 @@ import {
   encodeSecret, parseSecret, secretsLabelSelector, shouldKeepResource, Status,
 } from '@/utils/helm';
 import { type KubernetesObject, isSameKubernetesObject } from '@/utils/objects';
-import '@/vendor/wasm_exec';
 
 interface ValuesTab {
   id: string,
@@ -106,28 +105,6 @@ const latestRevision = (releases: ReadonlyArray<any>) => releases.reduce(
 const { appBarHeightPX } = useAppTabs();
 
 const { abort: abortRequests, signal } = useAbortController();
-
-let goInitialized = false;
-
-const setupGo = async () => {
-  if (goInitialized) {
-    return;
-  }
-  const config = useApiConfig();
-  const token = await config.getBearerToken();
-
-  const go = new Go();
-  const wasm = await WebAssembly.instantiateStreaming(
-    fetch(`${window.__base_url}helm.wasm`), go.importObject);
-  go.run(wasm.instance);
-  goInitialized = true;
-
-  configConnection({
-    basePath: config.fullApiBasePath,
-    accessToken: token,
-    impersonation: config.impersonation,
-  });
-};
 
 const createTab = (release: Release) => {
   const id = `${release.name}@${release.version}`;
@@ -310,8 +287,6 @@ const uninstall = async (target: Release) => {
     body: finalSecret,
   });
 };
-
-onMounted(setupGo);
 </script>
 
 <template>

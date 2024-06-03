@@ -5,6 +5,7 @@ import { parse } from 'yaml';
 import { satisfies } from 'semver';
 import { BaseColor, ColorVariant, colorToClass, hashColor } from '@/utils/colors';
 import { type ChartVersion, type IndexFile, parseChartTarball } from '@/utils/helm';
+import { renderTemplateViaWasm } from '@/utils/helmWasm';
 
 const repo = `${window.__base_url}charts`;
 const useProxy = false;
@@ -36,7 +37,9 @@ charts.forEach((c) => {
 
 const select = async (c: ChartVersion) => {
   const response = await fetch(c.urls[0]);
-  console.log(await parseChartTarball(response.body!));
+  const chart = await parseChartTarball(response.body!);
+  console.log(chart);
+  console.log(await renderTemplateViaWasm(chart, chart[0].values));
 };
 </script>
 
