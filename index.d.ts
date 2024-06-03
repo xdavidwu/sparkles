@@ -5,3 +5,4 @@ interface ConnectionConfig {
 }
 
 declare function configConnection(config: ConnectionConfig): void;
+declare function renderTemplate(charts: Array<string>, values: string): Promise<string>;
