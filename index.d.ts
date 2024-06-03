@@ -1,5 +1,3 @@
-declare function listReleasesForNamespace(namespace: string): Promise<string>;
-
 interface ConnectionConfig {
   basePath: string,
   accessToken?: string | null,
