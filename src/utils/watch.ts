@@ -5,6 +5,7 @@ import {
 import type { V1PartialObjectMetadata, V1Table, V1TableRow } from '@/utils/AnyApi';
 import { isSameKubernetesObject, type KubernetesObject, type KubernetesList } from '@/utils/objects';
 import { rawErrorIsAborted, errorIsAborted } from '@/utils/api';
+import { streamToGenerator } from '@/utils/lang';
 import type { Ref } from 'vue';
 
 const createLineDelimitedJSONStream = () => {
@@ -24,20 +25,6 @@ const createLineDelimitedJSONStream = () => {
     flush: () => {},
   });
 };
-
-async function* streamToGenerator<T>(r: ReadableStream<T>) {
-  const reader = r.getReader();
-
-  while (true) {
-      const { value, done } = await reader.read();
-
-      if (done) {
-        return;
-      }
-
-      yield value;
-  }
-}
 
 type TypedV1WatchEvent<T extends object> = V1WatchEvent & {
   object: T;

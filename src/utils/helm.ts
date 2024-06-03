@@ -1,6 +1,6 @@
 import type { V1Secret } from '@/kubernetes-api/src';
 import type { KubernetesObject } from '@/utils/objects';
-import { source } from 'stream-to-it';
+import { streamToGenerator } from '@/utils/lang';
 import { extract } from 'it-tar';
 import { parse } from 'yaml';
 
@@ -254,7 +254,7 @@ const loadChartsFromFiles = async (rawFiles: { [name: string]: Blob }): Promise<
 export const parseChartTarball = async (s: ReadableStream): Promise<Chart[]> => {
   const unzipped = s.pipeThrough(new DecompressionStream('gzip'));
   const rawFiles: { [name: string]: Blob } = {};
-  for await (const entry of extract()(source(unzipped))) {
+  for await (const entry of extract()(streamToGenerator(unzipped))) {
     const drain = async () => {
       // always drain the body, or entry iterator will get stuck
       // eslint-disable-next-line
