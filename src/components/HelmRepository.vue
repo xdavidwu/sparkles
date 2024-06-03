@@ -5,7 +5,7 @@ import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { parse } from 'yaml';
 import { satisfies } from 'semver';
 import { BaseColor, ColorVariant, colorToClass, hashColor } from '@/utils/colors';
-import type { ChartVersion, IndexFile } from '@/utils/helm';
+import { type ChartVersion, type IndexFile, parseChartTarball } from '@/utils/helm';
 
 const repo = `${window.__base_url}charts`;
 const useProxy = false;
@@ -39,6 +39,11 @@ onMounted(async () => {
   })
   charts.value = repoCharts;
 })
+
+const select = async (c: ChartVersion) => {
+  const response = await fetch(c.urls[0]);
+  console.log(await parseChartTarball(response.body!));
+};
 </script>
 
 <template>
@@ -46,7 +51,7 @@ onMounted(async () => {
     <VCard v-for="chart in charts" :key="chart.name"
       :prepend-avatar="chart.icon"
       :subtitle="`Chart version: ${chart.version}, App version: ${chart.appVersion}`"
-      class="mb-4">
+      class="mb-4" @click="() => select(chart)">
       <template #title>
         {{ chart.name }}
         <VChip v-for="keyword in chart.keywords" :key="keyword"

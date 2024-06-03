@@ -1,5 +1,8 @@
 import type { V1Secret } from '@/kubernetes-api/src';
 import type { KubernetesObject } from '@/utils/objects';
+import { source } from 'stream-to-it';
+import { extract } from 'it-tar';
+import { parse } from 'yaml';
 
 // XXX: why omitempty everywhere?
 
@@ -82,7 +85,7 @@ export interface Lock {
 // helm.sh/helm/v3/pkg/chart.Chart
 export interface Chart {
   metadata: Metadata;
-  lock: Lock;
+  lock?: Lock;
   templates: Array<File>;
   values: object;
   schema: string; // base64'd json schema
@@ -183,3 +186,95 @@ export const encodeSecret = async (r: Release): Promise<V1Secret> => {
 // helm.sh/v3/pkg/kube.ResourcePolicyAnno, KeepPolicy
 export const shouldKeepResource = (r: KubernetesObject) =>
   r.metadata?.annotations?.['helm.sh/resource-policy'] === 'keep';
+
+// helm.sh/v3/pkg/chart/loader.LoadFiles
+// deps are in private fields, not deserializable, do parse but handle them in go
+const loadChartsFromFiles = async (rawFiles: { [name: string]: Blob }): Promise<Chart[]> => {
+  const extractFile = (name: string) => {
+    const data = rawFiles[name];
+    if (data) {
+      delete rawFiles[name];
+    }
+    return data;
+  };
+  const optionalYaml = async (name: string) => {
+    const data = extractFile(name);
+    if (!data) {
+      return;
+    }
+    return parse(await data.text());
+  };
+  const base64 = async (b: Blob) => btoa(Array.from(
+    new Uint8Array(await b.arrayBuffer()),
+    (b) => String.fromCodePoint(b),
+  ).join(''));
+  const optionalBase64 = async (name: string) => {
+    const data = extractFile(name);
+    return data ? await base64(data) : '';
+  };
+  const extractSerializedFile = async (name: string) =>
+    ({ name, data: await base64(extractFile(name))});
+
+  const subcharts: { [name: string]: typeof rawFiles } = {};
+  const parsedSubcharts: Array<Chart> = [];
+
+  await Promise.all(Object.keys(rawFiles).sort().filter((n) => n.startsWith('charts/')).map(async (n) => {
+    const data = extractFile(n);
+    const name = n.substring(7);
+    if (name.endsWith('.tgz')) {
+      parsedSubcharts.push(...await parseChartTarball(await data.stream()));
+      return;
+    }
+    if (!name.includes('/')) {
+      return;
+    }
+    const parts = name.split('/');
+    subcharts[parts[0]] ??= {};
+    subcharts[parts[0]][name.substring(parts[0].length + 1)] = data;
+  }));
+
+  (await Promise.all(Object.keys(subcharts).map((name) => loadChartsFromFiles(subcharts[name]))))
+    .forEach((charts) => parsedSubcharts.push(...charts));
+
+  return [
+    {
+      metadata: parse(await extractFile('Chart.yaml').text()),
+      lock: await optionalYaml('Chart.lock'),
+      values: await optionalYaml('values.yaml'),
+      schema: await optionalBase64('values.schema.json'),
+      templates: await Promise.all(Object.keys(rawFiles)
+        .filter((n) => n.startsWith('templates/')).map(extractSerializedFile)),
+      files: await Promise.all(Object.keys(rawFiles).map(extractSerializedFile)),
+    },
+    ...parsedSubcharts,
+  ];
+};
+
+// helm.sh/v3/pkg/chart/loader.LoadArchive
+export const parseChartTarball = async (s: ReadableStream): Promise<Chart[]> => {
+  const unzipped = s.pipeThrough(new DecompressionStream('gzip'));
+  const rawFiles: { [name: string]: Blob } = {};
+  for await (const entry of extract()(source(unzipped))) {
+    const drain = async () => {
+      // always drain the body, or entry iterator will get stuck
+      // eslint-disable-next-line
+      for await (const _ of entry.body) {}
+    };
+
+    if (entry.header.type != 'file') {
+      await drain();
+      continue;
+    }
+
+    const d = entry.header.name.includes('\\') ? '\\' : '/';
+    const parts = entry.header.name.split(d);
+    if (parts.length < 2) {
+      await drain();
+      continue;
+    }
+    const name = parts.slice(1).join('/');
+    // @ts-expect-error fromAsync will be available in 5.5
+    rawFiles[name] = new Blob(await Array.fromAsync(entry.body));
+  }
+  return await loadChartsFromFiles(rawFiles);
+};
