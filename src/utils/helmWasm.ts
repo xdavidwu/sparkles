@@ -48,8 +48,13 @@ export const setup = async () => {
 const capabilitiesFromDiscovery = async (): Promise<Capabilities> => {
   const store = useApisDiscovery();
   const [versionInfo, groups] = await Promise.all([store.getVersionInfo(), store.getGroups()]);
-  const APIVersions = groups.map((g) =>
+  const gv = groups.map((g) =>
     g.versions.map((v) => g.metadata?.name ? `${g.metadata.name}/${v.version}` : v.version),
+  ).reduce((a, v) => a.concat(v), []);
+  const gvk = groups.map((g) =>
+    g.versions.map((v) => v.resources.map(
+      (r) => g.metadata?.name ? `${g.metadata.name}/${v.version}/${r.responseKind.kind}` : `${v.version}/${r.responseKind.kind}`,
+    )).reduce((a, v) => a.concat(v), []),
   ).reduce((a, v) => a.concat(v), []);
   return {
     KubeVersion: {
@@ -57,7 +62,7 @@ const capabilitiesFromDiscovery = async (): Promise<Capabilities> => {
       Major: versionInfo.major,
       Minor: versionInfo.minor,
     },
-    APIVersions,
+    APIVersions: gv.concat(gvk),
   };
 };
 
