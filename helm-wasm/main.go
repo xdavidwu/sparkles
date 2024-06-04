@@ -62,7 +62,6 @@ func renderTemplate(this js.Value, args []js.Value) any {
 
 	values := map[string]interface{}{}
 	must(json.Unmarshal([]byte(args[1].String()), &values))
-	t, _ := json.Marshal(values)
 
 	// TODO release ops, caps from js
 	v, err := chartutil.ToRenderValues(&c, values, chartutil.ReleaseOptions{}, chartutil.DefaultCapabilities)
