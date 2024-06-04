@@ -1,6 +1,27 @@
 import { useApiConfig } from '@/stores/apiConfig';
+import { useApisDiscovery } from '@/stores/apisDiscovery';
 import type { Chart } from '@/utils/helm';
 import '@/vendor/wasm_exec';
+
+// helm.sh/v3/pkg/chartutils.ReleaseOptions
+export interface ReleaseOptions {
+  Name: string,
+  Namespace: string,
+  Revision: number,
+  IsUpgrade: boolean,
+  IsInstall: boolean,
+}
+
+// helm.sh/v3/pkg/chartutils.ReleaseOptions
+// HelmVersion is filled in go
+interface Capabilities {
+  KubeVersion: {
+    Version: string,
+    Major: string,
+    Minor: string,
+  },
+  APIVersions: Array<string>,
+}
 
 let goInitialized = false;
 
@@ -24,9 +45,29 @@ export const setup = async () => {
   });
 };
 
-export const renderTemplate = async (chart: Array<Chart>, value: object) => {
+const capabilitiesFromDiscovery = async (): Promise<Capabilities> => {
+  const store = useApisDiscovery();
+  const [versionInfo, groups] = await Promise.all([store.getVersionInfo(), store.getGroups()]);
+  const APIVersions = groups.map((g) =>
+    g.versions.map((v) => g.metadata?.name ? `${g.metadata.name}/${v.version}` : v.version),
+  ).reduce((a, v) => a.concat(v), []);
+  return {
+    KubeVersion: {
+      Version: versionInfo.gitVersion,
+      Major: versionInfo.major,
+      Minor: versionInfo.minor,
+    },
+    APIVersions,
+  };
+};
+
+export const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseOptions) => {
   await setup();
-  console.log(value);
-  const result = await _helm_renderTemplate(chart.map((c) => JSON.stringify(c)), JSON.stringify(value));
+  const result = await _helm_renderTemplate(
+    chart.map((c) => JSON.stringify(c)),
+    JSON.stringify(value),
+    JSON.stringify(opts),
+    JSON.stringify(await capabilitiesFromDiscovery()),
+  );
   return result;
 };

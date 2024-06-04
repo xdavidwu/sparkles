@@ -63,8 +63,15 @@ func renderTemplate(this js.Value, args []js.Value) any {
 	values := map[string]interface{}{}
 	must(json.Unmarshal([]byte(args[1].String()), &values))
 
-	// TODO release ops, caps from js
-	v, err := chartutil.ToRenderValues(&c, values, chartutil.ReleaseOptions{}, chartutil.DefaultCapabilities)
+	opts := chartutil.ReleaseOptions{}
+	must(json.Unmarshal([]byte(args[2].String()), &opts))
+
+	caps := chartutil.Capabilities{}
+	must(json.Unmarshal([]byte(args[3].String()), &caps))
+
+	caps.HelmVersion = chartutil.DefaultCapabilities.HelmVersion
+
+	v, err := chartutil.ToRenderValues(&c, values, opts, &caps)
 	must(err)
 	e := engine.New(&config)
 	// engine may uses networking (lookup function)

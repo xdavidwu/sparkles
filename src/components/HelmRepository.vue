@@ -42,7 +42,13 @@ const select = async (c: ChartVersion) => {
   const response = await fetch(c.urls[0]);
   const chart = await parseChartTarball(response.body!);
   console.log(chart);
-  console.log(await renderTemplate(chart, chart[0].values));
+  console.log(await renderTemplate(chart, chart[0].values, {
+    Name: 'name',
+    Namespace: 'namespace',
+    Revision: 1,
+    IsUpgrade: false,
+    IsInstall: true,
+  }));
 };
 </script>
 
