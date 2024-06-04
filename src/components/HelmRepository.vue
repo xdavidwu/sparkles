@@ -51,13 +51,16 @@ const select = async (c: ChartVersion) => {
   <VDataIterator :items="charts" items-per-page="-1" :search="search"
     :filter-keys="['name', 'keywords', 'description']">
     <template #header>
-      <VTextField v-model="search" placeholder="Search" prepend-inner-icon="mdi-magnify" />
+      <VTextField v-model="search" placeholder="Search" class="mb-2"
+        prepend-inner-icon="mdi-magnify" variant="solo"
+        clearable hide-details />
     </template>
+    <template #no-data>No matches</template>
     <template #default="{ items }">
       <VCard v-for="{ raw: chart } in items" :key="chart.name"
         :prepend-avatar="chart.icon"
         :subtitle="`Chart version: ${chart.version}, App version: ${chart.appVersion}`"
-        class="mb-4" @click="() => select(chart)">
+        class="mb-2" @click="() => select(chart)">
         <template #title>
           {{ chart.name }}
           <VChip v-for="keyword in chart.keywords" :key="keyword"
