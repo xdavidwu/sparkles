@@ -1,6 +1,3 @@
 [submodule "src/kubernetes-api"]
 	path = src/kubernetes-api
 	url = https://git.xdavidwu.link/~xdavidwu/kubernetes-typescript-fetch
-[submodule "helm-wasm"]
-	path = helm-wasm
-	url = https://git.xdavidwu.link/~xdavidwu/helm-wasm
