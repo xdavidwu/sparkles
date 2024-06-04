@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { VCard, VChip } from 'vuetify/components';
+import { VCard, VChip, VDataIterator, VTextField } from 'vuetify/components';
+import { ref } from 'vue';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { parse } from 'yaml';
 import { satisfies } from 'semver';
@@ -35,6 +36,8 @@ charts.forEach((c) => {
   c.keywords?.sort();
 });
 
+const search = ref('');
+
 const select = async (c: ChartVersion) => {
   const response = await fetch(c.urls[0]);
   const chart = await parseChartTarball(response.body!);
@@ -44,20 +47,27 @@ const select = async (c: ChartVersion) => {
 </script>
 
 <template>
-  <div>
-    <VCard v-for="chart in charts" :key="chart.name"
-      :prepend-avatar="chart.icon"
-      :subtitle="`Chart version: ${chart.version}, App version: ${chart.appVersion}`"
-      class="mb-4" @click="() => select(chart)">
-      <template #title>
-        {{ chart.name }}
-        <VChip v-for="keyword in chart.keywords" :key="keyword"
-          :color="chipColor(keyword)"
-          size="x-small" class="ml-1">
-          {{ keyword }}
-        </VChip>
-      </template>
-      <template #text>{{ chart.description }}</template>
-    </VCard>
-  </div>
+  <!-- TODO seems to need some performance work -->
+  <VDataIterator :items="charts" items-per-page="-1" :search="search"
+    :filter-keys="['name', 'keywords', 'description']">
+    <template #header>
+      <VTextField v-model="search" placeholder="Search" prepend-inner-icon="mdi-magnify" />
+    </template>
+    <template #default="{ items }">
+      <VCard v-for="{ raw: chart } in items" :key="chart.name"
+        :prepend-avatar="chart.icon"
+        :subtitle="`Chart version: ${chart.version}, App version: ${chart.appVersion}`"
+        class="mb-4" @click="() => select(chart)">
+        <template #title>
+          {{ chart.name }}
+          <VChip v-for="keyword in chart.keywords" :key="keyword"
+            :color="chipColor(keyword)"
+            size="x-small" class="ml-1">
+            {{ keyword }}
+          </VChip>
+        </template>
+        <template #text>{{ chart.description }}</template>
+      </VCard>
+    </template>
+  </VDataIterator>
 </template>
