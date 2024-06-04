@@ -96,7 +96,7 @@ func renderTemplate(this js.Value, args []js.Value) any {
 }
 
 func main() {
-	js.Global().Set("configConnection", js.FuncOf(configConnection))
-	js.Global().Set("renderTemplate", js.FuncOf(renderTemplate))
+	js.Global().Set("_helm_configConnection", js.FuncOf(configConnection))
+	js.Global().Set("_helm_renderTemplate", js.FuncOf(renderTemplate))
 	<-make(chan bool)
 }

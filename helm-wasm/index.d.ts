@@ -4,5 +4,5 @@ interface ConnectionConfig {
   impersonation: { asUser?: string, asGroup?: string },
 }
 
-declare function configConnection(config: ConnectionConfig): void;
-declare function renderTemplate(charts: Array<string>, values: string): Promise<string>;
+declare function _helm_configConnection(config: ConnectionConfig): void;
+declare function _helm_renderTemplate(charts: Array<string>, values: string): Promise<string>;

@@ -17,16 +17,16 @@ export const setup = async () => {
   go.run(wasm.instance);
   goInitialized = true;
 
-  configConnection({
+  _helm_configConnection({
     basePath: config.fullApiBasePath,
     accessToken: token,
     impersonation: config.impersonation,
   });
 };
 
-export const renderTemplateViaWasm = async (chart: Array<Chart>, value: object) => {
+export const renderTemplate = async (chart: Array<Chart>, value: object) => {
   await setup();
   console.log(value);
-  const result = await renderTemplate(chart.map((c) => JSON.stringify(c)), JSON.stringify(value));
+  const result = await _helm_renderTemplate(chart.map((c) => JSON.stringify(c)), JSON.stringify(value));
   return result;
 };
