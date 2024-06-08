@@ -69,7 +69,7 @@ const colors = [
 ];
 
 const datasetMetadata = computed(() => Object.keys(nodes.value).reduce((r, n, i) => {
-  let color = colorToCode({
+  const color = colorToCode({
     color: colors[i % colors.length],
     variant: ColorVariant.Base,
   });
@@ -80,15 +80,16 @@ const datasetMetadata = computed(() => Object.keys(nodes.value).reduce((r, n, i)
     pointStyle: false,
   };
   return r;
-}, {} as { [key: string]: any }));
+}, {} as { [key: string]: object }));
 
 const chartData = computed(() => ({
   datasets: Object.keys(nodes.value).map((n) => ({
     ...datasetMetadata.value[n],
     data: samples.value.map((s, i) => (s[n] !== undefined ? {
       x: (latestSample - samples.value.length + i) * 1000,
+      y: 0, // XXX: hack, need support for type param of component in template
       ...s[n],
-    } : undefined)).filter((s) => s !== undefined),
+    } : undefined)!).filter((s) => s !== undefined),
   })),
 }));
 
@@ -140,8 +141,9 @@ const { pause } = useIntervalFn(() => {
     abortRequests();
     const response = await api.listClusterCustomObject(
       { ...metricsApi, plural: 'nodes' },
-      { signal: signal.value }) as KubernetesList<any>;
-    response.items.forEach((i: any) => {
+      { signal: signal.value }) as KubernetesList;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    response.items.forEach((i: any) => { // TODO
       const time = Math.floor(new Date(i.timestamp).valueOf() / 1000);
       let index = time - (latestSample - timeRange);
       if (index < 0) {

@@ -47,7 +47,7 @@ export const extractRequestContext: Middleware['pre'] = (context) => {
   throw new ExtractedRequestContext(context);
 }
 
-export const errorIsResourceNotFound = async (err: any) => {
+export const errorIsResourceNotFound = async (err: unknown) => {
   if (err instanceof ResponseError && err.response.status === 404) {
     const status = V1StatusFromJSON(await err.response.json());
     if (status.status === 'Failure' && status.reason === 'NotFound') {
@@ -57,7 +57,7 @@ export const errorIsResourceNotFound = async (err: any) => {
   return false;
 }
 
-export const errorIsTypeUnsupported = async (err: any) => {
+export const errorIsTypeUnsupported = async (err: unknown) => {
   if (err instanceof ResponseError && err.response.status === 404) {
     const status = V1StatusFromJSON(await err.response.json());
     if (status.status === 'Failure' && status.reason === 'NotFound' &&
@@ -68,10 +68,10 @@ export const errorIsTypeUnsupported = async (err: any) => {
   return false;
 }
 
-export const rawErrorIsAborted = (err: any) =>
+export const rawErrorIsAborted = (err: unknown) =>
   err instanceof DOMException && err.name === 'AbortError';
 
-export const errorIsAborted = (err: any) =>
+export const errorIsAborted = (err: unknown) =>
   err instanceof FetchError && rawErrorIsAborted(err.cause);
 
 // v1beta1 and v1 SelfSubjectReview is actually the same

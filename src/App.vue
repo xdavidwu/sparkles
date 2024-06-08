@@ -71,7 +71,7 @@ window.addEventListener('vite:preloadError', () => {
   loadError.value = true;
 });
 
-const handleError = (err: any) => {
+const handleError = (err: unknown) => {
   console.log(err);
   if (err instanceof ResponseError) {
     failedResponse.value = err.response;

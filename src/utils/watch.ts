@@ -32,7 +32,7 @@ type TypedV1WatchEvent<T extends object> = V1WatchEvent & {
 
 function rawResponseToWatchEvents<T extends KubernetesObject>(
   raw: ApiResponse<KubernetesList<T>>,
-  transformer: (obj: any) => T,
+  transformer: (obj: object) => T,
 ): AsyncGenerator<TypedV1WatchEvent<T>>;
 
 function rawResponseToWatchEvents(
@@ -41,8 +41,8 @@ function rawResponseToWatchEvents(
 
 // TODO support table with transformer?
 function rawResponseToWatchEvents(
-  raw: ApiResponse<any>,
-  transformer: (obj: any) => any = (v) => v,
+  raw: ApiResponse<object>,
+  transformer: (obj: object) => object = (v) => v,
 ) {
   const stream = raw.raw.body!
     .pipeThrough(new TextDecoderStream())
@@ -63,7 +63,7 @@ function rawResponseToWatchEvents(
 
 const watch = async<T extends KubernetesObject> (
     dest: Ref<Array<T>>,
-    transformer: (obj: any) => T,
+    transformer: (obj: object) => T,
     watchResponse: Promise<ApiResponse<KubernetesList<T>>>,
   ) => {
   let updates: ApiResponse<KubernetesList<T>> | null = null;
@@ -102,7 +102,7 @@ interface WatchOpt {
 
 export const listAndUnwaitedWatch = async<T extends KubernetesObject> (
     dest: Ref<Array<T>>,
-    transformer: (obj: any) => T,
+    transformer: (obj: object) => T,
     lister: (opt: WatchOpt) => Promise<ApiResponse<KubernetesList<T>>>,
     catcher: Parameters<Promise<void>['catch']>[0],
   ) => {

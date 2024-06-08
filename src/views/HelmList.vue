@@ -99,6 +99,8 @@ const columns = [
   },
 ];
 
+// DataTableItem<T> is not exported
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const latestRevision = (releases: ReadonlyArray<any>) => releases.reduce(
   (a, v) => (v.raw.version > a.raw.version) ? v : a, releases[0]);
 

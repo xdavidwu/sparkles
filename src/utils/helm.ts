@@ -100,7 +100,7 @@ export interface ReleaseWithoutLabels {
   chart: Chart;
   config: object;
   manifest: string;
-  hooks?: Array<any>; // TODO
+  hooks?: Array<unknown>; // TODO
   version: number;
   namespace: string;
 }
@@ -139,7 +139,7 @@ export const releaseSecretType = 'helm.sh/release.v1';
 export const parseSecret = async (s: V1Secret): Promise<Release> => {
   // TODO handle malformed secrets
   const gzipped = (await fetch(
-    `data:application/octet-stream;base64,${atob(s.data?.release!)}`,
+    `data:application/octet-stream;base64,${atob(s.data!.release!)}`,
   )).body!;
   const stream = gzipped.pipeThrough(new DecompressionStream('gzip'));
 
