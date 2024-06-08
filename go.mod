@@ -1,4 +1,4 @@
-module helm-js-playground
+module sparkles
 
 go 1.22.0
 

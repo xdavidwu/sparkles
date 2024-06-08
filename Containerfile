@@ -4,10 +4,10 @@ ARG SPARKLES_BASE=/
 
 WORKDIR /workspace
 RUN apk add go npm git gzip # brotli
+COPY go.mod go.sum .
+RUN go mod download
 COPY package.json package-lock.json .
 RUN npm ci
-COPY helm-wasm/go.mod helm-wasm/go.sum helm-wasm/
-RUN cd helm-wasm && go mod download
 COPY . .
 RUN cp "$SPARKLES_ENV" .env
 RUN npm run build

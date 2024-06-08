@@ -2,7 +2,7 @@
   "private": "true",
   "type": "module",
   "scripts": {
-    "compile-wasm": "cd helm-wasm && env GOOS=js GOARCH=wasm go build -tags nethttpomithttp2,notest,jsoniter_sloppy,protoreflect -trimpath -o ../public/helm.wasm",
+    "compile-wasm": "env GOOS=js GOARCH=wasm go build -o public/helm.wasm -tags nethttpomithttp2,notest,jsoniter_sloppy,protoreflect -trimpath ./cmd/helm.wasm",
     "copy-wasm-exec": "cp \"$(go env GOROOT)\"/misc/wasm/wasm_exec.js src/vendor/",
     "wasm": "npm run compile-wasm && npm run copy-wasm-exec",
     "dev": "npm run wasm && vite",
