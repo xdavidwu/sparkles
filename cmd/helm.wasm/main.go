@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"syscall/js"
 
@@ -20,11 +21,11 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-func consoleLog(m string) any {
-	return js.Global().Get("console").Call("log", m)
+func consoleLog(args ...any) {
+	js.Global().Get("console").Call("log", args...)
 }
 
-func jsError(e error) any {
+func jsError(e error) js.Value {
 	return js.Global().Get("Error").New(e.Error())
 }
 
@@ -32,37 +33,44 @@ func goError(e js.Value) error {
 	return errors.New(e.Call("toString").String())
 }
 
-func goErrorFromOpenAPICodegen(e js.Value) error {
+// blocking, meant to be run in catch() with gorountine
+func parseErrorFromCodegen(e js.Value, out chan error) {
 	if e.Get("name").String() == "ResponseError" {
-		errChan := make(chan error)
-		catch := js.FuncOf(func(this js.Value, args []js.Value) any {
-			errChan <- goError(args[0])
+		var catch, then js.Func
+		releaseFuncs := func() {
+			catch.Release()
+			then.Release()
+		}
+		catch = js.FuncOf(func(this js.Value, args []js.Value) any {
+			releaseFuncs()
+			out <- goError(args[0])
 			return nil
 		})
-		textThen := js.FuncOf(func(this js.Value, args []js.Value) any {
+		then = js.FuncOf(func(this js.Value, args []js.Value) any {
+			releaseFuncs()
 			// TODO content-type negotiator a la client-go?
 			status := metav1.Status{}
 			// TODO perhaps use bytes
 			err := json.Unmarshal([]byte(args[0].String()), &status)
 			if err != nil {
-				errChan <- err
+				out <- err
 				return nil
 			}
-			errChan <- kubeerrors.FromObject(&status)
+			out <- kubeerrors.FromObject(&status)
 			return nil
 		})
-		e.Get("response").Call("text").Call("then", textThen, catch)
-		return <-errChan
+		e.Get("response").Call("text").Call("then", then, catch)
 	} else {
-		return goError(e)
+		out <- goError(e)
 	}
 }
 
 // for helm.sh/helm/v3/pkg/engine.newLookupFunction
 type jsClient struct {
-	class                  js.Value
-	group, version, plural js.Value
-	namespace              string
+	class           js.Value
+	group           js.Value // undefined for core
+	version, plural string
+	namespace       string
 }
 
 func (c *jsClient) Namespace(ns string) dynamic.ResourceInterface {
@@ -71,37 +79,37 @@ func (c *jsClient) Namespace(ns string) dynamic.ResourceInterface {
 	return &n
 }
 
-func (*jsClient) Create(ctx context.Context, obj *unstructured.Unstructured, options metav1.CreateOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (*jsClient) Create(context.Context, *unstructured.Unstructured, metav1.CreateOptions, ...string) (*unstructured.Unstructured, error) {
 	panic("unimplemented")
 }
 
-func (*jsClient) Update(ctx context.Context, obj *unstructured.Unstructured, options metav1.UpdateOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (*jsClient) Update(context.Context, *unstructured.Unstructured, metav1.UpdateOptions, ...string) (*unstructured.Unstructured, error) {
 	panic("unimplemented")
 }
 
-func (*jsClient) UpdateStatus(ctx context.Context, obj *unstructured.Unstructured, options metav1.UpdateOptions) (*unstructured.Unstructured, error) {
+func (*jsClient) UpdateStatus(context.Context, *unstructured.Unstructured, metav1.UpdateOptions) (*unstructured.Unstructured, error) {
 	panic("unimplemented")
 }
 
-func (*jsClient) Delete(ctx context.Context, name string, options metav1.DeleteOptions, subresources ...string) error {
+func (*jsClient) Delete(context.Context, string, metav1.DeleteOptions, ...string) error {
 	panic("unimplemented")
 }
 
-func (*jsClient) DeleteCollection(ctx context.Context, options metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+func (*jsClient) DeleteCollection(context.Context, metav1.DeleteOptions, metav1.ListOptions) error {
 	panic("unimplemented")
 }
 
-func (c *jsClient) Get(ctx context.Context, name string, options metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (c *jsClient) Get(_ context.Context, name string, _ metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error) {
 	if len(subresources) != 0 {
 		panic("unimplemented")
 	}
-	args := js.ValueOf(map[string]interface{}{
+	args := map[string]interface{}{
 		"group":     c.group,
 		"version":   c.version,
 		"plural":    c.plural,
-		"namespace": js.ValueOf(c.namespace),
-		"name":      js.ValueOf(name),
-	})
+		"namespace": c.namespace,
+		"name":      name,
+	}
 	fn := "getNamespacedCustomObjectRaw"
 	if c.namespace == "" {
 		fn = "getClusterCustomObjectRaw"
@@ -109,15 +117,18 @@ func (c *jsClient) Get(ctx context.Context, name string, options metav1.GetOptio
 
 	resChan := make(chan *unstructured.Unstructured)
 	errChan := make(chan error)
-	catch := js.FuncOf(func(this js.Value, args []js.Value) any {
-		go func() {
-			// possible await
-			errChan <- goErrorFromOpenAPICodegen(args[0])
-		}()
+	var catch, then js.Func
+	catch = js.FuncOf(func(this js.Value, args []js.Value) any {
+		then.Release()
+		catch.Release()
+		go parseErrorFromCodegen(args[0], errChan)
 		return nil
 	})
-	then := js.FuncOf(func(this js.Value, args []js.Value) any {
-		textThen := js.FuncOf(func(this js.Value, args []js.Value) any {
+	then = js.FuncOf(func(this js.Value, args []js.Value) any {
+		then.Release()
+		then = js.FuncOf(func(this js.Value, args []js.Value) any {
+			then.Release()
+			catch.Release()
 			// TODO perhaps use bytes
 			json := args[0].String()
 			obj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, []byte(json))
@@ -128,7 +139,7 @@ func (c *jsClient) Get(ctx context.Context, name string, options metav1.GetOptio
 			resChan <- obj.(*unstructured.Unstructured)
 			return nil
 		})
-		args[0].Get("raw").Call("text").Call("then", textThen, catch)
+		args[0].Get("raw").Call("text").Call("then", then, catch)
 		return nil
 	})
 	c.class.Call(fn, args).Call("then", then, catch)
@@ -141,13 +152,13 @@ func (c *jsClient) Get(ctx context.Context, name string, options metav1.GetOptio
 	}
 }
 
-func (c *jsClient) List(ctx context.Context, opts metav1.ListOptions) (*unstructured.UnstructuredList, error) {
-	args := js.ValueOf(map[string]interface{}{
+func (c *jsClient) List(_ context.Context, _ metav1.ListOptions) (*unstructured.UnstructuredList, error) {
+	args := map[string]interface{}{
 		"group":     c.group,
 		"version":   c.version,
 		"plural":    c.plural,
-		"namespace": js.ValueOf(c.namespace),
-	})
+		"namespace": c.namespace,
+	}
 	fn := "listNamespacedCustomObjectRaw"
 	if c.namespace == "" {
 		fn = "listClusterCustomObjectRaw"
@@ -155,15 +166,18 @@ func (c *jsClient) List(ctx context.Context, opts metav1.ListOptions) (*unstruct
 
 	resChan := make(chan *unstructured.UnstructuredList)
 	errChan := make(chan error)
-	catch := js.FuncOf(func(this js.Value, args []js.Value) any {
-		go func() {
-			// possible await
-			errChan <- goErrorFromOpenAPICodegen(args[0])
-		}()
+	var catch, then js.Func
+	catch = js.FuncOf(func(this js.Value, args []js.Value) any {
+		then.Release()
+		catch.Release()
+		go parseErrorFromCodegen(args[0], errChan)
 		return nil
 	})
-	then := js.FuncOf(func(this js.Value, args []js.Value) any {
-		textThen := js.FuncOf(func(this js.Value, args []js.Value) any {
+	then = js.FuncOf(func(this js.Value, args []js.Value) any {
+		then.Release()
+		then = js.FuncOf(func(this js.Value, args []js.Value) any {
+			then.Release()
+			catch.Release()
 			// TODO perhaps use bytes
 			json := args[0].String()
 			obj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, []byte(json))
@@ -174,7 +188,7 @@ func (c *jsClient) List(ctx context.Context, opts metav1.ListOptions) (*unstruct
 			resChan <- obj.(*unstructured.UnstructuredList)
 			return nil
 		})
-		args[0].Get("raw").Call("text").Call("then", textThen, catch)
+		args[0].Get("raw").Call("text").Call("then", then, catch)
 		return nil
 	})
 	c.class.Call(fn, args).Call("then", then, catch)
@@ -187,19 +201,19 @@ func (c *jsClient) List(ctx context.Context, opts metav1.ListOptions) (*unstruct
 	}
 }
 
-func (*jsClient) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+func (*jsClient) Watch(context.Context, metav1.ListOptions) (watch.Interface, error) {
 	panic("unimplemented")
 }
 
-func (*jsClient) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, options metav1.PatchOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (*jsClient) Patch(context.Context, string, types.PatchType, []byte, metav1.PatchOptions, ...string) (*unstructured.Unstructured, error) {
 	panic("unimplemented")
 }
 
-func (*jsClient) Apply(ctx context.Context, name string, obj *unstructured.Unstructured, options metav1.ApplyOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (*jsClient) Apply(context.Context, string, *unstructured.Unstructured, metav1.ApplyOptions, ...string) (*unstructured.Unstructured, error) {
 	panic("unimplemented")
 }
 
-func (*jsClient) ApplyStatus(ctx context.Context, name string, obj *unstructured.Unstructured, options metav1.ApplyOptions) (*unstructured.Unstructured, error) {
+func (*jsClient) ApplyStatus(context.Context, string, *unstructured.Unstructured, metav1.ApplyOptions) (*unstructured.Unstructured, error) {
 	panic("unimplemented")
 }
 
@@ -211,22 +225,20 @@ type jsClientProvider struct {
 func (p *jsClientProvider) GetClientFor(apiVersion, kind string) (dynamic.NamespaceableResourceInterface, bool, error) {
 	parts := strings.Split(apiVersion, "/")
 	if len(parts) > 2 {
-		return nil, false, errors.New("invalid apiVersion")
+		return nil, false, fmt.Errorf("invalid apiVersion: %v", apiVersion)
 	}
 	var (
-		group, version     string
-		jsGroup, jsVersion js.Value
+		group, version string
+		jsGroup        js.Value
 	)
 	if len(parts) == 1 {
 		group = ""
 		version = parts[0]
 		jsGroup = js.Undefined()
-		jsVersion = js.ValueOf(version)
 	} else {
 		group = parts[0]
 		version = parts[1]
 		jsGroup = js.ValueOf(group)
-		jsVersion = js.ValueOf(version)
 	}
 
 	plural := ""
@@ -250,11 +262,15 @@ func (p *jsClientProvider) GetClientFor(apiVersion, kind string) (dynamic.Namesp
 		}
 	}
 
+	if plural == "" {
+		return nil, namespaced, fmt.Errorf("kind unsupported by cluster: %v %v", apiVersion, kind)
+	}
+
 	return &jsClient{
 		class:   p.class,
 		group:   jsGroup,
-		version: jsVersion,
-		plural:  js.ValueOf(plural),
+		version: version,
+		plural:  plural,
 	}, namespaced, nil
 }
 
@@ -263,47 +279,65 @@ type DiscoveryData struct {
 	Groups []discoveryv2.APIGroupDiscovery
 }
 
-func renderTemplate(this js.Value, args []js.Value) any {
-	must := func(e error) {
-		if e != nil {
-			panic(e)
+func panicToPromiseReject(msg string, reject js.Value) {
+	if e := recover(); e != nil {
+		var err error
+		switch e.(type) {
+		case error:
+			err = e.(error)
+		default:
+			err = fmt.Errorf("%s: %v", msg, e)
 		}
+		reject.Invoke(jsError(err))
 	}
+}
 
-	c := chart.Chart{}
-	must(json.Unmarshal([]byte(args[0].Index(0).String()), &c))
-	for i := 1; i < args[0].Length(); i += 1 {
-		subchart := chart.Chart{}
-		must(json.Unmarshal([]byte(args[0].Index(i).String()), &subchart))
-		c.AddDependency(&subchart)
-	}
+// engine may uses networking (lookup function)
+func renderTemplate(this js.Value, args []js.Value) any {
+	chartJSONs := args[0]
+	valuesJSON := args[1]
+	optsJSON := args[2]
+	dataJSON := args[3]
+	anyApiClass := args[4]
 
-	values := map[string]interface{}{}
-	must(json.Unmarshal([]byte(args[1].String()), &values))
-
-	opts := chartutil.ReleaseOptions{}
-	must(json.Unmarshal([]byte(args[2].String()), &opts))
-
-	data := DiscoveryData{}
-	must(json.Unmarshal([]byte(args[3].String()), &data))
-
-	data.Capabilities.HelmVersion = chartutil.DefaultCapabilities.HelmVersion
-
-	clientProvider := jsClientProvider{class: args[4], groups: data.Groups}
-
-	v, err := chartutil.ToRenderValues(&c, values, opts, &data.Capabilities)
-	must(err)
-	// engine may uses networking (lookup function)
-	handler := js.FuncOf(func(this js.Value, args []js.Value) any {
+	var executor js.Func
+	executor = js.FuncOf(func(this js.Value, args []js.Value) any {
+		executor.Release()
 		resolve := args[0]
 		reject := args[1]
-		go func() {
-			must := func(e error) {
-				if e != nil {
-					reject.Invoke(jsError(e))
-					return
-				}
+		must := func(e error) {
+			if e != nil {
+				panic(e)
 			}
+		}
+		defer panicToPromiseReject("cannot render template", reject)
+
+		c := chart.Chart{}
+		must(json.Unmarshal([]byte(chartJSONs.Index(0).String()), &c))
+		for i := 1; i < chartJSONs.Length(); i += 1 {
+			subchart := chart.Chart{}
+			must(json.Unmarshal([]byte(chartJSONs.Index(i).String()), &subchart))
+			c.AddDependency(&subchart)
+		}
+
+		values := map[string]interface{}{}
+		must(json.Unmarshal([]byte(valuesJSON.String()), &values))
+
+		opts := chartutil.ReleaseOptions{}
+		must(json.Unmarshal([]byte(optsJSON.String()), &opts))
+
+		data := DiscoveryData{}
+		must(json.Unmarshal([]byte(dataJSON.String()), &data))
+
+		data.Capabilities.HelmVersion = chartutil.DefaultCapabilities.HelmVersion
+
+		clientProvider := jsClientProvider{class: anyApiClass, groups: data.Groups}
+
+		v, err := chartutil.ToRenderValues(&c, values, opts, &data.Capabilities)
+		must(err)
+
+		go func() {
+			defer panicToPromiseReject("cannot render template", reject)
 
 			res, err := engine.RenderWithClientProvider(&c, v, &clientProvider)
 			must(err)
@@ -315,8 +349,7 @@ func renderTemplate(this js.Value, args []js.Value) any {
 		}()
 		return nil
 	})
-
-	return js.Global().Get("Promise").New(handler)
+	return js.Global().Get("Promise").New(executor)
 }
 
 func main() {
