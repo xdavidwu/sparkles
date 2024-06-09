@@ -1,16 +1,11 @@
 import { useApiConfig } from '@/stores/apiConfig';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
+import { AnyApi } from '@/utils/AnyApi';
+import type { V2APIGroupDiscovery } from '@/utils/discoveryV2';
 import type { Chart } from '@/utils/helm';
 import '@/vendor/wasm_exec';
 
-interface ConnectionConfig {
-  basePath: string,
-  accessToken?: string | null,
-  impersonation: { asUser?: string, asGroup?: string },
-}
-
-declare function _helm_configConnection(config: ConnectionConfig): void;
-declare function _helm_renderTemplate(charts: Array<string>, values: string, options: string, capabilities: string): Promise<string>;
+declare function _helm_renderTemplate(charts: Array<string>, values: string, options: string, capabilities: string, api: AnyApi): Promise<string>;
 
 // helm.sh/v3/pkg/chartutils.ReleaseOptions
 export interface ReleaseOptions {
@@ -23,6 +18,7 @@ export interface ReleaseOptions {
 
 // helm.sh/v3/pkg/chartutils.ReleaseOptions
 // HelmVersion is filled in go
+// Groups is our own raw data
 interface Capabilities {
   KubeVersion: {
     Version: string,
@@ -30,6 +26,7 @@ interface Capabilities {
     Minor: string,
   },
   APIVersions: Array<string>,
+  Groups: Array<V2APIGroupDiscovery>,
 }
 
 let goInitialized = false;
@@ -46,12 +43,6 @@ export const setup = async () => {
     fetch(`${window.__base_url}helm.wasm`), go.importObject);
   go.run(wasm.instance);
   goInitialized = true;
-
-  _helm_configConnection({
-    basePath: config.fullApiBasePath,
-    accessToken: token,
-    impersonation: config.impersonation,
-  });
 };
 
 const capabilitiesFromDiscovery = async (): Promise<Capabilities> => {
@@ -72,6 +63,7 @@ const capabilitiesFromDiscovery = async (): Promise<Capabilities> => {
       Minor: versionInfo.minor,
     },
     APIVersions: gv.concat(gvk),
+    Groups: groups,
   };
 };
 
@@ -82,6 +74,7 @@ export const renderTemplate = async (chart: Array<Chart>, value: object, opts: R
     JSON.stringify(value),
     JSON.stringify(opts),
     JSON.stringify(await capabilitiesFromDiscovery()),
+    new AnyApi(await useApiConfig().getConfig()),
   );
   return result;
 };
