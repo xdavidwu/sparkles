@@ -6,7 +6,7 @@ import type { Chart } from '@/utils/helm';
 import helmWasmInit from '@/utils/helm.wasm?init';
 import '@/vendor/wasm_exec';
 
-declare function _helm_renderTemplate(charts: Array<string>, values: string, options: string, capabilities: string, api: AnyApi): Promise<string>;
+declare function _helm_renderTemplate(charts: Array<string>, values: string, options: string, capabilities: string, api: AnyApi): Promise<{ [key: string]: string }>;
 
 // helm.sh/v3/pkg/chartutils.ReleaseOptions
 export interface ReleaseOptions {

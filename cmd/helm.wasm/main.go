@@ -355,10 +355,14 @@ func renderTemplate(this js.Value, args []js.Value) any {
 			res, err := engine.RenderWithClientProvider(&c, v, &clientProvider)
 			must(err)
 
-			b, err := json.Marshal(res)
-			must(err)
+			// syscall/js.ValueOf
+			typed := map[string]interface{}{}
 
-			resolve.Invoke(string(b))
+			for k, v := range res {
+				typed[k] = v
+			}
+
+			resolve.Invoke(typed)
 		}()
 		return nil
 	})
