@@ -30,3 +30,4 @@ coverage
 /public/charts
 /src/vendor/wasm_exec.js
 /src/utils/helm.wasm
+*.tsbuildinfo
