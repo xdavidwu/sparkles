@@ -21,12 +21,18 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+var (
+	errorClass      = js.Global().Get("Error")
+	uint8ArrayClass = js.Global().Get("Uint8Array")
+	promiseClass    = js.Global().Get("Promise")
+)
+
 func consoleLog(args ...any) {
 	js.Global().Get("console").Call("log", args...)
 }
 
 func jsError(e error) js.Value {
-	return js.Global().Get("Error").New(e.Error())
+	return errorClass.New(e.Error())
 }
 
 func goError(e js.Value) error {
@@ -48,10 +54,13 @@ func parseErrorFromCodegen(e js.Value, out chan error) {
 		})
 		then = js.FuncOf(func(this js.Value, args []js.Value) any {
 			releaseFuncs()
+
+			typedArray := uint8ArrayClass.New(args[0])
+			bytes := make([]byte, typedArray.Length())
+			js.CopyBytesToGo(bytes, typedArray)
 			// TODO content-type negotiator a la client-go?
 			status := metav1.Status{}
-			// TODO perhaps use bytes
-			err := json.Unmarshal([]byte(args[0].String()), &status)
+			err := json.Unmarshal(bytes, &status)
 			if err != nil {
 				out <- err
 				return nil
@@ -59,7 +68,7 @@ func parseErrorFromCodegen(e js.Value, out chan error) {
 			out <- kubeerrors.FromObject(&status)
 			return nil
 		})
-		e.Get("response").Call("text").Call("then", then, catch)
+		e.Get("response").Call("arrayBuffer").Call("then", then, catch)
 	} else {
 		out <- goError(e)
 	}
@@ -129,9 +138,11 @@ func (c *jsClient) Get(_ context.Context, name string, _ metav1.GetOptions, subr
 		then = js.FuncOf(func(this js.Value, args []js.Value) any {
 			then.Release()
 			catch.Release()
-			// TODO perhaps use bytes
-			json := args[0].String()
-			obj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, []byte(json))
+
+			typedArray := uint8ArrayClass.New(args[0])
+			bytes := make([]byte, typedArray.Length())
+			js.CopyBytesToGo(bytes, typedArray)
+			obj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, bytes)
 			if err != nil {
 				errChan <- err
 				return nil
@@ -139,7 +150,7 @@ func (c *jsClient) Get(_ context.Context, name string, _ metav1.GetOptions, subr
 			resChan <- obj.(*unstructured.Unstructured)
 			return nil
 		})
-		args[0].Get("raw").Call("text").Call("then", then, catch)
+		args[0].Get("raw").Call("arrayBuffer").Call("then", then, catch)
 		return nil
 	})
 	c.class.Call(fn, args).Call("then", then, catch)
@@ -178,9 +189,11 @@ func (c *jsClient) List(_ context.Context, _ metav1.ListOptions) (*unstructured.
 		then = js.FuncOf(func(this js.Value, args []js.Value) any {
 			then.Release()
 			catch.Release()
-			// TODO perhaps use bytes
-			json := args[0].String()
-			obj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, []byte(json))
+
+			typedArray := uint8ArrayClass.New(args[0])
+			bytes := make([]byte, typedArray.Length())
+			js.CopyBytesToGo(bytes, typedArray)
+			obj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, bytes)
 			if err != nil {
 				errChan <- err
 				return nil
@@ -188,7 +201,7 @@ func (c *jsClient) List(_ context.Context, _ metav1.ListOptions) (*unstructured.
 			resChan <- obj.(*unstructured.UnstructuredList)
 			return nil
 		})
-		args[0].Get("raw").Call("text").Call("then", then, catch)
+		args[0].Get("raw").Call("arrayBuffer").Call("then", then, catch)
 		return nil
 	})
 	c.class.Call(fn, args).Call("then", then, catch)
@@ -349,7 +362,7 @@ func renderTemplate(this js.Value, args []js.Value) any {
 		}()
 		return nil
 	})
-	return js.Global().Get("Promise").New(executor)
+	return promiseClass.New(executor)
 }
 
 func main() {
