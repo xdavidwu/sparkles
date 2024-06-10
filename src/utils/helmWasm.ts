@@ -3,6 +3,7 @@ import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { AnyApi } from '@/utils/AnyApi';
 import type { V2APIGroupDiscovery } from '@/utils/discoveryV2';
 import type { Chart } from '@/utils/helm';
+import helmWasmInit from '@/utils/helm.wasm?init';
 import '@/vendor/wasm_exec';
 
 declare function _helm_renderTemplate(charts: Array<string>, values: string, options: string, capabilities: string, api: AnyApi): Promise<string>;
@@ -35,13 +36,9 @@ export const setup = async () => {
   if (goInitialized) {
     return;
   }
-  const config = useApiConfig();
-  const token = await config.getBearerToken();
-
   const go = new Go();
-  const wasm = await WebAssembly.instantiateStreaming(
-    fetch(`${window.__base_url}helm.wasm`), go.importObject);
-  go.run(wasm.instance);
+  const wasm = await helmWasmInit(go.importObject);
+  go.run(wasm);
   goInitialized = true;
 };
 
