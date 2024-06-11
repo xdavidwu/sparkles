@@ -1,7 +1,7 @@
 import type { V1Secret } from '@/kubernetes-api/src';
 import type { KubernetesObject } from '@/utils/objects';
 import { streamToGenerator } from '@/utils/lang';
-import type { InboundMessage, OutboundMessage } from '@/utils/helm.proto';
+import type { InboundMessage, OutboundMessage } from '@/utils/helm.webworker';
 import HelmWorker from '@/utils/helm.webworker?worker';
 import { extract } from 'it-tar';
 import { parse } from 'yaml';

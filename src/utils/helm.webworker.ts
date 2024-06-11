@@ -1,4 +1,7 @@
-import type { InboundMessage, OutboundMessage } from '@/utils/helm.proto';
+import {
+  type ExtractInboundMessage,
+  registerHandler,
+} from '@/utils/fnsWorker.webworker';
 
 const fns = {
   test: (...args: Array<unknown>) => {
@@ -6,23 +9,7 @@ const fns = {
   },
 };
 
-onmessage = (e) => {
-  const data: InboundMessage = e.data;
-  try {
-    if (!fns[data.func]) {
-      throw new Error(`unimplemented ${JSON.stringify(data)}`);
-    }
-    fns[data.func](...data.args);
-  } catch (e) {
-    const msg: OutboundMessage = {
-      type: 'error',
-      error: e,
-    };
-    postMessage(msg);
-    return;
-  }
-  const msg: OutboundMessage = {
-    type: 'completed',
-  };
-  postMessage(msg);
-};
+registerHandler(fns);
+
+export type { BaseOutboundMessage as OutboundMessage } from '@/utils/fnsWorker.webworker';
+export type InboundMessage = ExtractInboundMessage<typeof fns>;
