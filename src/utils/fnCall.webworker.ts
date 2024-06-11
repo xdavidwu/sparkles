@@ -12,13 +12,14 @@ export interface ProgressMessage {
   message: string;
 }
 
-export type BaseOutboundMessage = ProgressMessage | ErrorMessage | CompletedMessage;
+export type FnCallOutboundMessage = ProgressMessage | ErrorMessage | CompletedMessage;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFunc = (...args: any) => any;
 type AnyFuncsImpl = { [name: string]: AnyFunc };
 
 interface ExtractMessage<T extends AnyFuncsImpl, K extends keyof T> {
+  type: 'call';
   func: K;
   args: Parameters<T[K]>;
 }
@@ -27,26 +28,30 @@ type MappedExtractMessage<T extends AnyFuncsImpl> = {
   [k in keyof T]: ExtractMessage<T, k>;
 }
 
-export type ExtractInboundMessage<T extends AnyFuncsImpl> = MappedExtractMessage<T>[keyof T];
+export type FnCallInboundMessage<T extends AnyFuncsImpl> = MappedExtractMessage<T>[keyof T];
 
-export const registerHandler = <T extends AnyFuncsImpl>(fns: T) =>
-  onmessage = async (e) => {
-    const data: ExtractInboundMessage<T> = e.data;
+export const handleFnCall = <T extends AnyFuncsImpl>(fns: T) =>
+  async (e: MessageEvent): Promise<boolean> => {
+    const data: FnCallInboundMessage<T> = e.data;
+    if (data.type != 'call') {
+      return false;
+    }
     try {
       if (!fns[data.func]) {
         throw new Error(`unimplemented ${JSON.stringify(data)}`);
       }
       await fns[data.func](...data.args);
     } catch (e) {
-      const msg: BaseOutboundMessage = {
+      const msg: FnCallOutboundMessage = {
         type: 'error',
         error: e,
       };
       postMessage(msg);
-      return;
+      return true;
     }
-    const msg: BaseOutboundMessage = {
+    const msg: FnCallOutboundMessage = {
       type: 'completed',
     };
     postMessage(msg);
+    return true;
   };

@@ -299,6 +299,7 @@ export const testWorkerRoundTrip = () => {
     }
   };
   const op: InboundMessage = {
+    type: 'call',
     func: 'test',
     args: ['foo', 'bar', 'baz'],
   };

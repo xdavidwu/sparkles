@@ -1,15 +1,27 @@
 import {
-  type ExtractInboundMessage,
-  registerHandler,
-} from '@/utils/fnsWorker.webworker';
+  type FnCallInboundMessage,
+  type FnCallOutboundMessage,
+  handleFnCall,
+} from '@/utils/fnCall.webworker';
 
 const fns = {
-  test: (...args: Array<unknown>) => {
+  test: async (...args: Array<unknown>) => {
     throw new Error(`test ${JSON.stringify(args)}`);
   },
 };
 
-registerHandler(fns);
+const handlers = [
+  handleFnCall(fns),
+];
 
-export type { BaseOutboundMessage as OutboundMessage } from '@/utils/fnsWorker.webworker';
-export type InboundMessage = ExtractInboundMessage<typeof fns>;
+onmessage = async (e) => {
+  for (const handler of handlers) {
+    if (await handler(e)) {
+      return;
+    }
+  }
+  throw new Error(`unrecognized message ${JSON.stringify(e)}`);
+}
+
+export type OutboundMessage = FnCallOutboundMessage;
+export type InboundMessage = FnCallInboundMessage<typeof fns>;
