@@ -30,13 +30,13 @@ type MappedExtractMessage<T extends AnyFuncsImpl> = {
 export type ExtractInboundMessage<T extends AnyFuncsImpl> = MappedExtractMessage<T>[keyof T];
 
 export const registerHandler = <T extends AnyFuncsImpl>(fns: T) =>
-  onmessage = (e) => {
+  onmessage = async (e) => {
     const data: ExtractInboundMessage<T> = e.data;
     try {
       if (!fns[data.func]) {
         throw new Error(`unimplemented ${JSON.stringify(data)}`);
       }
-      fns[data.func](...data.args);
+      await fns[data.func](...data.args);
     } catch (e) {
       const msg: BaseOutboundMessage = {
         type: 'error',
