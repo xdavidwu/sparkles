@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia';
 import {
   Configuration,
-  type ConfigurationParameters,
-  type HTTPHeaders,
+  type ConfigurationParameters, type HTTPHeaders, type Middleware,
 } from '@/kubernetes-api/src';
 import { useLocalStorage } from '@vueuse/core';
 import { computed } from 'vue';
@@ -15,6 +14,67 @@ export enum AuthScheme {
   AccessToken = 'aceess_token',
   None = 'none',
 }
+
+const toastWarnings: Middleware['post'] = async ({ url, response }) => {
+  if (response.headers.has('Warning')) {
+    const v = response.headers.get('Warning')!;
+    console.log(`Kubernetes API Warning: ${url}: ${v}`);
+
+    // warn-code SP warn-agent SP warn-text [SP warn-date], ...
+
+    // k8s.io/apiserver/pkg/endpoints.filters/recorder.AddWaring
+    // warn-code is always 299
+    // warn-agent is settable, but no one use it yet, thus always -
+    // warn-date is not used
+    let rest = v.trim();
+    const errorOut = (msg: string) => {
+      throw new Error(`Invalid warning header: ${msg}: ${v}`);
+    }
+    const msgs = [];
+    while (rest.length) {
+      const agentTextDateRest = rest.substring(4);
+      const textDateRest = agentTextDateRest.substring(agentTextDateRest.indexOf(' ') + 1);
+      if (textDateRest[0] != '"') {
+        errorOut('Expected quoted-string');
+      }
+
+      let msg = '';
+      let escaped = false;
+      let i = 1;
+      for (;; i++) {
+        if (i >= textDateRest.length) {
+errorOut('Unclosed quoted-string');
+        }
+        if (escaped) {
+          msg += textDateRest[i];
+          escaped = false;
+        } else if (textDateRest[i] == '"') {
+          break
+        } else {
+          escaped = textDateRest[i] == '\\';
+          if (!escaped) {
+            msg += textDateRest[i];
+          }
+        }
+      }
+      msgs.push(msg);
+      i++;
+      if (i >= textDateRest.length) {
+        break;
+      }
+
+      if (textDateRest[i] == ',') {
+        rest = textDateRest.substring(i + 1).trimStart();
+      } else {
+        errorOut('warn-date is not supported' + textDateRest[i]);
+      }
+    }
+
+    // TODO url is too long for a toast, how do we bring more context to user?
+    // e.g. friendly description of what this request is for
+    useErrorPresentation().pendingToast = `Kubernetes returned warning:\n${msgs.join('\n')}`;
+  }
+};
 
 export const useApiConfig = defineStore('api-config', () => {
   const configurable = import.meta.env.VITE_RUNTIME_AUTH_CONFIG === 'true';
@@ -67,7 +127,7 @@ export const useApiConfig = defineStore('api-config', () => {
     }
     return null;
   };
-  const getConfig = async () => {
+  const getCloneableConfigParams = async (): Promise<ConfigurationParameters> => {
     const headers: HTTPHeaders = {
       // avoid pretty printing, sliently dropped on chromium
       // https://crbug.com/571722
@@ -86,74 +146,17 @@ export const useApiConfig = defineStore('api-config', () => {
       }
     }
 
-    const params: ConfigurationParameters = {
+    return {
       basePath: import.meta.env.VITE_KUBERNETES_API,
       headers,
-      middleware: [{
-        post: async ({ url, response }) => {
-          if (response.headers.has('Warning')) {
-            const v = response.headers.get('Warning')!;
-            console.log(`Kubernetes API Warning: ${url}: ${v}`);
-
-            // warn-code SP warn-agent SP warn-text [SP warn-date], ...
-
-            // k8s.io/apiserver/pkg/endpoints.filters/recorder.AddWaring
-            // warn-code is always 299
-            // warn-agent is settable, but no one use it yet, thus always -
-            // warn-date is not used
-            let rest = v.trim();
-            const errorOut = (msg: string) => {
-              throw new Error(`Invalid warning header: ${msg}: ${v}`);
-            }
-            const msgs = [];
-            while (rest.length) {
-              const agentTextDateRest = rest.substring(4);
-              const textDateRest = agentTextDateRest.substring(agentTextDateRest.indexOf(' ') + 1);
-              if (textDateRest[0] != '"') {
-                errorOut('Expected quoted-string');
-              }
-
-              let msg = '';
-              let escaped = false;
-              let i = 1;
-              for (;; i++) {
-                if (i >= textDateRest.length) {
-    errorOut('Unclosed quoted-string');
-                }
-                if (escaped) {
-                  msg += textDateRest[i];
-                  escaped = false;
-                } else if (textDateRest[i] == '"') {
-                  break
-                } else {
-                  escaped = textDateRest[i] == '\\';
-                  if (!escaped) {
-                    msg += textDateRest[i];
-                  }
-                }
-              }
-              msgs.push(msg);
-              i++;
-              if (i >= textDateRest.length) {
-                break;
-              }
-
-              if (textDateRest[i] == ',') {
-                rest = textDateRest.substring(i + 1).trimStart();
-              } else {
-                errorOut('warn-date is not supported' + textDateRest[i]);
-              }
-            }
-
-            // TODO url is too long for a toast, how do we bring more context to user?
-            // e.g. friendly description of what this request is for
-            useErrorPresentation().pendingToast = `Kubernetes returned warning:\n${msgs.join('\n')}`;
-          }
-        }
-      }],
     };
+  };
+  const getConfig = async () => {
+    const params = await getCloneableConfigParams();
+
+    params.middleware = [{ post: toastWarnings }];
     if (authScheme.value === AuthScheme.OIDC) {
-      params.middleware!.push({
+      params.middleware.push({
         pre: async (context) => {
           context.init.headers = {
             ...context.init.headers,
@@ -176,6 +179,7 @@ export const useApiConfig = defineStore('api-config', () => {
     authScheme,
     getBearerToken,
     getIdToken,
+    getCloneableConfigParams,
     getConfig,
   };
 });
