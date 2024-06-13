@@ -63,3 +63,20 @@ export interface V2APIGroupDiscovery extends KubernetesObject {
 }
 
 export type V2APIGroupDiscoveryList = KubernetesList<V2APIGroupDiscovery>;
+
+export const resolveGVK = (groups: Array<V2APIGroupDiscovery>,
+  group: string | undefined, version: string, kind: string) =>
+    groups.find((g) => g.metadata!.name === group)
+      ?.versions.find((v) => v.version === version)
+      ?.resources.find((r) => r.responseKind.kind === kind);
+
+export const resolveObject =
+  (groups: Array<V2APIGroupDiscovery>, r: KubernetesObject) => {
+    const split = r.apiVersion!.split('/');
+    const gv = split.length == 1 ? { version: r.apiVersion! } : { group: split[0], version: split[1] };
+    const datum = resolveGVK(groups, gv.group, gv.version, r.kind!);
+    return {
+      ...gv,
+      ...datum,
+    };
+  }
