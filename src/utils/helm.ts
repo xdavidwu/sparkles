@@ -2,6 +2,7 @@ import type { V1Secret } from '@/kubernetes-api/src';
 import type { KubernetesObject } from '@/utils/objects';
 import { streamToGenerator } from '@/utils/lang';
 import type { InboundMessage, OutboundMessage } from '@/utils/helm.webworker';
+import { handleApiConfigMessages } from '@/utils/apiConfig';
 import HelmWorker from '@/utils/helm.webworker?worker';
 import { extract } from 'it-tar';
 import { parse } from 'yaml';
@@ -292,7 +293,15 @@ const prepareWorker = () => {
 
 export const testWorkerRoundTrip = () => {
   const worker = prepareWorker();
-  worker.onmessage = (e) => {
+  const handlers = [
+    handleApiConfigMessages(worker),
+  ];
+  worker.onmessage = async (e) => {
+    for (const handler of handlers) {
+      if (await handler(e)) {
+        return;
+      }
+    }
     const data: OutboundMessage = e.data;
     if (data.type == 'error') {
       throw data.error;

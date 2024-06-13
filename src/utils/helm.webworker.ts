@@ -1,17 +1,24 @@
 import {
-  type FnCallInboundMessage,
-  type FnCallOutboundMessage,
   handleFnCall,
+  type FnCallInboundMessage, type FnCallOutboundMessage,
 } from '@/utils/fnCall.webworker';
+import {
+  getConfig, handleApiConfigResponse,
+  type ApiConfigInboundMessage, type ApiConfigOutboundMessage,
+} from '@/utils/apiConfig.webworker';
+import { CoreApi } from '@/kubernetes-api/src';
 
 const fns = {
   test: async (...args: Array<unknown>) => {
-    throw new Error(`test ${JSON.stringify(args)}`);
+    const api = new CoreApi(await getConfig());
+    const res = await api.getAPIVersions();
+    throw new Error(`test ${JSON.stringify(res.versions)} ${JSON.stringify(args)}`);
   },
 };
 
 const handlers = [
   handleFnCall(fns),
+  handleApiConfigResponse,
 ];
 
 onmessage = async (e) => {
@@ -23,5 +30,5 @@ onmessage = async (e) => {
   throw new Error(`unrecognized message ${JSON.stringify(e)}`);
 }
 
-export type OutboundMessage = FnCallOutboundMessage;
-export type InboundMessage = FnCallInboundMessage<typeof fns>;
+export type OutboundMessage = FnCallOutboundMessage | ApiConfigOutboundMessage;
+export type InboundMessage = FnCallInboundMessage<typeof fns> | ApiConfigInboundMessage;
