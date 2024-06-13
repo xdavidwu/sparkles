@@ -32,6 +32,9 @@ import {
   encodeSecret, parseSecret, secretsLabelSelector, shouldKeepResource, Status,
 } from '@/utils/helm';
 import { type KubernetesObject, isSameKubernetesObject } from '@/utils/objects';
+import type { InboundMessage, OutboundMessage } from '@/utils/helm.webworker';
+import { handleDataRequestMessages } from '@/utils/handleDataRequest';
+import HelmWorker from '@/utils/helm.webworker?worker';
 
 interface ValuesTab {
   id: string,
@@ -249,45 +252,37 @@ const rollback = async (target: Release) => {
   // TODO history retention
 };
 
-// helm.sh/helm/v3/pkg/action.Uninstall.Run
-const uninstall = async (target: Release) => {
-  const update = structuredClone(toRaw(target));
-  update.info.status = Status.UNINSTALLING;
-  update.info.deleted = (new Date()).toISOString();
-  update.info.description = 'Deletion in progress (or sliently failed)';
-  const updatedSecret = await encodeSecret(update);
-  await api.replaceNamespacedSecret({
-    namespace: updatedSecret.metadata!.namespace!,
-    name: updatedSecret.metadata!.name!,
-    body: updatedSecret,
-  });
+let worker: Worker | null = null;
 
-  const targetResources = parseAllDocuments(target.manifest).map((d) => d.toJS() as KubernetesObject);
-  // TODO sort? helm.sh/helm/v3/pkg/releaseutil.UninstallOrder
-  const toDelete = targetResources.filter((r) => !shouldKeepResource(r));
-  await Promise.all(toDelete.map(async (r) => {
-    const info = await discoveryStore.getForObject(r);
-    await anyApi[`delete${info.scope!}CustomObject`]({
-      group: info.group,
-      version: info.version,
-      plural: info.resource!,
-      namespace: r.metadata!.namespace!,
-      name: r.metadata!.name!,
-    });
-  }));
+const prepareWorker = () => {
+  if (worker == null) {
+    worker = new HelmWorker();
+  }
+  return worker;
+};
 
-  // TODO perhaps tell user what are kept
-  // TODO wait, hook
-  // TODO do we want to impl hard delete (remove history)?
-
-  update.info.status = Status.UNINSTALLED;
-  update.info.description = 'Uninstallation complete';
-  const finalSecret = await encodeSecret(update);
-  await api.replaceNamespacedSecret({
-    namespace: finalSecret.metadata!.namespace!,
-    name: finalSecret.metadata!.name!,
-    body: finalSecret,
-  });
+const uninstall = (target: Release) => {
+  const worker = prepareWorker();
+  const handlers = [
+    handleDataRequestMessages(worker),
+  ];
+  worker.onmessage = async (e) => {
+    for (const handler of handlers) {
+      if (await handler(e)) {
+        return;
+      }
+    }
+    const data: OutboundMessage = e.data;
+    if (data.type == 'error') {
+      throw data.error;
+    }
+  };
+  const op: InboundMessage = {
+    type: 'call',
+    func: 'uninstall',
+    args: [toRaw(target)],
+  };
+  worker.postMessage(op);
 };
 </script>
 

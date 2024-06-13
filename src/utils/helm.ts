@@ -1,9 +1,6 @@
 import type { V1Secret } from '@/kubernetes-api/src';
 import type { KubernetesObject } from '@/utils/objects';
 import { streamToGenerator } from '@/utils/lang';
-import type { InboundMessage, OutboundMessage } from '@/utils/helm.webworker';
-import { handleDataRequestMessages } from '@/utils/handleDataRequest';
-import HelmWorker from '@/utils/helm.webworker?worker';
 import { extract } from 'it-tar';
 import { parse } from 'yaml';
 
@@ -280,37 +277,4 @@ export const parseChartTarball = async (s: ReadableStream): Promise<Chart[]> => 
     rawFiles[name] = new Blob(await Array.fromAsync(entry.body));
   }
   return await loadChartsFromFiles(rawFiles);
-};
-
-let worker: Worker | null = null;
-
-const prepareWorker = () => {
-  if (worker == null) {
-    worker = new HelmWorker();
-  }
-  return worker;
-};
-
-export const testWorkerRoundTrip = () => {
-  const worker = prepareWorker();
-  const handlers = [
-    handleDataRequestMessages(worker),
-  ];
-  worker.onmessage = async (e) => {
-    for (const handler of handlers) {
-      if (await handler(e)) {
-        return;
-      }
-    }
-    const data: OutboundMessage = e.data;
-    if (data.type == 'error') {
-      throw data.error;
-    }
-  };
-  const op: InboundMessage = {
-    type: 'call',
-    func: 'test',
-    args: ['foo', 'bar', 'baz'],
-  };
-  worker.postMessage(op);
 };
