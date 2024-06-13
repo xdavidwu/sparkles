@@ -3,9 +3,9 @@ import {
   type FnCallInboundMessage, type FnCallOutboundMessage,
 } from '@/utils/fnCall.webworker';
 import {
-  getConfig, handleApiConfigResponse,
-  type ApiConfigInboundMessage, type ApiConfigOutboundMessage,
-} from '@/utils/apiConfig.webworker';
+  getConfig, handleDataResponse,
+  type RequestDataInboundMessage, type RequestDataOutboundMessage,
+} from '@/utils/requestData.webworker';
 import { CoreApi } from '@/kubernetes-api/src';
 
 const fns = {
@@ -18,7 +18,7 @@ const fns = {
 
 const handlers = [
   handleFnCall(fns),
-  handleApiConfigResponse,
+  handleDataResponse,
 ];
 
 onmessage = async (e) => {
@@ -30,5 +30,5 @@ onmessage = async (e) => {
   throw new Error(`unrecognized message ${JSON.stringify(e)}`);
 }
 
-export type OutboundMessage = FnCallOutboundMessage | ApiConfigOutboundMessage;
-export type InboundMessage = FnCallInboundMessage<typeof fns> | ApiConfigInboundMessage;
+export type OutboundMessage = FnCallOutboundMessage | RequestDataOutboundMessage;
+export type InboundMessage = FnCallInboundMessage<typeof fns> | RequestDataInboundMessage;
