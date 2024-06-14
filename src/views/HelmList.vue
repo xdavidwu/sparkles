@@ -17,22 +17,18 @@ import { ref, watch, toRaw } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
-import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useNamespaces } from '@/stores/namespaces';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
 import { useLoading } from '@/composables/loading';
-import { stringify, parseAllDocuments } from 'yaml';
+import { stringify } from 'yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
-import { AnyApi } from '@/utils/AnyApi';
-import { errorIsResourceNotFound } from '@/utils/api';
 import { listAndUnwaitedWatch } from '@/utils/watch'
 import {
   type Release,
-  encodeSecret, parseSecret, secretsLabelSelector, shouldKeepResource, Status,
+  parseSecret, secretsLabelSelector, Status,
 } from '@/utils/helm';
-import { type KubernetesObject, isSameKubernetesObject } from '@/utils/objects';
 import type { InboundMessage } from '@/utils/helm.webworker';
 import {
   handleDataRequestMessages,
@@ -50,11 +46,9 @@ interface ValuesTab {
 const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces();
 const { selectedNamespace } = storeToRefs(namespacesStore);
-const discoveryStore = useApisDiscovery();
 
 const config = await useApiConfig().getConfig();
 const api = new CoreV1Api(config);
-const anyApi = new AnyApi(config);
 
 const secrets = ref<Array<V1Secret>>([]);
 const tab = ref('table');
@@ -150,128 +144,12 @@ const { loading, load } = useLoading(async () => {
 
 watch(selectedNamespace, load, { immediate: true });
 
-// helm.sh/helm/v3/pkg/action.Rollback.Run
-const rollback = async (target: Release) => {
-  const latest = releases.value.filter((r) => r.name == target.name)[0];
-
-  const release = structuredClone(toRaw(target));
-  release.info = {
-    first_deployed: latest.info.first_deployed,
-    last_deployed: (new Date()).toISOString(),
-    status: Status.PENDING_ROLLBACK,
-    notes: release.info.notes,
-    description: `Rollback to ${release.version}`,
-  };
-  release.version = latest.version + 1;
-
-  const secret = await encodeSecret(release);
-  // TODO what should we set fieldmanager to?
-  await api.createNamespacedSecret({ namespace: secret.metadata!.namespace!, body: secret });
-
-  const targetResources = parseAllDocuments(target.manifest).map((d) => d.toJS() as KubernetesObject);
-  const latestResources = parseAllDocuments(latest.manifest).map((d) => d.toJS() as KubernetesObject);
-
-  targetResources.forEach((r) => {
-    if (!r.metadata!.annotations) {
-      r.metadata!.annotations = {};
-    }
-    if (!r.metadata!.labels) {
-      r.metadata!.labels = {};
-    }
-    r.metadata!.labels['app.kubernetes.io/managed-by'] = 'Helm';
-    r.metadata!.annotations['meta.helm.sh/release-name'] = target.name;
-    r.metadata!.annotations['meta.helm.sh/release-namespace'] = target.namespace;
-  });
-
-  const ops = await Promise.all(targetResources.map((r) => ({
-    op: latestResources.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
-    target: r,
-  })).concat(latestResources.filter(
-    (r) => !targetResources.some((t) => isSameKubernetesObject(r, t)) && !shouldKeepResource(r),
-  ).map((r) => ({
-    op: 'delete',
-    target: r,
-  }))).map(async (op) => ({
-    ...op,
-    kindInfo: await discoveryStore.getForObject(op.target),
-  })));
-
-  await Promise.all(ops.map(async (op) => {
-    const create = () => anyApi[`create${op.kindInfo.scope!}CustomObject`]({
-      group: op.kindInfo.group,
-      version: op.kindInfo.version,
-      plural: op.kindInfo.resource!,
-      namespace: op.target.metadata!.namespace!,
-      body: op.target,
-    });
-    switch (op.op) {
-    case 'create':
-      return await create();
-    case 'replace':
-      try {
-        return await anyApi[`replace${op.kindInfo.scope!}CustomObject`]({
-          group: op.kindInfo.group,
-          version: op.kindInfo.version,
-          plural: op.kindInfo.resource!,
-          namespace: op.target.metadata!.namespace!,
-          name: op.target.metadata!.name!,
-          body: op.target,
-        });
-      } catch (e) {
-        // some (apps/v1 Deployment) does not treat PUT without existing resource as create, but the others does
-        if (await errorIsResourceNotFound(e)) {
-          return await create();
-        }
-        throw e;
-      }
-    case 'delete':
-      return await anyApi[`delete${op.kindInfo.scope!}CustomObject`]({
-        group: op.kindInfo.group,
-        version: op.kindInfo.version,
-        plural: op.kindInfo.resource!,
-        namespace: op.target.metadata!.namespace!,
-        name: op.target.metadata!.name!,
-      });
-    }
-  }));
-  // TODO error handling, undo on failure?
-
-  // TODO recreate? (delete old pod to trigger a rollout?), wait?, hooks?
-
-  await Promise.all(releases.value.filter(
-    (r) => r.name == target.name && r.info.status == Status.DEPLOYED,
-  ).map(async (r) => {
-    const copy = structuredClone(toRaw(r));
-    copy.info.status = Status.SUPERSEDED;
-    const updatedSecret = await encodeSecret(copy);
-    return await api.replaceNamespacedSecret({
-      namespace: updatedSecret.metadata!.namespace!,
-      name: updatedSecret.metadata!.name!,
-      body: updatedSecret,
-    });
-  }));
-
-  release.info.status = Status.DEPLOYED;
-  const finalSecret = await encodeSecret(release);
-  await api.replaceNamespacedSecret({
-    namespace: finalSecret.metadata!.namespace!,
-    name: finalSecret.metadata!.name!,
-    body: finalSecret,
-  });
-  // TODO history retention
-};
-
 let worker: Worker | null = null;
 
 const prepareWorker = () => {
   if (worker == null) {
     worker = new HelmWorker();
   }
-  return worker;
-};
-
-const uninstall = (target: Release) => {
-  const worker = prepareWorker();
   const handlers = [
     handleDataRequestMessages(worker),
     handleErrorMessages,
@@ -284,6 +162,11 @@ const uninstall = (target: Release) => {
       }
     }
   };
+  return worker;
+};
+
+const uninstall = (target: Release) => {
+  const worker = prepareWorker();
   operation.value = `Uninstalling release ${target.name}`;
   progress.value = 'Uninstalling release';
   progressCompleted.value = false;
@@ -291,6 +174,19 @@ const uninstall = (target: Release) => {
     type: 'call',
     func: 'uninstall',
     args: [toRaw(target)],
+  };
+  worker.postMessage(op);
+};
+
+const rollback = (target: Release) => {
+  const worker = prepareWorker();
+  operation.value = `Rolling back release ${target.name} to ${target.version}`;
+  progress.value = 'Rolling back release';
+  progressCompleted.value = false;
+  const op: InboundMessage = {
+    type: 'call',
+    func: 'rollback',
+    args: [toRaw(target), toRaw(releases.value)],
   };
   worker.postMessage(op);
 };

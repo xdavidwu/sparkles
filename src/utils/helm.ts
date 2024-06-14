@@ -1,5 +1,4 @@
 import type { V1Secret } from '@/kubernetes-api/src';
-import type { KubernetesObject } from '@/utils/objects';
 import { streamToGenerator } from '@/utils/lang';
 import { extract } from 'it-tar';
 import { parse } from 'yaml';
@@ -150,42 +149,6 @@ export const parseSecret = async (s: V1Secret): Promise<Release> => {
     labels: s.metadata!.labels ?? {},
   };
 };
-
-// helm.sh/helm/v3/pkg/storage/driver.Secrets.newSecretsObject
-export const encodeSecret = async (r: Release): Promise<V1Secret> => {
-  const datum = {
-    ...r,
-    labels: undefined,
-  };
-  const bytes = new Blob([JSON.stringify(datum)]);
-  const stream = bytes.stream().pipeThrough(new CompressionStream('gzip'));
-  const gzipped = new Uint8Array(await (new Response(stream)).arrayBuffer());
-  const base64d = btoa(Array.from(gzipped, (b) => String.fromCodePoint(b)).join(''));
-
-  return {
-    apiVersion: 'v1',
-    kind: 'Secret',
-    metadata: {
-      name: `sh.helm.release.v1.${r.name}.v${r.version}`,
-      namespace: r.namespace,
-      labels: {
-        ...r.labels,
-        name: r.name,
-        owner: 'helm',
-        status: r.info.status!,
-        version: `${r.version}`,
-      },
-    },
-    data: {
-      release: btoa(base64d),
-    },
-    type: releaseSecretType,
-  };
-};
-
-// helm.sh/v3/pkg/kube.ResourcePolicyAnno, KeepPolicy
-export const shouldKeepResource = (r: KubernetesObject) =>
-  r.metadata?.annotations?.['helm.sh/resource-policy'] === 'keep';
 
 // helm.sh/v3/pkg/chart/loader.LoadFiles
 // deps are in private fields, not deserializable, do parse but handle them in go

@@ -8,10 +8,11 @@ import {
 } from '@/utils/requestData.webworker';
 import { CoreV1Api, type V1Secret } from '@/kubernetes-api/src';
 import { AnyApi } from '@/utils/AnyApi';
+import { errorIsResourceNotFound } from '@/utils/api';
 import { parseAllDocuments } from 'yaml';
 import { type Release, Status } from '@/utils/helm';
 import { resolveObject } from '@/utils/discoveryV2';
-import type { KubernetesObject } from '@/utils/objects';
+import { isSameKubernetesObject, type KubernetesObject } from '@/utils/objects';
 
 const releaseSecretType = 'helm.sh/release.v1';
 
@@ -52,7 +53,7 @@ const shouldKeepResource = (r: KubernetesObject) =>
   r.metadata?.annotations?.['helm.sh/resource-policy'] === 'keep';
 
 const fns = {
-   // helm.sh/helm/v3/pkg/action.Uninstall.Run
+  // helm.sh/helm/v3/pkg/action.Uninstall.Run
   uninstall: async (target: Release) => {
     progress('Marking release as uninstalling');
 
@@ -103,6 +104,129 @@ const fns = {
       name: finalSecret.metadata!.name!,
       body: finalSecret,
     });
+  },
+  // helm.sh/helm/v3/pkg/action.Rollback.Run
+  rollback: async (target: Release, releases: Array<Release>) => {
+    progress('Creating new release');
+
+    const config = await getConfig();
+    const api = new CoreV1Api(config);
+    const anyApi = new AnyApi(config);
+
+    const latest = releases.filter((r) => r.name == target.name)[0];
+
+    const release = structuredClone(target);
+    release.info = {
+      first_deployed: latest.info.first_deployed,
+      last_deployed: (new Date()).toISOString(),
+      status: Status.PENDING_ROLLBACK,
+      notes: release.info.notes,
+      description: `Rollback to ${release.version}`,
+    };
+    release.version = latest.version + 1;
+
+    const secret = await encodeSecret(release);
+    // TODO what should we set fieldmanager to?
+    await api.createNamespacedSecret({ namespace: secret.metadata!.namespace!, body: secret });
+
+    progress('Calculating rollback difference')
+
+    const targetResources = parseAllDocuments(target.manifest).map((d) => d.toJS() as KubernetesObject);
+    const latestResources = parseAllDocuments(latest.manifest).map((d) => d.toJS() as KubernetesObject);
+
+    targetResources.forEach((r) => {
+      if (!r.metadata!.annotations) {
+        r.metadata!.annotations = {};
+      }
+      if (!r.metadata!.labels) {
+        r.metadata!.labels = {};
+      }
+      r.metadata!.labels['app.kubernetes.io/managed-by'] = 'Helm';
+      r.metadata!.annotations['meta.helm.sh/release-name'] = target.name;
+      r.metadata!.annotations['meta.helm.sh/release-namespace'] = target.namespace;
+    });
+
+    const groups = await getGroups();
+
+    const ops = await Promise.all(targetResources.map((r) => ({
+      op: latestResources.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
+      target: r,
+    })).concat(latestResources.filter(
+      (r) => !targetResources.some((t) => isSameKubernetesObject(r, t)) && !shouldKeepResource(r),
+    ).map((r) => ({
+      op: 'delete',
+      target: r,
+    }))).map(async (op) => ({
+      ...op,
+      kindInfo: resolveObject(groups, op.target),
+    })));
+
+    progress('Applying rollback');
+
+    await Promise.all(ops.map(async (op) => {
+      const create = () => anyApi[`create${op.kindInfo.scope!}CustomObject`]({
+        group: op.kindInfo.group,
+        version: op.kindInfo.version,
+        plural: op.kindInfo.resource!,
+        namespace: op.target.metadata!.namespace!,
+        body: op.target,
+      });
+      switch (op.op) {
+      case 'create':
+        return await create();
+      case 'replace':
+        try {
+          return await anyApi[`replace${op.kindInfo.scope!}CustomObject`]({
+            group: op.kindInfo.group,
+            version: op.kindInfo.version,
+            plural: op.kindInfo.resource!,
+            namespace: op.target.metadata!.namespace!,
+            name: op.target.metadata!.name!,
+            body: op.target,
+          });
+        } catch (e) {
+          // some (apps/v1 Deployment) does not treat PUT without existing resource as create, but the others does
+          if (await errorIsResourceNotFound(e)) {
+            return await create();
+          }
+          throw e;
+        }
+      case 'delete':
+        return await anyApi[`delete${op.kindInfo.scope!}CustomObject`]({
+          group: op.kindInfo.group,
+          version: op.kindInfo.version,
+          plural: op.kindInfo.resource!,
+          namespace: op.target.metadata!.namespace!,
+          name: op.target.metadata!.name!,
+        });
+      }
+    }));
+    // TODO error handling, undo on failure?
+
+    // TODO recreate? (delete old pod to trigger a rollout?), wait?, hooks?
+
+    progress('Marking release statuses');
+
+    await Promise.all(releases.filter(
+      (r) => r.name == target.name && r.info.status == Status.DEPLOYED,
+    ).map(async (r) => {
+      r.info.status = Status.SUPERSEDED;
+      const updatedSecret = await encodeSecret(r);
+      return await api.replaceNamespacedSecret({
+        namespace: updatedSecret.metadata!.namespace!,
+        name: updatedSecret.metadata!.name!,
+        body: updatedSecret,
+      });
+    }));
+
+    release.info.status = Status.DEPLOYED;
+    const finalSecret = await encodeSecret(release);
+    await api.replaceNamespacedSecret({
+      namespace: finalSecret.metadata!.namespace!,
+      name: finalSecret.metadata!.name!,
+      body: finalSecret,
+    });
+    // TODO history retention
   },
 };
 
