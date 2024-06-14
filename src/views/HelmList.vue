@@ -32,8 +32,11 @@ import {
   encodeSecret, parseSecret, secretsLabelSelector, shouldKeepResource, Status,
 } from '@/utils/helm';
 import { type KubernetesObject, isSameKubernetesObject } from '@/utils/objects';
-import type { InboundMessage, OutboundMessage } from '@/utils/helm.webworker';
-import { handleDataRequestMessages } from '@/utils/handleDataRequest';
+import type { InboundMessage } from '@/utils/helm.webworker';
+import {
+  handleDataRequestMessages,
+  handleErrorMessages,
+} from '@/utils/communication';
 import HelmWorker from '@/utils/helm.webworker?worker';
 
 interface ValuesTab {
@@ -265,16 +268,13 @@ const uninstall = (target: Release) => {
   const worker = prepareWorker();
   const handlers = [
     handleDataRequestMessages(worker),
+    handleErrorMessages,
   ];
   worker.onmessage = async (e) => {
     for (const handler of handlers) {
       if (await handler(e)) {
         return;
       }
-    }
-    const data: OutboundMessage = e.data;
-    if (data.type == 'error') {
-      throw data.error;
     }
   };
   const op: InboundMessage = {

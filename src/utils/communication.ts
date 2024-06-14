@@ -2,8 +2,10 @@ import type {
   RequestDataInboundMessage,
   RequestDataOutboundMessage,
 } from '@/utils/requestData.webworker';
+import type { ErrorMessage } from '@/utils/fnCall.webworker';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
+import { useErrorPresentation } from '@/stores/errorPresentation';
 
 export const handleDataRequestMessages = (worker: Worker) => {
   const apiStore = useApiConfig();
@@ -38,4 +40,13 @@ export const handleDataRequestMessages = (worker: Worker) => {
       return false;
     }
   };
+};
+
+export const handleErrorMessages = (e: MessageEvent): boolean => {
+  const data: ErrorMessage = e.data;
+  if (data.type == 'error') {
+    useErrorPresentation().pendingError = data.error;
+    return true;
+  }
+  return false;
 };
