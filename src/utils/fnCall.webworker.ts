@@ -30,6 +30,14 @@ type MappedExtractMessage<T extends AnyFuncsImpl> = {
 
 export type FnCallInboundMessage<T extends AnyFuncsImpl> = MappedExtractMessage<T>[keyof T];
 
+export const progress = (message: string) => {
+  const msg: ProgressMessage = {
+    type: 'progress',
+    message,
+  };
+  postMessage(msg);
+};
+
 export const handleFnCall = <T extends AnyFuncsImpl>(fns: T) =>
   async (e: MessageEvent): Promise<boolean> => {
     const data: FnCallInboundMessage<T> = e.data;

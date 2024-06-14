@@ -1,5 +1,5 @@
 import {
-  handleFnCall,
+  handleFnCall, progress,
   type FnCallInboundMessage, type FnCallOutboundMessage,
 } from '@/utils/fnCall.webworker';
 import {
@@ -54,6 +54,8 @@ const shouldKeepResource = (r: KubernetesObject) =>
 const fns = {
    // helm.sh/helm/v3/pkg/action.Uninstall.Run
   uninstall: async (target: Release) => {
+    progress('Marking release as uninstalling');
+
     const config = await getConfig();
     const api = new CoreV1Api(config);
     const anyApi = new AnyApi(config);
@@ -68,9 +70,14 @@ const fns = {
       body: updatedSecret,
     });
 
+    progress('Parsing resources to delete');
+
     const targetResources = parseAllDocuments(target.manifest).map((d) => d.toJS() as KubernetesObject);
     // TODO sort? helm.sh/helm/v3/pkg/releaseutil.UninstallOrder
     const toDelete = targetResources.filter((r) => !shouldKeepResource(r));
+
+    progress('Deleting resources');
+
     await Promise.all(toDelete.map(async (r) => {
       const info = resolveObject(await getGroups(), r);
       await anyApi[`delete${info.scope!}CustomObject`]({
@@ -85,6 +92,8 @@ const fns = {
     // TODO perhaps tell user what are kept
     // TODO wait, hook
     // TODO do we want to impl hard delete (remove history)?
+
+    progress('Marking release as uninstalled');
 
     target.info.status = Status.UNINSTALLED;
     target.info.description = 'Uninstallation complete';
