@@ -1,8 +1,13 @@
+import type { Ref } from 'vue';
 import type {
   RequestDataInboundMessage,
   RequestDataOutboundMessage,
 } from '@/utils/requestData.webworker';
-import type { ErrorMessage } from '@/utils/fnCall.webworker';
+import type {
+  ErrorMessage,
+  ProgressMessage,
+  CompletedMessage,
+} from '@/utils/fnCall.webworker';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
@@ -50,3 +55,18 @@ export const handleErrorMessages = (e: MessageEvent): boolean => {
   }
   return false;
 };
+
+export const handleProgressMessages = (message: Ref<string>, completed: Ref<boolean>) =>
+  (e: MessageEvent): boolean => {
+    const data: ProgressMessage | CompletedMessage = e.data;
+    switch (data.type) {
+    case 'progress':
+      message.value = data.message;
+      return true;
+    case 'completed':
+      completed.value = true;
+      return true;
+    default:
+      return false;
+    }
+  };

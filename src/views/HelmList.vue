@@ -8,6 +8,7 @@ import {
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import ProgressDialog from '@/components/ProgressDialog.vue';
 import TabsWindow from '@/components/TabsWindow.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
 import WindowItem from '@/components/WindowItem.vue';
@@ -36,6 +37,7 @@ import type { InboundMessage } from '@/utils/helm.webworker';
 import {
   handleDataRequestMessages,
   handleErrorMessages,
+  handleProgressMessages,
 } from '@/utils/communication';
 import HelmWorker from '@/utils/helm.webworker?worker';
 
@@ -57,6 +59,10 @@ const anyApi = new AnyApi(config);
 const secrets = ref<Array<V1Secret>>([]);
 const tab = ref('table');
 const tabs = ref<Array<ValuesTab>>([]);
+
+const operation = ref('');
+const progress = ref('');
+const progressCompleted = ref(true);
 
 const releases = computedAsync(async () =>
   // avoid multiple layer of proxy via toRaw, for easier cloning
@@ -269,6 +275,7 @@ const uninstall = (target: Release) => {
   const handlers = [
     handleDataRequestMessages(worker),
     handleErrorMessages,
+    handleProgressMessages(progress, progressCompleted),
   ];
   worker.onmessage = async (e) => {
     for (const handler of handlers) {
@@ -277,6 +284,9 @@ const uninstall = (target: Release) => {
       }
     }
   };
+  operation.value = `Uninstalling release ${target.name}`;
+  progress.value = 'Uninstalling release';
+  progressCompleted.value = false;
   const op: InboundMessage = {
     type: 'call',
     func: 'uninstall',
@@ -365,6 +375,7 @@ const uninstall = (target: Release) => {
         :schema="tab.schema" disabled />
     </WindowItem>
   </TabsWindow>
+  <ProgressDialog :model-value="!progressCompleted" :title="operation" :text="progress" />
 </template>
 
 <style scoped>
