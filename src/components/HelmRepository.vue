@@ -1,40 +1,21 @@
 <script setup lang="ts">
 import { VCard, VChip, VDataIterator, VTextField } from 'vuetify/components';
 import { ref } from 'vue';
-import { useApisDiscovery } from '@/stores/apisDiscovery';
-import { parse } from 'yaml';
-import { satisfies } from 'semver';
+import { storeToRefs } from 'pinia';
+import { useHelmRepository } from '@/stores/helmRepository';
 import { BaseColor, ColorVariant, colorToClass, hashColor } from '@/utils/colors';
-import { type ChartVersion, type IndexFile, parseChartTarball } from '@/utils/helm';
+import { type ChartVersion, parseChartTarball } from '@/utils/helm';
 import { renderTemplate } from '@/utils/helmWasm';
 
-const repo = `${window.__base_url}charts`;
-const useProxy = false;
-const indexURL = `${repo}/index.yaml`;
+const store = useHelmRepository();
+const { charts } = storeToRefs(store);
+
+await store.ensureIndex;
 
 const baseColors = Object.values(BaseColor);
 const variants = [ ColorVariant.Lighten3 ];
 
 const chipColor = (s: string) => colorToClass(hashColor(s, baseColors, variants));
-
-const response = await fetch(useProxy ? `https://corsproxy.io?${encodeURIComponent(indexURL)}` : indexURL);
-const text = await response.text();
-let index: IndexFile;
-try {
-  index = JSON.parse(text);
-} catch {
-  index = parse(text);
-}
-
-const versionInfo = await useApisDiscovery().getVersionInfo();
-const charts = Object.keys(index.entries)
-  .map((key) => index.entries[key][0])
-  .filter((c) => c.type !== 'library')
-  .filter((c) => c.deprecated !== true)
-  .filter((c) => c.kubeVersion ? satisfies(versionInfo.gitVersion, c.kubeVersion): true);
-charts.forEach((c) => {
-  c.keywords?.sort();
-});
 
 const search = ref('');
 
