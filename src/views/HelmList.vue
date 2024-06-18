@@ -7,6 +7,7 @@ import {
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
+import FixedFab from '@/components/FixedFab.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import ProgressDialog from '@/components/ProgressDialog.vue';
 import TabsWindow from '@/components/TabsWindow.vue';
@@ -264,6 +265,7 @@ const rollback = (target: Release) => {
             icon="mdi-reload" tooltip="Rollback" variant="text" @click="() => rollback(item)" />
         </template>
       </VDataTable>
+      <FixedFab icon="$plus" :to="{ name: 'helm.create' }" />
     </WindowItem>
     <WindowItem v-for="tab in tabs" :key="tab.id" :value="tab.id">
       <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"

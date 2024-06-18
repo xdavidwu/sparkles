@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { shallowRef } from 'vue';
+import { ref } from 'vue';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { PresentedError } from '@/utils/PresentedError';
@@ -8,7 +8,7 @@ import { parse } from 'yaml';
 import { satisfies } from 'semver';
 
 export const useHelmRepository = defineStore('helmRepository', () => {
-  const charts = shallowRef<Array<ChartVersion>>([]);
+  const charts = ref<Array<ChartVersion>>([]);
   const repo = `${window.__base_url}charts`;
   const indexURL = `${repo}/index.yaml`;
 

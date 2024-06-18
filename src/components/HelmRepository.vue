@@ -4,8 +4,6 @@ import { ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useHelmRepository } from '@/stores/helmRepository';
 import { BaseColor, ColorVariant, colorToClass, hashColor } from '@/utils/colors';
-import { type ChartVersion, parseChartTarball } from '@/utils/helm';
-import { renderTemplate } from '@/utils/helmWasm';
 
 const store = useHelmRepository();
 const { charts } = storeToRefs(store);
@@ -18,46 +16,49 @@ const variants = [ ColorVariant.Lighten3 ];
 const chipColor = (s: string) => colorToClass(hashColor(s, baseColors, variants));
 
 const search = ref('');
-
-const select = async (c: ChartVersion) => {
-  const response = await fetch(c.urls[0]);
-  const chart = await parseChartTarball(response.body!);
-  console.log(chart);
-  console.log(await renderTemplate(chart, chart[0].values, {
-    Name: 'name',
-    Namespace: 'namespace',
-    Revision: 1,
-    IsUpgrade: false,
-    IsInstall: true,
-  }));
-};
 </script>
 
 <template>
   <!-- TODO seems to need some performance work -->
   <VDataIterator :items="charts" items-per-page="-1" :search="search"
-    :filter-keys="['name', 'keywords', 'description']">
+    select-strategy="single" return-object
+    :filter-keys="['name', 'keywords', 'description']" class="overflow-y-auto">
     <template #header>
-      <VTextField v-model="search" placeholder="Search" class="mb-2"
+      <VTextField v-model="search" placeholder="Search"
+        class="position-sticky top-0" style="z-index: 1"
         prepend-inner-icon="mdi-magnify" variant="solo"
         clearable hide-details />
     </template>
     <template #no-data>No matches</template>
-    <template #default="{ items }">
-      <VCard v-for="{ raw: chart } in items" :key="chart.name"
-        :prepend-avatar="chart.icon"
-        :subtitle="`Chart version: ${chart.version}, App version: ${chart.appVersion}`"
-        class="mb-2" @click="() => select(chart)">
+    <template #default="{ items, toggleSelect, isSelected }">
+      <VCard v-for="item in items" :key="item.raw.name"
+        :prepend-avatar="item.raw.icon" :class="{ selected: isSelected(item) }"
+        :subtitle="`Chart version: ${item.raw.version}, App version: ${item.raw.appVersion}`"
+        class="mt-2" @click="() => toggleSelect(item)">
         <template #title>
-          {{ chart.name }}
-          <VChip v-for="keyword in chart.keywords" :key="keyword"
+          {{ item.raw.name }}
+          <VChip v-for="keyword in item.raw.keywords" :key="keyword"
             :color="chipColor(keyword)"
             size="x-small" class="ml-1">
             {{ keyword }}
           </VChip>
         </template>
-        <template #text>{{ chart.description }}</template>
+        <template #text>{{ item.raw.description }}</template>
       </VCard>
     </template>
   </VDataIterator>
 </template>
+
+<style>
+/* TODO clean this */
+.v-stepper-window {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+</style>
+
+<style scoped>
+.selected {
+  background: rgba(var(--v-theme-on-surface), calc(0.25 * var(--v-theme-overlay-multiplier)));
+}
+</style>
