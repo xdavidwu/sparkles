@@ -41,6 +41,13 @@ export const handleDataRequestMessages = (worker: Worker) => {
       };
       worker.postMessage(msg);
       return true;
+    case 'request.versionInfo':
+      msg = {
+        type: 'versionInfo',
+        versionInfo: await discoveryStore.getVersionInfo(),
+      };
+      worker.postMessage(msg);
+      return true;
     default:
       return false;
     }

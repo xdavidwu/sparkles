@@ -80,13 +80,6 @@ const router = createRouter({
       component: HomeView,
       meta: { name: 'Home', hidden: true },
     },
-    // TODO maybe prevent navigating out?
-    {
-      path: '/helm/create',
-      name: 'helm.create',
-      component: () => import('@/views/HelmCreate.vue'),
-      meta: { name: 'Helm: New Release', hidden: true }
-    },
     // handled @ @/OIDCApp.vue, should not be rendered by router
     {
       path: '/oidc/callback',

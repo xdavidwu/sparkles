@@ -3,11 +3,13 @@ import {
   VBtn,
   VDataTable,
   VDataTableRow,
+  VDialog,
   VTab,
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
 import FixedFab from '@/components/FixedFab.vue';
+import HelmCreate from '@/components/HelmCreate.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import ProgressDialog from '@/components/ProgressDialog.vue';
 import TabsWindow from '@/components/TabsWindow.vue';
@@ -27,7 +29,7 @@ import { stringify } from 'yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
 import { listAndUnwaitedWatch } from '@/utils/watch'
 import {
-  type Release,
+  type Chart, type Release,
   parseSecret, secretsLabelSelector, Status,
 } from '@/utils/helm';
 import type { InboundMessage } from '@/utils/helm.webworker';
@@ -54,6 +56,8 @@ const api = new CoreV1Api(config);
 const secrets = ref<Array<V1Secret>>([]);
 const tab = ref('table');
 const tabs = ref<Array<ValuesTab>>([]);
+
+const creating = ref(false);
 
 const operation = ref('');
 const progress = ref('');
@@ -191,6 +195,20 @@ const rollback = (target: Release) => {
   };
   worker.postMessage(op);
 };
+
+const install = (chart: Array<Chart>, values: object, name: string) => {
+  const worker = prepareWorker();
+  operation.value = `Installing release ${name}`;
+  progress.value = 'Installing release';
+  progressCompleted.value = false;
+  const op: InboundMessage = {
+    type: 'call',
+    func: 'install',
+    args: [toRaw(chart), toRaw(values), toRaw(name), toRaw(selectedNamespace.value)],
+  };
+  worker.postMessage(op);
+  creating.value = false;
+};
 </script>
 
 <template>
@@ -265,7 +283,7 @@ const rollback = (target: Release) => {
             icon="mdi-reload" tooltip="Rollback" variant="text" @click="() => rollback(item)" />
         </template>
       </VDataTable>
-      <FixedFab icon="$plus" :to="{ name: 'helm.create' }" />
+      <FixedFab icon="$plus" @click="() => creating = true" />
     </WindowItem>
     <WindowItem v-for="tab in tabs" :key="tab.id" :value="tab.id">
       <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
@@ -273,6 +291,9 @@ const rollback = (target: Release) => {
         :schema="tab.schema" disabled />
     </WindowItem>
   </TabsWindow>
+  <VDialog v-model="creating">
+    <HelmCreate @apply="install" />
+  </VDialog>
   <ProgressDialog :model-value="!progressCompleted" :title="operation" :text="progress" />
 </template>
 

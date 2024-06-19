@@ -221,7 +221,7 @@ const bell = (index: number) => {
       :value="tab.id">
       <component :is="tab.type === 'exec' ? ExecTerminal : LogViewer"
         :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
-        @title-changed="(title) => tab.title = title"
+        @title-changed="(title: string) => tab.title = title"
         @bell="() => bell(index)"
         :container-spec="{ namespace: selectedNamespace, ...tab.spec}" />
     </WindowItem>

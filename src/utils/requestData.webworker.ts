@@ -1,6 +1,6 @@
 import {
   Configuration,
-  type ConfigurationParameters
+  type ConfigurationParameters, type VersionInfo,
 } from '@/kubernetes-api/src';
 import type { V2APIGroupDiscovery } from '@/utils/discoveryV2';
 
@@ -19,7 +19,12 @@ interface GroupsResponse {
   groups: Array<V2APIGroupDiscovery>;
 }
 
-export type RequestDataInboundMessage = TokenResponse | ConfigParamsResponse | GroupsResponse;
+interface VersionInfoResponse {
+  type: 'versionInfo';
+  versionInfo: VersionInfo;
+}
+
+export type RequestDataInboundMessage = TokenResponse | ConfigParamsResponse | GroupsResponse | VersionInfoResponse;
 export interface RequestDataOutboundMessage {
   type: `request.${RequestDataInboundMessage['type']}`;
 }
@@ -33,6 +38,7 @@ interface PromiseStore {
   token?: PromiseStoreItem<string>;
   configParams?: PromiseStoreItem<ConfigurationParameters>;
   groups?: PromiseStoreItem<Array<V2APIGroupDiscovery>>;
+  versionInfo?: PromiseStoreItem<VersionInfo>;
 }
 
 const pendingPromises: PromiseStore = {};
@@ -75,6 +81,7 @@ export const getConfig = async () => {
 };
 
 export const getGroups = () => request('groups');
+export const getVersionInfo = () => request('versionInfo');
 
 export const handleDataResponse =
   async (e: MessageEvent): Promise<boolean> => {
@@ -83,6 +90,7 @@ export const handleDataResponse =
     case 'token':
     case 'configParams':
     case 'groups':
+    case 'versionInfo':
       if (pendingPromises[data.type]) {
         // @ts-expect-error data[data.type]
         pendingPromises[data.type].resolver(data[data.type]);
