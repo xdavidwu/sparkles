@@ -32,7 +32,7 @@ watch(selectedChart, () => selectedChart.value && load(selectedChart.value[0]));
   <VStepper :items="['Select a chart', 'Set values', 'Name your release']">
     <template #[`item.1`]>
       <HelmRepository v-model="selectedChart"
-        :style="`max-height: calc(100dvh - ${appBarHeightPX}px - 32px - 132px)`" />
+        :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px - 132px)`" />
     </template>
   </VStepper>
 </template>

@@ -26,20 +26,19 @@ const search = ref('');
     <template #header>
       <VTextField v-model="search" placeholder="Search"
         class="position-sticky top-0" style="z-index: 1"
-        prepend-inner-icon="mdi-magnify" variant="solo"
+        prepend-inner-icon="mdi-magnify" variant="solo" density="compact"
         clearable hide-details />
     </template>
-    <template #no-data>No matches</template>
+    <template #no-data><div class="mt-2 ms-2">No matches</div></template>
     <template #default="{ items, toggleSelect, isSelected }">
       <VCard v-for="item in items" :key="item.raw.name"
         :prepend-avatar="item.raw.icon" :class="{ selected: isSelected(item) }"
         :subtitle="`Chart version: ${item.raw.version}, App version: ${item.raw.appVersion}`"
-        class="mt-2" @click="() => toggleSelect(item)">
+        class="mt-2" density="compact" @click="() => toggleSelect(item)">
         <template #title>
           {{ item.raw.name }}
           <VChip v-for="keyword in item.raw.keywords" :key="keyword"
-            :color="chipColor(keyword)"
-            size="x-small" class="ml-1">
+            :color="chipColor(keyword)" size="x-small" class="ml-1">
             {{ keyword }}
           </VChip>
         </template>
