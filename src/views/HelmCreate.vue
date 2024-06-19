@@ -9,8 +9,7 @@ import { renderTemplate } from '@/utils/helmWasm';
 // TODO don't
 const { appBarHeightPX } = useAppTabs();
 
-// FIXME make it single
-const selectedChart = ref<Array<ChartVersion> | undefined>();
+const selectedChart = ref<ChartVersion | undefined>();
 
 const load = async (c: ChartVersion) => {
   const response = await fetch(c.urls[0]);
@@ -25,7 +24,7 @@ const load = async (c: ChartVersion) => {
   }));
 };
 
-watch(selectedChart, () => selectedChart.value && load(selectedChart.value[0]));
+watch(selectedChart, () => selectedChart.value && load(selectedChart.value));
 </script>
 
 <template>
