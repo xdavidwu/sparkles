@@ -62,7 +62,7 @@ const router = createRouter({
       meta: { name: 'Nodes Metrics', unsupported: computedAsync(async () => {
         const groups = await useApisDiscovery().getGroups();
         if (!groups.some((g) => g.metadata?.name === 'metrics.k8s.io')) {
-          return 'Metrics not supported by cluster';
+          return 'Not supported by cluster';
         }
         return undefined;
       }, undefined, { lazy: true }) },
