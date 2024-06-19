@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { VCard, VChip, VDataIterator, VTextField } from 'vuetify/components';
+import { VCard, VChip, VDataIterator, VDivider, VTextField } from 'vuetify/components';
 import { ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useHelmRepository } from '@/stores/helmRepository';
@@ -38,25 +38,30 @@ watch(selectedChart, () => {
     :filter-keys="['name', 'keywords', 'description']" class="overflow-y-auto">
     <template #header>
       <VTextField v-model="search" placeholder="Search"
-        class="position-sticky top-0" style="z-index: 1"
+        class="position-sticky top-0 mb-1" style="z-index: 1"
         prepend-inner-icon="mdi-magnify" variant="solo" density="compact"
         clearable hide-details />
     </template>
-    <template #no-data><div class="mt-2 ms-2">No matches</div></template>
+    <template #no-data><div class="mt-2 ms-4">No matches</div></template>
     <template #default="{ items, toggleSelect, isSelected }">
-      <VCard v-for="item in items" :key="item.raw.name"
-        :prepend-avatar="item.raw.icon" :class="{ selected: isSelected(item) }"
-        :subtitle="`Chart version: ${item.raw.version}, App version: ${item.raw.appVersion}`"
-        class="mt-2" density="compact" @click="() => toggleSelect(item)">
-        <template #title>
-          {{ item.raw.name }}
-          <VChip v-for="keyword in item.raw.keywords" :key="keyword"
-            :color="chipColor(keyword)" size="x-small" class="ml-1">
-            {{ keyword }}
-          </VChip>
-        </template>
-        <template #text>{{ item.raw.description }}</template>
-      </VCard>
+      <div v-for="(item, index) in items" :key="item.raw.name">
+        <VDivider v-if="index" />
+        <VCard :prepend-avatar="item.raw.icon"
+          :class="{ selected: isSelected(item) }"
+          :subtitle="`Chart version: ${item.raw.version}, App version: ${item.raw.appVersion}`"
+          density="compact" flat @click="() => toggleSelect(item)">
+          <template #title>
+            {{ item.raw.name }}
+            <VChip v-for="keyword in item.raw.keywords" :key="keyword"
+              :color="chipColor(keyword)" size="x-small" class="ml-1">
+              {{ keyword }}
+            </VChip>
+          </template>
+          <template #text>
+            <span class="text-medium-emphasis">{{ item.raw.description }}</span>
+          </template>
+        </VCard>
+      </div>
     </template>
   </VDataIterator>
 </template>
