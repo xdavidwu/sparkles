@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { VStepper } from 'vuetify/components';
+import { VBtn, VSpacer, VStepper } from 'vuetify/components';
 import HelmRepository from '@/components/HelmRepository.vue';
 import { useAppTabs } from '@/composables/appTabs';
 import { type ChartVersion, parseChartTarball } from '@/utils/helm';
@@ -53,7 +53,16 @@ watch(selectedChart, () => selectedChart.value && load(selectedChart.value));
   <VStepper :items="steps" v-model="step" :disabled="!stepCompleted">
     <template #[`item.${Step.SELECT_CHART}`]>
       <HelmRepository v-model="selectedChart"
-        :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px - 132px)`" />
+        :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px - 128px)`" />
+    </template>
+    <template #actions="{ prev, next }">
+      <div class="d-flex mx-2 mb-2">
+        <VBtn v-if="step != 1" variant="text" @click="prev">Back</VBtn>
+        <VSpacer />
+        <VBtn v-if="step != steps.length" variant="text" color="primary"
+          :disabled="!stepCompleted" @click="next">Continue</VBtn>
+        <VBtn v-else variant="text" color="primary">Apply</VBtn>
+      </div>
     </template>
   </VStepper>
 </template>
