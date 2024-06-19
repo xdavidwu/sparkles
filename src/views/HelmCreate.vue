@@ -57,3 +57,10 @@ watch(selectedChart, () => selectedChart.value && load(selectedChart.value));
     </template>
   </VStepper>
 </template>
+
+<style scoped>
+:deep(.v-stepper-window) {
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+</style>

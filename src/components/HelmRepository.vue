@@ -61,14 +61,6 @@ watch(selectedChart, () => {
   </VDataIterator>
 </template>
 
-<style>
-/* TODO clean this */
-.v-stepper-window {
-  margin-top: 0;
-  margin-bottom: 8px;
-}
-</style>
-
 <style scoped>
 .selected {
   background: rgba(var(--v-theme-on-surface), calc(0.25 * var(--v-theme-overlay-multiplier)));
