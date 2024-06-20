@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import LinkedTooltipContent from '@/components/LinkedTooltipContent.vue';
-import { createApp, computed } from 'vue';
+import { createApp, computed, watch } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { EditorState } from '@codemirror/state';
 import { EditorView, hoverTooltip } from '@codemirror/view';
@@ -9,7 +9,7 @@ import { linter, type Diagnostic } from '@codemirror/lint';
 import { yaml, yamlLanguage } from '@codemirror/lang-yaml';
 import { foldEffect, syntaxTree, ensureSyntaxTree } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { stateExtensions } from 'codemirror-json-schema';
+import { stateExtensions, updateSchema } from 'codemirror-json-schema';
 import { yamlCompletion, yamlSchemaHover, yamlSchemaLinter } from 'codemirror-json-schema/yaml';
 import type { JSONSchema4, JSONSchema7 } from 'json-schema';
 
@@ -57,6 +57,10 @@ const lezerParserLinter = linter((view) => {
 });
 
 const codemirrorReady = ({ view }: { view: EditorView }) => {
+  watch(props, () => {
+    updateSchema(view, props.schema as JSONSchema7);
+  });
+
   // XXX?
   view.dispatch({ effects: EditorView.scrollIntoView(0) });
 
