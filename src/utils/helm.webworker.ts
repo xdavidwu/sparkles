@@ -300,7 +300,7 @@ const fns = {
   },
   install: async (chart: Array<Chart>, values: object, name: string, namespace: string) => {
     progress('Rendering resource templates');
-    const results = await renderTemplate(chart, chart[0].values, {
+    const results = await renderTemplate(chart, values, {
       Name: name,
       Namespace: namespace,
       Revision: 1,
