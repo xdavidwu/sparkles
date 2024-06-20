@@ -2,7 +2,10 @@
 import { computed, ref } from 'vue';
 import { VBtn, VSpacer, VStepper } from 'vuetify/components';
 import HelmRepository from '@/components/HelmRepository.vue';
-import { type Chart, type ChartVersion, parseChartTarball } from '@/utils/helm';
+import {
+  type Chart, type ChartVersion,
+  extractValuesSchema, parseChartTarball,
+} from '@/utils/helm';
 
 const emit = defineEmits<{
   (e: 'apply', chart: Array<Chart>, values: object, name: string): void;
@@ -40,6 +43,7 @@ const proceed = async (next: () => void) => {
       // TODO perhaps some loading feedback
       const response = await fetch(selectedChart.value!.urls[0]);
       parsedChart.value = await parseChartTarball(response.body!);
+      console.log(extractValuesSchema(parsedChart.value));
     }
   }
   next();

@@ -2,6 +2,8 @@ import type { V1Secret } from '@/kubernetes-api/src';
 import { streamToGenerator } from '@/utils/lang';
 import { extract } from 'it-tar';
 import { parse } from 'yaml';
+// XXX: the library helm uses support v4,6,7, but codemirror-json-schema uses v4
+import type { JSONSchema4 } from 'json-schema';
 
 // XXX: why omitempty everywhere?
 
@@ -214,7 +216,7 @@ const loadChartsFromFiles = async (rawFiles: { [name: string]: Blob }): Promise<
 };
 
 // helm.sh/v3/pkg/chart/loader.LoadArchive
-export const parseChartTarball = async (s: ReadableStream): Promise<Chart[]> => {
+export const parseChartTarball = async (s: ReadableStream): Promise<Array<Chart>> => {
   const unzipped = s.pipeThrough(new DecompressionStream('gzip'));
   const rawFiles: { [name: string]: Blob } = {};
   for await (const entry of extract()(streamToGenerator(unzipped))) {
@@ -240,4 +242,31 @@ export const parseChartTarball = async (s: ReadableStream): Promise<Chart[]> => 
     rawFiles[name] = new Blob(await Array.fromAsync(entry.body));
   }
   return await loadChartsFromFiles(rawFiles);
+};
+
+// TODO avoid internal base64 roundtrips?
+export const extractValuesSchema = (chart: Array<Chart>): JSONSchema4 => {
+  const schemas: Array<JSONSchema4> = [];
+  if (chart[0].schema) {
+    schemas.push(JSON.parse(atob(chart[0].schema)));
+  }
+  const subcharts = chart.slice(1);
+  subcharts.forEach((c) => {
+    if (c.schema) {
+      const subschema = JSON.parse(atob(c.schema));
+      schemas.push({
+        type: 'object',
+        properties: {
+          [c.metadata.name]: subschema,
+        },
+      })
+    }
+  });
+  if (schemas.length == 0) {
+    return {};
+  } else if (schemas.length == 1) {
+    return schemas[0];
+  } else {
+    return { allOf: schemas };
+  }
 };
