@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { VCard, VChip, VDataIterator, VDivider, VTextField } from 'vuetify/components';
+import { VCard, VChip, VDataIterator, VDivider, VTextField, VVirtualScroll } from 'vuetify/components';
 import { ref, watch, readonly } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useHelmRepository } from '@/stores/helmRepository';
@@ -8,6 +8,7 @@ import type { ChartVersion } from '@/utils/helm';
 
 const props = defineProps<{
   modelValue?: ChartVersion;
+  height?: string;
 }>();
 
 const emit = defineEmits<{
@@ -41,10 +42,9 @@ watch(selectedChart, () => {
 </script>
 
 <template>
-  <!-- TODO seems to need some performance work -->
   <VDataIterator :items="charts" items-per-page="-1" :search="search"
     v-model="selectedChart" select-strategy="single" return-object
-    :filter-keys="['name', 'keywords', 'description']" class="overflow-y-auto">
+    :filter-keys="['name', 'keywords', 'description']" :style="`height: ${height}`">
     <template #header>
       <VTextField v-model="search" placeholder="Search"
         class="position-sticky top-0 mb-1" style="z-index: 1"
@@ -53,24 +53,26 @@ watch(selectedChart, () => {
     </template>
     <template #no-data><div class="mt-2 ms-4">No matches</div></template>
     <template #default="{ items, toggleSelect, isSelected }">
-      <div v-for="(item, index) in items" :key="item.raw.name">
-        <VDivider v-if="index" />
-        <VCard :prepend-avatar="item.raw.icon"
-          :class="{ selected: isSelected(item) }"
-          :subtitle="`Chart version: ${item.raw.version}, App version: ${item.raw.appVersion}`"
-          density="compact" flat @click="() => toggleSelect(item)">
-          <template #title>
-            {{ item.raw.name }}
-            <VChip v-for="keyword in item.raw.keywords" :key="keyword.text"
-              :color="keyword.color" size="x-small" class="ml-1">
-              {{ keyword.text }}
-            </VChip>
-          </template>
-          <template #text>
-            <span class="text-medium-emphasis">{{ item.raw.description }}</span>
-          </template>
-        </VCard>
-      </div>
+      <VVirtualScroll :items="items" :height="`calc(${height} - 44px)`">
+        <template #default="{ item, index }">
+          <VDivider v-if="index" />
+          <VCard :prepend-avatar="item.raw.icon"
+            :class="{ selected: isSelected(item) }"
+            :subtitle="`Chart version: ${item.raw.version}, App version: ${item.raw.appVersion}`"
+            density="compact" flat @click="() => toggleSelect(item)">
+            <template #title>
+              {{ item.raw.name }}
+              <VChip v-for="keyword in item.raw.keywords" :key="keyword.text"
+                :color="keyword.color" size="x-small" class="ml-1">
+                {{ keyword.text }}
+              </VChip>
+            </template>
+            <template #text>
+              <span class="text-medium-emphasis">{{ item.raw.description }}</span>
+            </template>
+          </VCard>
+        </template>
+      </VVirtualScroll>
     </template>
   </VDataIterator>
 </template>

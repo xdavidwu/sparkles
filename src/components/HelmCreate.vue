@@ -83,7 +83,7 @@ const apply = () => emit('apply', parsedChart.value!, parsedValues.value, 'test'
     <template #[`item.${Step.SELECT_CHART}`]>
       <LoadingSuspense>
         <HelmRepository v-model="selectedChart"
-          :style="`height: calc(100dvh - 48px - 128px)`" />
+          height="calc(100dvh - 48px - 128px)" />
       </LoadingSuspense>
     </template>
     <template #[`item.${Step.SET_VALUES}`]>
