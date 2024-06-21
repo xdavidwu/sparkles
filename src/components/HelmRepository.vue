@@ -14,17 +14,25 @@ const emit = defineEmits<{
   (e: 'update:modelValue', chart?: ChartVersion): void;
 }>();
 
-const store = useHelmRepository();
-const { charts } = storeToRefs(store);
-const selectedChart = ref<Array<ChartVersion>>(props.modelValue ? [props.modelValue] : []);
-const search = ref('');
-
-await store.ensureIndex;
-
 const baseColors = Object.values(BaseColor);
 const variants = [ ColorVariant.Lighten3 ];
 
-const chipColor = (s: string) => colorToClass(hashColor(s, baseColors, variants));
+const store = useHelmRepository();
+const { charts: _charts } = storeToRefs(store);
+
+await store.ensureIndex;
+
+const charts = await Promise.all(_charts.value.map(async (c) => ({
+  ...c,
+  keywords: c.keywords ?
+    await Promise.all(c.keywords!.map(async (text) => ({
+        text,
+        color: colorToClass(await hashColor(text, baseColors, variants)),
+      }),
+    )) : [],
+})));
+const selectedChart = ref<Array<ChartVersion>>(props.modelValue ? [props.modelValue] : []);
+const search = ref('');
 
 watch(selectedChart, () => {
   emit('update:modelValue', selectedChart.value[0]);
@@ -52,9 +60,9 @@ watch(selectedChart, () => {
           density="compact" flat @click="() => toggleSelect(item)">
           <template #title>
             {{ item.raw.name }}
-            <VChip v-for="keyword in item.raw.keywords" :key="keyword"
-              :color="chipColor(keyword)" size="x-small" class="ml-1">
-              {{ keyword }}
+            <VChip v-for="keyword in item.raw.keywords" :key="keyword.text"
+              :color="keyword.color" size="x-small" class="ml-1">
+              {{ keyword.text }}
             </VChip>
           </template>
           <template #text>

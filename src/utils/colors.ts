@@ -1,6 +1,5 @@
 import actualColors from 'vuetify/util/colors';
 import { kebabCase } from 'change-case';
-import { h32 } from 'xxhashjs';
 
 export enum BaseColor {
   Red = 'red',
@@ -42,9 +41,10 @@ export interface Color {
   variant: ColorVariant,
 }
 
-export const hashColor = (str: string, baseColors: Array<BaseColor>,
-    variants: Array<ColorVariant>): Color => {
-  let hash = h32(str, 0xdeadbeef).toNumber();
+export const hashColor = async (str: string, baseColors: Array<BaseColor>,
+    variants: Array<ColorVariant>): Promise<Color> => {
+  const data = (new TextEncoder()).encode(str);
+  let hash = (new Uint32Array(await window.crypto.subtle.digest('SHA-1', data)))[0];
   const base = baseColors[hash % baseColors.length];
   hash = Math.floor(hash / baseColors.length);
   return { color: base, variant: variants[hash % variants.length] };

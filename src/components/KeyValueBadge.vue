@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import { computed } from 'vue';
+import { computedAsync } from '@vueuse/core';
 import { BaseColor, ColorVariant, colorToClass, hashColor } from '@/utils/colors';
 import { truncate, truncateStart } from '@/utils/text';
 
@@ -30,7 +31,7 @@ const shortK = computed(() => {
 });
 const shortV = computed(() => truncate(props.v, 10));
 
-const vColor = computed(() => colorToClass(hashColor(props.v, baseColors, variants)));
+const vColor = computedAsync(async () => colorToClass(await hashColor(props.v, baseColors, variants)));
 </script>
 
 <template>
