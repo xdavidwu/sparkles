@@ -40,10 +40,10 @@ import {
 } from '@/utils/communication';
 import HelmWorker from '@/utils/helm.webworker?worker';
 
+// TODO drop tabs?
 interface ValuesTab {
   id: string,
   values: object,
-  schema?: object,
 }
 
 const namespacesStore = useNamespaces();
@@ -124,7 +124,6 @@ const createTab = (release: Release) => {
   if (!tabs.value.some((t) => t.id === id)) {
     tabs.value.push({
       id,
-      schema: release.chart.schema ? JSON.parse(atob(release.chart.schema)) : undefined,
       values: release.config ?? {},
     });
   }
@@ -287,8 +286,7 @@ const install = (chart: Array<Chart>, values: object, name: string) => {
     </WindowItem>
     <WindowItem v-for="tab in tabs" :key="tab.id" :value="tab.id">
       <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
-        :model-value="stringify(tab.values, null, { indentSeq: true })"
-        :schema="tab.schema" disabled />
+        :model-value="stringify(tab.values, null, { indentSeq: true })" disabled />
     </WindowItem>
   </TabsWindow>
   <VDialog v-model="creating">
