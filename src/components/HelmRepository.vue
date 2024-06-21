@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { VCard, VChip, VDataIterator, VDivider, VTextField } from 'vuetify/components';
-import { ref, watch } from 'vue';
+import { ref, watch, readonly } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useHelmRepository } from '@/stores/helmRepository';
 import { BaseColor, ColorVariant, colorToClass, hashColor } from '@/utils/colors';
@@ -22,7 +22,8 @@ const { charts: _charts } = storeToRefs(store);
 
 await store.ensureIndex;
 
-const charts = await Promise.all(_charts.value.map(async (c) => ({
+// readonly needed for selection to work
+const charts = readonly(await Promise.all(_charts.value.map(async (c) => ({
   ...c,
   keywords: c.keywords ?
     await Promise.all(c.keywords!.map(async (text) => ({
@@ -30,7 +31,7 @@ const charts = await Promise.all(_charts.value.map(async (c) => ({
         color: colorToClass(await hashColor(text, baseColors, variants)),
       }),
     )) : [],
-})));
+}))));
 const selectedChart = ref<Array<ChartVersion>>(props.modelValue ? [props.modelValue] : []);
 const search = ref('');
 
