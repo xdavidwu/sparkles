@@ -143,7 +143,7 @@ const fns = {
 
     progress('Parsing resources to delete');
 
-    const targetResources = parseAllDocuments(target.manifest).map((d) => d.toJS() as KubernetesObject);
+    const targetResources: Array<KubernetesObject> = parseAllDocuments(target.manifest).map((d) => d.toJS());
     // TODO sort? helm.sh/helm/v3/pkg/releaseutil.UninstallOrder
     const toDelete = targetResources.filter((r) => !shouldKeepResource(r));
 
@@ -201,8 +201,8 @@ const fns = {
 
     progress('Calculating rollback difference')
 
-    const targetResources = parseAllDocuments(target.manifest).map((d) => d.toJS() as KubernetesObject);
-    const latestResources = parseAllDocuments(latest.manifest).map((d) => d.toJS() as KubernetesObject);
+    const targetResources: Array<KubernetesObject> = parseAllDocuments(target.manifest).map((d) => d.toJS());
+    const latestResources: Array<KubernetesObject> = parseAllDocuments(latest.manifest).map((d) => d.toJS());
 
     targetResources.forEach((r) => {
       if (!r.metadata!.annotations) {

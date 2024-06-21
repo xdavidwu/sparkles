@@ -69,8 +69,8 @@ const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
             <div class="d-flex align-center">
               <div class="d-inline-block mr-1 legend-bg">
                 <div class="legend" :style="{
-                  'background-color': tooltip?.labelColors[i].backgroundColor as string,
-                  'border-color': tooltip?.labelColors[i].borderColor as string,
+                  'background-color': tooltip!.labelColors[i].backgroundColor as string,
+                  'border-color': tooltip!.labelColors[i].borderColor as string,
                 }" />
               </div>
               {{ tooltip?.body[i].lines.join('') }}

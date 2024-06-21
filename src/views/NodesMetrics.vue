@@ -85,11 +85,11 @@ const datasetMetadata = computed(() => Object.keys(nodes.value).reduce((r, n, i)
 const chartData = computed(() => ({
   datasets: Object.keys(nodes.value).map((n) => ({
     ...datasetMetadata.value[n],
-    data: samples.value.map((s, i) => (s[n] !== undefined ? {
+    data: samples.value.map((s, i) => s[n] !== undefined ? {
       x: (latestSample - samples.value.length + i) * 1000,
       y: 0, // XXX: hack, need support for type param of component in template
       ...s[n],
-    } : undefined)!).filter((s) => s !== undefined),
+    } : undefined).filter((s) => s !== undefined),
   })),
 }));
 

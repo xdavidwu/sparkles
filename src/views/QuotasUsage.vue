@@ -40,7 +40,7 @@ const eligiblePods = computed(() => pods.value.filter((p) => {
   return true;
 }));
 const podsResourceUsage = computed(() => {
-  const res = {} as { [key: string]: { [key: string]: number } };
+  const res: { [key: string]: { [key: string]: number } } = {};
   eligiblePods.value.forEach((pod) => {
     pod.spec!.containers.forEach((container) => {
       const identifier = `${pod.metadata!.name}/${container.name}`;

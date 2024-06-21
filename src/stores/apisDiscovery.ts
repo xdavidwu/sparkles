@@ -18,7 +18,7 @@ export const useApisDiscovery = defineStore('apisDiscovery', () => {
         const listing: Array<V2APIGroupDiscovery> = [];
         (await Promise.all([new CoreApi(config), new ApisApi(config)].map(async (api) => {
           const response = (await api.withPreMiddleware(toV2Discovery).getAPIVersionsRaw({})).raw;
-          const list = (await response.json()) as V2APIGroupDiscoveryList;
+          const list: V2APIGroupDiscoveryList = await response.json();
           if (list.kind !== 'APIGroupDiscoveryList') {
             throw new Error(`Unexpected kind on discovery: ${list.kind}, make sure server supports AggregatedDiscoveryEndpoint`);
           }

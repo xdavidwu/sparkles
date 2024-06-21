@@ -238,7 +238,6 @@ export const parseChartTarball = async (s: ReadableStream): Promise<Array<Chart>
       continue;
     }
     const name = parts.slice(1).join('/');
-    // @ts-expect-error fromAsync will be available in 5.5
     rawFiles[name] = new Blob(await Array.fromAsync(entry.body));
   }
   return await loadChartsFromFiles(rawFiles);
