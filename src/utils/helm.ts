@@ -73,7 +73,7 @@ export interface Metadata {
 // helm.sh/helm/v3/pkg/chart.File
 export interface File {
   name: string;
-  data: string; // base64'd
+  data: ArrayBuffer;
 }
 
 // helm.sh/helm/v3/pkg/chart.Lock
@@ -89,7 +89,7 @@ export interface Chart {
   lock?: Lock;
   templates: Array<File>;
   values: object;
-  schema?: string; // base64'd json schema
+  schema?: ArrayBuffer;
   files: Array<File>;
 }
 
@@ -174,16 +174,12 @@ export const loadChartsFromFiles = async (_rawFiles: RawFiles): Promise<Chart[]>
     }
     return parse(await data.text());
   };
-  const base64 = async (b: Blob) => btoa(Array.from(
-    new Uint8Array(await b.arrayBuffer()),
-    (b) => String.fromCodePoint(b),
-  ).join(''));
-  const optionalBase64 = async (name: string) => {
+  const optionalBuffer = async (name: string) => {
     const data = extractFile(name);
-    return data ? await base64(data) : undefined;
+    return data ? await data.arrayBuffer() : undefined;
   };
-  const extractSerializedFile = async (name: string) =>
-    ({ name, data: await base64(extractFile(name))});
+  const extractAsFile = async (name: string) =>
+    ({ name, data: await extractFile(name).arrayBuffer() });
 
   const subcharts: { [name: string]: typeof rawFiles } = {};
   const parsedSubcharts: Array<Chart> = [];
@@ -211,10 +207,10 @@ export const loadChartsFromFiles = async (_rawFiles: RawFiles): Promise<Chart[]>
       metadata: parse(await extractFile('Chart.yaml').text()),
       lock: await optionalYaml('Chart.lock'),
       values: await optionalYaml('values.yaml'),
-      schema: await optionalBase64('values.schema.json'),
+      schema: await optionalBuffer('values.schema.json'),
       templates: await Promise.all(Object.keys(rawFiles)
-        .filter((n) => n.startsWith('templates/')).map(extractSerializedFile)),
-      files: await Promise.all(Object.keys(rawFiles).map(extractSerializedFile)),
+        .filter((n) => n.startsWith('templates/')).map(extractAsFile)),
+      files: await Promise.all(Object.keys(rawFiles).map(extractAsFile)),
     },
     ...parsedSubcharts,
   ];
@@ -251,16 +247,19 @@ export const parseTarball = async (s: ReadableStream): Promise<RawFiles> => {
 export const parseChartTarball = async (s: ReadableStream): Promise<Array<Chart>> =>
   await loadChartsFromFiles(await parseTarball(s));
 
-// TODO avoid internal base64 roundtrips?
+const utf8Decoder = new TextDecoder();
+
+const parseJSONBuffer = (b: ArrayBuffer) => JSON.parse(utf8Decoder.decode(b));
+
 export const extractValuesSchema = (chart: Array<Chart>): JSONSchema4 => {
   const schemas: Array<JSONSchema4> = [];
   if (chart[0].schema) {
-    schemas.push(JSON.parse(atob(chart[0].schema)));
+    schemas.push(parseJSONBuffer(chart[0].schema));
   }
   const subcharts = chart.slice(1);
   subcharts.forEach((c) => {
     if (c.schema) {
-      const subschema = JSON.parse(atob(c.schema));
+      const subschema = parseJSONBuffer(c.schema);
       schemas.push({
         type: 'object',
         properties: {

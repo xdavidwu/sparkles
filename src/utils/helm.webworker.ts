@@ -84,10 +84,21 @@ const capabilitiesFromDiscovery = (versionInfo: VersionInfo, groups: Array<V2API
   };
 };
 
+const base64Buffer = (b: ArrayBuffer) =>
+  btoa(Array.from(new Uint8Array(b), (b) => String.fromCodePoint(b)).join(''));
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const arrayBufferReplacer = (key: string, value: any): any => {
+  if (value instanceof ArrayBuffer) {
+    return base64Buffer(value);
+  }
+  return value;
+};
+
 const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseOptions) => {
   await setupGo();
   const result = await _helm_renderTemplate(
-    chart.map((c) => JSON.stringify(c)),
+    chart.map((c) => JSON.stringify(c, arrayBufferReplacer)),
     JSON.stringify(value),
     JSON.stringify(opts),
     JSON.stringify(capabilitiesFromDiscovery(await getVersionInfo(), await getGroups())),
@@ -106,8 +117,8 @@ const encodeSecret = async (r: Release): Promise<V1Secret> => {
   };
   const bytes = new Blob([JSON.stringify(datum)]);
   const stream = bytes.stream().pipeThrough(new CompressionStream('gzip'));
-  const gzipped = new Uint8Array(await (new Response(stream)).arrayBuffer());
-  const base64d = btoa(Array.from(gzipped, (b) => String.fromCodePoint(b)).join(''));
+  const gzipped = await (new Response(stream)).arrayBuffer();
+  const base64d = base64Buffer(gzipped);
 
   return {
     apiVersion: 'v1',

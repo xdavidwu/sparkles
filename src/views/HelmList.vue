@@ -205,6 +205,7 @@ const install = (chart: Array<Chart>, values: object, name: string) => {
     func: 'install',
     args: [toRaw(chart), toRaw(values), toRaw(name), toRaw(selectedNamespace.value)],
   };
+  // TODO transfer buffers in chart
   worker.postMessage(op);
   creating.value = false;
 };
