@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { VBtn, VSpacer, VStepper, VTabs } from 'vuetify/components';
+import LoadingSuspense from '@/components/LoadingSuspense.vue';
 import HelmRepository from '@/components/HelmRepository.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
 import {
@@ -76,8 +77,10 @@ const apply = () => emit('apply', parsedChart.value!, parsedValues.value, 'test'
 <template>
   <VStepper :items="steps" v-model="step" :disabled="!stepCompleted">
     <template #[`item.${Step.SELECT_CHART}`]>
-      <HelmRepository v-model="selectedChart"
-        :style="`height: calc(100dvh - 48px - 128px)`" />
+      <LoadingSuspense>
+        <HelmRepository v-model="selectedChart"
+          :style="`height: calc(100dvh - 48px - 128px)`" />
+      </LoadingSuspense>
     </template>
     <template #[`item.${Step.SET_VALUES}`]>
       <VTabs :items="valuesTabs">

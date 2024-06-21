@@ -16,10 +16,10 @@ import {
   VListSubheader,
   VMain,
   VNavigationDrawer,
-  VProgressCircular,
   VSnackbar,
 } from 'vuetify/components';
 import IdentityIndicator from '@/components/IdentityIndicator.vue';
+import LoadingSuspense from '@/components/LoadingSuspense.vue';
 import { useNamespaces } from '@/stores/namespaces';
 import { storeToRefs } from 'pinia';
 import { computed, ref, onErrorCaptured, watch } from 'vue';
@@ -192,15 +192,9 @@ watch(pendingToast, (toast) => {
     <VMain>
       <VContainer fluid class="overflow-y-auto">
         <RouterView #="{ Component }">
-          <Suspense timeout="16">
+          <LoadingSuspense>
             <component v-if="Component" :is="Component" />
-            <template #fallback>
-              <div class="d-flex justify-center align-center flex-column full-height">
-                <VProgressCircular indeterminate class="mb-4" />
-                Loading...
-              </div>
-            </template>
-          </Suspense>
+          </LoadingSuspense>
         </RouterView>
       </VContainer>
       <VSnackbar v-model="showsSnackbar" class="text-pre-wrap">
