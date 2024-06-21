@@ -6,10 +6,10 @@ import HelmRepository from '@/components/HelmRepository.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
 import {
   type Chart, type ChartVersion,
-  extractValuesSchema, parseChartTarball,
+  extractValuesSchema, parseTarball, loadChartsFromFiles,
 } from '@/utils/helm';
 import { PresentedError } from '@/utils/PresentedError';
-import { parse, stringify } from 'yaml';
+import { parse } from 'yaml';
 
 const emit = defineEmits<{
   (e: 'apply', chart: Array<Chart>, values: object, name: string): void;
@@ -25,6 +25,7 @@ const selectedChart = ref<ChartVersion | undefined>();
 const parsedChart = ref<Array<Chart> | undefined>();
 const step = ref<Step>(Step.SELECT_CHART);
 const values = ref('');
+const defaults = ref('');
 const schema = ref({});
 const parsedValues = ref({});
 
@@ -54,7 +55,10 @@ const proceed = async (next: () => void) => {
     {
       // TODO perhaps some loading feedback
       const response = await fetch(selectedChart.value!.urls[0]);
-      parsedChart.value = await parseChartTarball(response.body!);
+      const files = await parseTarball(response.body!);
+      parsedChart.value = await loadChartsFromFiles(files);
+      defaults.value = files['values.yaml'] ? await files['values.yaml'].text() : '';
+      // TODO reset defaults viewer position?
       schema.value = extractValuesSchema(parsedChart.value);
     }
     break;
@@ -89,8 +93,7 @@ const apply = () => emit('apply', parsedChart.value!, parsedValues.value, 'test'
             :style="`height: calc(100dvh - 48px - 128px - 48px)`" />
         </template>
         <template #[`item.defaults`]>
-          <!-- TODO should use raw file, where comments are usually document -->
-          <YAMLEditor :model-value="stringify(parsedChart?.[0]?.values)"
+          <YAMLEditor :model-value="defaults"
             :style="`height: calc(100dvh - 48px - 128px - 48px)`" disabled />
         </template>
         <!-- TODO schema-based form editor? -->

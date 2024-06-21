@@ -152,9 +152,14 @@ export const parseSecret = async (s: V1Secret): Promise<Release> => {
   };
 };
 
+export interface RawFiles {
+  [name: string]: Blob;
+}
+
 // helm.sh/v3/pkg/chart/loader.LoadFiles
 // deps are in private fields, not deserializable, do parse but handle them in go
-const loadChartsFromFiles = async (rawFiles: { [name: string]: Blob }): Promise<Chart[]> => {
+export const loadChartsFromFiles = async (_rawFiles: RawFiles): Promise<Chart[]> => {
+  const rawFiles = { ..._rawFiles };
   const extractFile = (name: string) => {
     const data = rawFiles[name];
     if (data) {
@@ -215,10 +220,9 @@ const loadChartsFromFiles = async (rawFiles: { [name: string]: Blob }): Promise<
   ];
 };
 
-// helm.sh/v3/pkg/chart/loader.LoadArchive
-export const parseChartTarball = async (s: ReadableStream): Promise<Array<Chart>> => {
+export const parseTarball = async (s: ReadableStream): Promise<RawFiles> => {
   const unzipped = s.pipeThrough(new DecompressionStream('gzip'));
-  const rawFiles: { [name: string]: Blob } = {};
+  const rawFiles: RawFiles = {};
   for await (const entry of extract()(streamToGenerator(unzipped))) {
     const drain = async () => {
       // always drain the body, or entry iterator will get stuck
@@ -240,8 +244,12 @@ export const parseChartTarball = async (s: ReadableStream): Promise<Array<Chart>
     const name = parts.slice(1).join('/');
     rawFiles[name] = new Blob(await Array.fromAsync(entry.body));
   }
-  return await loadChartsFromFiles(rawFiles);
+  return rawFiles;
 };
+
+// helm.sh/v3/pkg/chart/loader.LoadArchive
+export const parseChartTarball = async (s: ReadableStream): Promise<Array<Chart>> =>
+  await loadChartsFromFiles(await parseTarball(s));
 
 // TODO avoid internal base64 roundtrips?
 export const extractValuesSchema = (chart: Array<Chart>): JSONSchema4 => {
