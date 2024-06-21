@@ -16,6 +16,18 @@ import { isSameKubernetesObject, type KubernetesObject } from '@/utils/objects';
 import helmWasmInit from '@/utils/helm.wasm?init';
 import '@/vendor/wasm_exec';
 
+/*
+ * fieldManager:
+ * for generic, helm/pkg/kube client, helm uses "helm"
+ * for client-go (which secrets driver uses), helm sets UA to `Helm/${version}`,
+ * apiserver picks up Helm prefix
+ *
+ * secrets are fine (generally no mutation except setting Status.SUPERSEDED)
+ * we should set fieldManager to helm on managed resources,
+ * for interoperability with helm cli
+ */
+const fieldManager = 'helm';
+
 declare function _helm_renderTemplate(charts: Array<string>, values: string, options: string, capabilities: string, api: AnyApi): Promise<{ [key: string]: string }>;
 
 // helm.sh/v3/pkg/chartutils.ReleaseOptions
@@ -162,7 +174,6 @@ const fns = {
 
     // TODO perhaps tell user what are kept
     // TODO wait, hook
-    // TODO do we want to impl hard delete (remove history)?
 
     progress('Marking release as uninstalled');
 
@@ -196,7 +207,6 @@ const fns = {
     release.version = latest.version + 1;
 
     const secret = await encodeSecret(release);
-    // TODO what should we set fieldmanager to?
     await api.createNamespacedSecret({ namespace: secret.metadata!.namespace!, body: secret });
 
     progress('Calculating rollback difference')
@@ -240,6 +250,7 @@ const fns = {
         plural: op.kindInfo.resource!,
         namespace: op.target.metadata!.namespace!,
         body: op.target,
+        fieldManager,
       });
       switch (op.op) {
       case 'create':
@@ -253,6 +264,7 @@ const fns = {
             namespace: op.target.metadata!.namespace!,
             name: op.target.metadata!.name!,
             body: op.target,
+            fieldManager,
           });
         } catch (e) {
           // some (apps/v1 Deployment) does not treat PUT without existing resource as create, but the others does
