@@ -8,6 +8,7 @@ import { computed } from 'vue';
 import { UserManager, WebStorageStateStore } from 'oidc-client-ts';
 import router from '@/router';
 import { useErrorPresentation } from '@/stores/errorPresentation';
+import { setFieldManager } from '@/utils/api';
 
 export enum AuthScheme {
   OIDC = 'oidc',
@@ -154,7 +155,10 @@ export const useApiConfig = defineStore('api-config', () => {
   const getConfig = async () => {
     const params = await getCloneableConfigParams();
 
-    params.middleware = [{ post: toastWarnings }];
+    params.middleware = [
+      { pre: setFieldManager },
+      { post: toastWarnings },
+    ];
     if (authScheme.value === AuthScheme.OIDC) {
       params.middleware.push({
         pre: async (context) => {

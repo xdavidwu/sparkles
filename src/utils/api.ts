@@ -45,7 +45,30 @@ export class ExtractedRequestContext {
 
 export const extractRequestContext: Middleware['pre'] = (context) => {
   throw new ExtractedRequestContext(context);
-}
+};
+
+// setting UA does not work on chromium, thus explicit setting is needed
+// https://crbug.com/571722
+export const setFieldManager: Middleware['pre'] = async (context) => {
+  switch (context.init.method) {
+  case 'POST':
+  case 'PUT':
+  case 'PATCH':
+    break;
+  default:
+    return;
+  }
+
+  const url = new URL(context.url, origin);
+  const params = url.searchParams;
+  // allow to override for e.g. helm
+  if (params.get('fieldManager') == null) {
+    params.set('fieldManager', import.meta.env.VITE_APP_BRANDING ?? 'Sparkles');
+    url.search = `?${params.toString()}`;
+    context.url = url.toString();
+  }
+  return context;
+};
 
 export const errorIsResourceNotFound = async (err: unknown) => {
   if (err instanceof ResponseError && err.response.status === 404) {

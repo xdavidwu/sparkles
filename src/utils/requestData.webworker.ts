@@ -3,6 +3,7 @@ import {
   type ConfigurationParameters, type VersionInfo,
 } from '@/kubernetes-api/src';
 import type { V2APIGroupDiscovery } from '@/utils/discoveryV2';
+import { setFieldManager } from '@/utils/api';
 
 interface TokenResponse {
   type: 'token';
@@ -61,7 +62,7 @@ const request = <K extends keyof PromiseStore>(key: K): Required<PromiseStore>[K
 
 export const getConfig = async () => {
   const params = await request('configParams');
-  params.middleware = [];
+  params.middleware = [{ pre: setFieldManager }];
 
   // TODO differentiate static/oidc
   if (params.headers?.Authorization) {
