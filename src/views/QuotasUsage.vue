@@ -26,11 +26,8 @@ const api = new CoreV1Api(await useApiConfig().getConfig());
 const quotas = ref<Array<V1ResourceQuota>>([]);
 const pods = ref<Array<V1Pod>>([]);
 // k8s.io/kubernetes/pkg/quota/v1/evaluator/core.QuotaV1Pod()
+// .status.phase is filtered by fieldSelector
 const eligiblePods = computed(() => pods.value.filter((p) => {
-  // TODO: bake in field selector of list-and-watch?
-  if (p.status?.phase === 'Failed' || p.status?.phase === 'Succeeded') {
-    return false;
-  }
   // terminating
   if (p.metadata?.deletionTimestamp && p.metadata?.deletionGracePeriodSeconds) {
     if (Date.now() > p.metadata.deletionTimestamp.valueOf() + p.metadata.deletionGracePeriodSeconds * 1000) {
@@ -88,7 +85,11 @@ const { load } = useLoading(async () => {
       (e) => useErrorPresentation().pendingError = e,
     ),
     listAndUnwaitedWatch(pods, V1PodFromJSON,
-      (opt) => api.listNamespacedPodRaw({ ...opt, namespace: selectedNamespace.value }, { signal: signal.value }),
+      (opt) => api.listNamespacedPodRaw({
+        ...opt,
+        namespace: selectedNamespace.value,
+        fieldSelector: 'status.phase!=Failed,status.phase!=Succeeded',
+      }, { signal: signal.value }),
       (e) => useErrorPresentation().pendingError = e,
     ),
   ]);
