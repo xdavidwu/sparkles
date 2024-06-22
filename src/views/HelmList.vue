@@ -291,7 +291,7 @@ const install = (chart: Array<Chart>, values: object, name: string) => {
     </WindowItem>
   </TabsWindow>
   <VDialog v-model="creating">
-    <HelmCreate @apply="install" />
+    <HelmCreate @apply="install" @cancel="creating = false" />
   </VDialog>
   <ProgressDialog :model-value="!progressCompleted" :title="operation" :text="progress" />
 </template>

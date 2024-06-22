@@ -13,6 +13,7 @@ import { parse } from 'yaml';
 
 const emit = defineEmits<{
   (e: 'apply', chart: Array<Chart>, values: object, name: string): void;
+  (e: 'cancel'): void;
 }>();
 
 enum Step {
@@ -103,6 +104,7 @@ const apply = () => emit('apply', parsedChart.value!, parsedValues.value, 'test'
       <div class="d-flex mx-2 mb-2">
         <VBtn v-if="step != 1" variant="text" @click="prev">Back</VBtn>
         <VSpacer />
+        <VBtn variant="text" @click="emit('cancel')">Cancel</VBtn>
         <VBtn v-if="step != steps.length" variant="text" color="primary"
           :disabled="!stepCompleted" @click="() => proceed(next)">Continue</VBtn>
         <VBtn v-else variant="text" color="primary" @click="apply">Apply</VBtn>
