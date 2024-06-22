@@ -195,6 +195,17 @@ const rollback = (target: Release) => {
   worker.postMessage(op);
 };
 
+const findBuffers = (o: unknown): Array<ArrayBuffer> => {
+  if (o instanceof ArrayBuffer) {
+    return [o];
+  } else if (Array.isArray(o)) {
+    return o.reduce((a, v) => a.concat(findBuffers(v)), []);
+  } else if (typeof o == 'object' && o != null) {
+    return findBuffers(Object.values(o));
+  }
+  return [];
+}
+
 const install = (chart: Array<Chart>, values: object, name: string) => {
   const worker = prepareWorker();
   operation.value = `Installing release ${name}`;
@@ -205,8 +216,7 @@ const install = (chart: Array<Chart>, values: object, name: string) => {
     func: 'install',
     args: [toRaw(chart), toRaw(values), toRaw(name), toRaw(selectedNamespace.value)],
   };
-  // TODO transfer buffers in chart
-  worker.postMessage(op);
+  worker.postMessage(op, findBuffers(chart));
   creating.value = false;
 };
 </script>
