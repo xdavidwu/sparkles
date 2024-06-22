@@ -36,7 +36,9 @@ const brand = import.meta.env.VITE_APP_BRANDING ?? 'Sparkles';
 
 const { namespaces, selectedNamespace, loading: namespacesLoading } = storeToRefs(useNamespaces());
 const { pendingError, pendingToast } = storeToRefs(useErrorPresentation());
-const { authScheme, fullApiBasePath } = storeToRefs(useApiConfig());
+const configStore = useApiConfig();
+const { authScheme } = storeToRefs(configStore);
+const { fullApiBasePath } = configStore;
 
 const drawer = ref<boolean | null>(null);
 const { expandAppBar } = useAppTabs();
@@ -45,9 +47,9 @@ const showsSnackbar = ref(false);
 const snackbarMessage = ref('');
 const failedResponse = ref<Response | null>(null);
 const failedResponseUrl = computed(() => failedResponse.value ?
-  failedResponse.value.url.replace(fullApiBasePath.value.endsWith('/') ?
-    fullApiBasePath.value.substring(0, fullApiBasePath.value.length - 1)
-    : fullApiBasePath.value, '') : '');
+  failedResponse.value.url.replace(fullApiBasePath.endsWith('/') ?
+    fullApiBasePath.substring(0, fullApiBasePath.length - 1)
+    : fullApiBasePath, '') : '');
 const failedResponseText = ref('');
 const loadError = ref(false);
 const router = useRouter();
