@@ -7,6 +7,7 @@ const props = defineProps<{
   id: string,
 }>();
 
+// basically simplified github.com/containers/image/v5/docker/reference.ParseNormalizedNamed?
 const url = computed(() => {
   // https://github.com/opencontainers/distribution-spec/blob/main/spec.md
   const nameTagRegExp = /^(?<image>[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(\/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*)(:(?<tag>[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}))?$/;
@@ -28,20 +29,27 @@ const url = computed(() => {
     }
     image = match.groups!.image;
   } else {
+    // github.com/containers/image/v5/docker/reference.splitDockerDomain, without :port
     const firstslash = match.groups!.image.indexOf('/');
+    const dockerHub = 'docker.io';
 
     if (firstslash === -1) {
-      host = 'docker.io';
-      image = `library/${match.groups!.image}`;
+      host = dockerHub;
+      image = match.groups!.image;
     } else {
       host = match.groups!.image.slice(0, firstslash);
-      // TODO better name validation?
-      if (host.indexOf('.') === -1) {
-        host = 'docker.io';
+      if (host.indexOf('.') === -1 && host != 'localhost') {
+        host = dockerHub;
         image = match.groups!.image;
       } else {
         image = match.groups!.image.slice(firstslash + 1);
       }
+    }
+    if (host == 'index.docker.io') {
+      host = dockerHub;
+    }
+    if (host == dockerHub && image.indexOf('/') === -1) {
+      image = `library/${image}`;
     }
   }
   const tagTail = match.groups!.tag ? `:${match.groups!.tag}` : '';
