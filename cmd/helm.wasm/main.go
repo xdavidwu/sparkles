@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
@@ -40,7 +41,7 @@ func goError(e js.Value) error {
 }
 
 // blocking, meant to be run in catch() with gorountine
-func parseErrorFromCodegen(e js.Value, out chan error) {
+func parseErrorFromCodegen(e js.Value, out chan error, verb string) {
 	if e.Get("name").String() == "ResponseError" {
 		var catch, then js.Func
 		releaseFuncs := func() {
@@ -58,11 +59,13 @@ func parseErrorFromCodegen(e js.Value, out chan error) {
 			typedArray := uint8ArrayClass.New(args[0])
 			bytes := make([]byte, typedArray.Length())
 			js.CopyBytesToGo(bytes, typedArray)
-			// TODO content-type negotiator a la client-go?
 			status := metav1.Status{}
 			err := json.Unmarshal(bytes, &status)
-			if err != nil {
-				out <- err
+			if err != nil || status.APIVersion != "v1" || status.Kind != "Status" {
+				out <- kubeerrors.NewGenericServerResponse(
+					e.Get("response").Get("status").Int(),
+					verb, schema.GroupResource{}, "", "", 0, true,
+				)
 				return nil
 			}
 			out <- kubeerrors.FromObject(&status)
@@ -130,7 +133,7 @@ func (c *jsClient) Get(_ context.Context, name string, _ metav1.GetOptions, subr
 	catch = js.FuncOf(func(this js.Value, args []js.Value) any {
 		then.Release()
 		catch.Release()
-		go parseErrorFromCodegen(args[0], errChan)
+		go parseErrorFromCodegen(args[0], errChan, "GET")
 		return nil
 	})
 	then = js.FuncOf(func(this js.Value, args []js.Value) any {
@@ -181,7 +184,7 @@ func (c *jsClient) List(_ context.Context, _ metav1.ListOptions) (*unstructured.
 	catch = js.FuncOf(func(this js.Value, args []js.Value) any {
 		then.Release()
 		catch.Release()
-		go parseErrorFromCodegen(args[0], errChan)
+		go parseErrorFromCodegen(args[0], errChan, "GET")
 		return nil
 	})
 	then = js.FuncOf(func(this js.Value, args []js.Value) any {
