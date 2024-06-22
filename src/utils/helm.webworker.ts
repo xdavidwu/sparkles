@@ -147,6 +147,65 @@ const encodeSecret = async (r: Release): Promise<V1Secret> => {
 const shouldKeepResource = (r: KubernetesObject) =>
   r.metadata?.annotations?.['helm.sh/resource-policy'] === 'keep';
 
+// helm.sh/v3/pkg/releaseutil.UninstallOrder
+const uninstallOrder = [
+  "APIService",
+  "Ingress",
+  "IngressClass",
+  "Service",
+  "CronJob",
+  "Job",
+  "StatefulSet",
+  "HorizontalPodAutoscaler",
+  "Deployment",
+  "ReplicaSet",
+  "ReplicationController",
+  "Pod",
+  "DaemonSet",
+  "RoleBindingList",
+  "RoleBinding",
+  "RoleList",
+  "Role",
+  "ClusterRoleBindingList",
+  "ClusterRoleBinding",
+  "ClusterRoleList",
+  "ClusterRole",
+  "CustomResourceDefinition",
+  "PersistentVolumeClaim",
+  "PersistentVolume",
+  "StorageClass",
+  "ConfigMap",
+  "SecretList",
+  "Secret",
+  "ServiceAccount",
+  "PodDisruptionBudget",
+  "PodSecurityPolicy",
+  "LimitRange",
+  "ResourceQuota",
+  "NetworkPolicy",
+  "Namespace",
+  "PriorityClass",
+];
+
+// helm.sh/v3/pkg/releaseutil.lessByKind
+// reversed for Array.prototype.sort
+const uninstallOrderCompare = (a: KubernetesObject, b: KubernetesObject) => {
+  const akind = a.kind ?? '';
+  const bkind = b.kind ?? '';
+  const ai = uninstallOrder.indexOf(akind);
+  const bi = uninstallOrder.indexOf(bkind);
+  if (ai == -1 && bi == -1) {
+    return akind.localeCompare(bkind);
+  }
+  if (ai == -1) {
+    return 1;
+  }
+  if (bi == -1) {
+    return -1;
+  }
+  return ai - bi;
+};
+
 const fns = {
   // helm.sh/helm/v3/pkg/action.Uninstall.Run
   uninstall: async (target: Release) => {
@@ -170,20 +229,22 @@ const fns = {
 
     const targetResources: Array<KubernetesObject> = parseAllDocuments(target.manifest).map((d) => d.toJS());
     // TODO sort? helm.sh/helm/v3/pkg/releaseutil.UninstallOrder
-    const toDelete = targetResources.filter((r) => !shouldKeepResource(r));
+    const toDelete = targetResources.filter((r) => !shouldKeepResource(r)).sort(uninstallOrderCompare);
 
     progress('Deleting resources');
 
-    await Promise.all(toDelete.map(async (r) => {
-      const info = resolveObject(await getGroups(), r);
+    const groups = await getGroups();
+    await toDelete.reduce(async (a, v) => {
+      await a;
+      const info = resolveObject(groups, v);
       await anyApi[`delete${info.scope!}CustomObject`]({
         group: info.group,
         version: info.version,
         plural: info.resource!,
-        namespace: r.metadata!.namespace!,
-        name: r.metadata!.name!,
+        namespace: v.metadata!.namespace!,
+        name: v.metadata!.name!,
       });
-    }));
+    }, (async () => {})());
 
     // TODO perhaps tell user what are kept
     // TODO wait, hook
