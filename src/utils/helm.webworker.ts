@@ -302,22 +302,25 @@ const fns = {
 
     const groups = await getGroups();
 
-    const ops = await Promise.all(targetResources.map((r) => ({
+    // create/update first, then delete
+    // manifests are already sorted in installation order
+    const ops = targetResources.map((r) => ({
       op: latestResources.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
       target: r,
     })).concat(latestResources.filter(
       (r) => !targetResources.some((t) => isSameKubernetesObject(r, t)) && !shouldKeepResource(r),
-    ).map((r) => ({
+    // helm does not seems to care about ordering here, but probably should
+    ).sort(uninstallOrderCompare).map((r) => ({
       op: 'delete',
       target: r,
-    }))).map(async (op) => ({
+    }))).map((op) => ({
       ...op,
       kindInfo: resolveObject(groups, op.target),
-    })));
+    }));
 
     progress('Applying rollback');
 
-    await Promise.all(ops.map(async (op) => {
+    await ops.reduce(async (a, op) => {
       const create = () => anyApi[`create${op.kindInfo.scope!}CustomObject`]({
         group: op.kindInfo.group,
         version: op.kindInfo.version,
@@ -326,12 +329,14 @@ const fns = {
         body: op.target,
         fieldManager,
       });
+      await a;
       switch (op.op) {
       case 'create':
-        return await create();
+        await create();
+        return;
       case 'replace':
         try {
-          return await anyApi[`replace${op.kindInfo.scope!}CustomObject`]({
+          await anyApi[`replace${op.kindInfo.scope!}CustomObject`]({
             group: op.kindInfo.group,
             version: op.kindInfo.version,
             plural: op.kindInfo.resource!,
@@ -340,23 +345,26 @@ const fns = {
             body: op.target,
             fieldManager,
           });
+          return;
         } catch (e) {
           // some (apps/v1 Deployment) does not treat PUT without existing resource as create, but the others does
           if (await errorIsResourceNotFound(e)) {
-            return await create();
+            await create();
+            return;
           }
           throw e;
         }
       case 'delete':
-        return await anyApi[`delete${op.kindInfo.scope!}CustomObject`]({
+        await anyApi[`delete${op.kindInfo.scope!}CustomObject`]({
           group: op.kindInfo.group,
           version: op.kindInfo.version,
           plural: op.kindInfo.resource!,
           namespace: op.target.metadata!.namespace!,
           name: op.target.metadata!.name!,
         });
+        return;
       }
-    }));
+    }, (async () => {})());
     // TODO error handling, undo on failure?
 
     // TODO recreate? (delete old pod to trigger a rollout?), wait?, hooks?
