@@ -238,7 +238,7 @@ const save = async (r: ObjectRecord) => {
     try {
       createMeta = parse(r.object)?.metadata;
     } catch (e) {
-      throw new PresentedError(`Cannot parse YAML:\n${e}`);
+      throw new PresentedError(`Invalid YAML input:\n${e}`);
     }
   }
 

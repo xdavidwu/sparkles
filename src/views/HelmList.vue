@@ -104,9 +104,7 @@ const columns = [
     value: () => '',
     nowrap: true,
     width: 0,
-    headerProps: {
-      class: ['text-center'],
-    },
+    align: 'center' as const,
   },
 ];
 

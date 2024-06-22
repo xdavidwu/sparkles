@@ -68,8 +68,7 @@ const proceed = async (next: () => void) => {
     try {
       parsedValues.value = parse(values.value);
     } catch (e) {
-      // XXX repharse
-      throw new PresentedError(`Cannot parse YAML:\n${e}`);
+      throw new PresentedError(`Invalid YAML input:\n${e}`);
     }
     break;
   }

@@ -11,7 +11,6 @@ const props = withDefaults(defineProps<{
 defineOptions({ inheritAttrs: false });
 </script>
 
-<!-- XXX: VBtn does VIcon only if default slot not used -->
 <template>
   <div class="d-flex justify-end align-center">
     <VCard class="me-3 py-1 px-2 text-body-2"

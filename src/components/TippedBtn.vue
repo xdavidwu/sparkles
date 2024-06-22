@@ -9,7 +9,7 @@ defineProps<{
 defineOptions({ inheritAttrs: false });
 </script>
 
-<!-- XXX: VBtn does VIcon only if default slot not used -->
+<!-- VBtn does VIcon only if default slot not used -->
 <template>
   <LinkedTooltip :text="tooltip">
     <template #activator="{ props }">

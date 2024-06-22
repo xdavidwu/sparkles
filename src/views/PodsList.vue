@@ -117,9 +117,7 @@ const columns = [
     value: () => '',
     nowrap: true,
     width: 0,
-    headerProps: {
-      class: ['text-center'], // XXX: align: center somehow does not pass typecheck yet
-    },
+    align: 'center' as const,
   },
 ];
 
