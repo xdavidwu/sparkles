@@ -18,7 +18,7 @@ export const handleDataRequestMessages = (worker: Worker) => {
 
   return async (e: MessageEvent): Promise<boolean> => {
     const data: RequestDataOutboundMessage = e.data;
-    let msg: RequestDataInboundMessage | null = null;
+    let msg: RequestDataInboundMessage | undefined;
     switch (data.type) {
     case 'request.token':
       msg = {

@@ -40,17 +40,17 @@ const configStore = useApiConfig();
 const { authScheme } = storeToRefs(configStore);
 const { fullApiBasePath } = configStore;
 
-const drawer = ref<boolean | null>(null);
+const drawer = ref<boolean | undefined>();
 const { expandAppBar } = useAppTabs();
 const showsDialog = ref(false);
 const showsSnackbar = ref(false);
 const snackbarMessage = ref('');
-const failedResponse = ref<Response | null>(null);
+const failedResponse = ref<Response | undefined>();
 const failedResponseUrl = computed(() => failedResponse.value ?
   failedResponse.value.url.replace(fullApiBasePath.endsWith('/') ?
     fullApiBasePath.substring(0, fullApiBasePath.length - 1)
     : fullApiBasePath, '') : '');
-const failedResponseText = ref('');
+const failedMessage = ref('');
 const loadError = ref(false);
 const router = useRouter();
 const route = router.currentRoute;
@@ -82,24 +82,24 @@ const handleError = (err: unknown) => {
         const o = parse(t);
         const status = V1StatusFromJSON(o);
         if (status.message || status.reason) {
-          failedResponseText.value = status.message ? status.message! : status.reason!;
+          failedMessage.value = status.message ? status.message : status.reason!;
         } else {
-          failedResponseText.value = stringify(o, null, { indentSeq: true });
+          failedMessage.value = stringify(o, null, { indentSeq: true });
         }
       } catch (e) {
-        failedResponseText.value = t;
+        failedMessage.value = t;
       }
     });
     showsDialog.value = true;
     return false;
   } else if (err instanceof FetchError) {
-    failedResponse.value = null;
-    failedResponseText.value = err.cause.message;
+    failedResponse.value = undefined;
+    failedMessage.value = err.cause.message;
     showsDialog.value = true;
     return false;
   } else if (err instanceof PresentedError) {
-    failedResponse.value = null;
-    failedResponseText.value = err.message;
+    failedResponse.value = undefined;
+    failedMessage.value = err.message;
     showsDialog.value = true;
     return false;
   }
@@ -109,7 +109,7 @@ onErrorCaptured(handleError);
 
 watch(pendingError, (error) => {
   if (error) {
-    pendingError.value = null;
+    pendingError.value = undefined;
     handleError(error);
   }
 });
@@ -119,7 +119,7 @@ watch(pendingToast, (toast) => {
     console.log(toast);
     snackbarMessage.value = toast;
     showsSnackbar.value = true;
-    pendingToast.value = null;
+    pendingToast.value = undefined;
   }
 });
 </script>
@@ -172,7 +172,7 @@ watch(pendingToast, (toast) => {
             <span class="text-caption text-medium-emphasis">at {{ failedResponseUrl }}</span>
             <br>
           </p>
-          <pre class="text-pre-wrap">{{ failedResponseText }}</pre>
+          <pre class="text-pre-wrap">{{ failedMessage }}</pre>
         </VContainer></template>
         <template #actions>
           <VBtn color="primary" @click="showsDialog = false">Close</VBtn>

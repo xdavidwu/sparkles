@@ -49,12 +49,12 @@ const request = <K extends keyof PromiseStore>(key: K): Required<PromiseStore>[K
     return pendingPromises[key]!.promise;
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let resolver: any = null;
+  let resolver: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const promise: Promise<any> = new Promise((resolve) => {
     resolver = resolve;
   });
-  pendingPromises[key] = { promise, resolver: resolver! };
+  pendingPromises[key] = { promise, resolver };
   const msg: RequestDataOutboundMessage = { type: `request.${key}` };
   postMessage(msg);
   return promise;
@@ -64,7 +64,6 @@ export const getConfig = async () => {
   const params = await request('configParams');
   params.middleware = [{ pre: setFieldManager }];
 
-  // TODO differentiate static/oidc
   if (params.headers?.Authorization) {
     params.middleware.push({
       pre: async (context) => {

@@ -8,8 +8,8 @@ import {
 import type { KubernetesObject } from '@/utils/objects';
 
 export const useApisDiscovery = defineStore('apisDiscovery', () => {
-  let groups: Promise<Array<V2APIGroupDiscovery>> | null = null;
-  let versionInfo: Promise<VersionInfo> | null = null;
+  let groups: Promise<Array<V2APIGroupDiscovery>> | undefined;
+  let versionInfo: Promise<VersionInfo> | undefined;
 
   const getGroups = () => {
     if (!groups) {

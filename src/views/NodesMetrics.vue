@@ -68,19 +68,18 @@ const colors = [
   BaseColor.Grey,
 ];
 
-const datasetMetadata = computed(() => Object.keys(nodes.value).reduce((r, n, i) => {
+const datasetMetadata = computed(() => Object.fromEntries(Object.keys(nodes.value).map((n, i) => {
   const color = colorToCode({
     color: colors[i % colors.length],
     variant: ColorVariant.Base,
   });
-  r[n] = {
+  return [n, {
     label: n,
     backgroundColor: `${color}aa`,
     borderColor: color,
-    pointStyle: false,
-  };
-  return r;
-}, {} as { [key: string]: object }));
+    pointStyle: false as const,
+  }];
+})));
 
 const chartData = computed(() => ({
   datasets: Object.keys(nodes.value).map((n) => ({

@@ -68,7 +68,7 @@ const openAPISchemaDiscovery = useOpenAPISchemaDiscovery();
 const anyApi = new AnyApi(await apiConfigStore.getConfig());
 
 const namespacesStore = useNamespaces();
-await namespacesStore.ensureNamespaces();
+await namespacesStore.ensureNamespaces;
 const { selectedNamespace } = storeToRefs(namespacesStore);
 const allNamespaces = ref(false);
 const groupVersions: Array<GroupVersion> = [];
@@ -242,7 +242,6 @@ const save = async (r: ObjectRecord) => {
     }
   }
 
-  // TODO apply: diff, ssa? how to delete field?
   r.object = await (await anyApi[
     `${method}${r.type.scope}CustomObjectRaw`
   ]({

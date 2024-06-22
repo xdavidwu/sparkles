@@ -12,21 +12,19 @@ const indexOf = (api: AnyApiGetOpenAPISchemaRequest) => `${api.group ?? ''}/${ap
 
 export const useOpenAPISchemaDiscovery = defineStore('openapi-discovery', () => {
   const schemas: Map<string, Promise<OpenAPIV3.Document>> = new Map();
-  let api: AnyApi | null = null;
+  let api: AnyApi | undefined;
 
   const getSchema = (r: AnyApiGetOpenAPISchemaRequest): Promise<OpenAPIV3.Document> => {
     const index = indexOf(r);
-    let schema = schemas.get(index);
-    if (!schema) {
-      schema = (async () => {
+    if (!schemas.has(index)) {
+      schemas.set(index, (async () => {
         if (!api) {
           api = new AnyApi(await useApiConfig().getConfig());
         }
         return api.getOpenAPISchema(r);
-      })();
-      schemas.set(index, schema);
+      })());
     }
-    return schema;
+    return schemas.get(index)!;
   };
 
   const getJSONSchema = async (r: {
@@ -84,10 +82,8 @@ export const useOpenAPISchemaDiscovery = defineStore('openapi-discovery', () => 
       ],
       components: {
         schemas: root.components?.schemas ?
-          Object.keys(root.components.schemas).reduce((a, v) => {
-            a[v] = openapiSchemaToJsonSchema(root.components!.schemas![v]);
-            return a;
-          }, {} as { [key: string]: JSONSchema4 }) : {},
+          Object.fromEntries(Object.entries(root.components.schemas).map(([k, v]) =>
+            [ k, openapiSchemaToJsonSchema(v) ])) : {},
       },
     };
   };

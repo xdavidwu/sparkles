@@ -26,19 +26,20 @@ const color = computed(() => {
 
 const data = computed(() => props.details ?? { Used: props.used })
 
-const dataKeys = computed(() => Object.keys(data.value)
-  .sort((a, b) => data.value[a] - data.value[b]));
+const chartData = computed(() => {
+  const items = Object.keys(data.value).sort((a, b) => data.value[a] - data.value[b]);
 
-const chartData = computed(() => ({
-  labels: dataKeys.value.concat(['Unused']),
-  datasets: [{
-    data: dataKeys.value.map((k) => data.value[k]).concat([props.total - props.used]),
-    backgroundColor: new Array(dataKeys.value.length).fill(color.value).concat(['#0000']),
-    borderColor: new Array(dataKeys.value.length).fill(['#fff7']).concat(['#fff1']),
-  }],
-}));
+  return {
+    labels: items.concat(['Unused']),
+    datasets: [{
+      data: items.map((k) => data.value[k]).concat([props.total - props.used]),
+      backgroundColor: items.map(() => color.value).concat(['#0000']),
+      borderColor: items.map(() => '#fff7').concat(['#fff1']),
+    }],
+  };
+});
 
-const tooltip = ref<Pick<TooltipModel<'doughnut'>, 'title' | 'body' | 'opacity' | 'caretX' | 'caretY' | 'labelColors'> | null>(null);
+const tooltip = ref<Pick<TooltipModel<'doughnut'>, 'title' | 'body' | 'opacity' | 'caretX' | 'caretY' | 'labelColors'> | undefined>();
 const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
   const pending = {
     title: context.tooltip.title,
@@ -62,9 +63,9 @@ const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
       <VOverlay location-strategy="connected" location="bottom left"
         activator="parent" content-class="pointer-events-none"
         :offset="tooltip ? [tooltip.caretY, -tooltip.caretX] : [0, 0]"
-        :scrim= "false" :modelValue="tooltip != null && tooltip.opacity != 0">
+        :scrim= "false" :modelValue="tooltip && tooltip.opacity != 0">
         <div class="text-white bg-grey-darken-3 px-2 py-1 text-caption">
-          <div v-for="(title, i) in tooltip?.title" :key="i">
+          <div v-for="(title, i) in tooltip!.title" :key="i">
             <div>{{ title }}</div>
             <div class="d-flex align-center">
               <div class="d-inline-block mr-1 legend-bg">
@@ -73,7 +74,7 @@ const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
                   'border-color': tooltip!.labelColors[i].borderColor as string,
                 }" />
               </div>
-              {{ tooltip?.body[i].lines.join('') }}
+              {{ tooltip!.body[i].lines.join('') }}
             </div>
           </div>
         </div>
@@ -131,10 +132,8 @@ const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
 .legend-bg {
   background-color: rgb(var(--v-theme-surface));
 }
-</style>
 
-<style>
-.pointer-events-none {
+:deep(.pointer-events-none) {
   pointer-events: none !important;
 }
 </style>

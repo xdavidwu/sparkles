@@ -59,7 +59,7 @@ interface ContainerData extends _ContainerData {
 const { mayAllows } = usePermissions();
 
 const namespacesStore = useNamespaces();
-await namespacesStore.ensureNamespaces();
+await namespacesStore.ensureNamespaces;
 const { selectedNamespace } = storeToRefs(namespacesStore);
 
 const api = new CoreV1Api(await useApiConfig().getConfig());

@@ -7,6 +7,7 @@ import { useAbortController } from '@/composables/abortController';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api } from '@/kubernetes-api/src';
 import { errorIsAborted, rawErrorIsAborted } from '@/utils/api';
+import { streamToGenerator } from '@/utils/lang';
 
 const props = defineProps<{
   containerSpec: {
@@ -38,7 +39,7 @@ const display = async (terminal: Terminal) => {
       follow: true,
     }, {
       signal: signal.value,
-    })).raw.body!.pipeThrough(new TextDecoderStream()).getReader();
+    })).raw.body!.pipeThrough(new TextDecoderStream());
   } catch (e) {
     if (errorIsAborted(e)) {
       return;
@@ -46,20 +47,15 @@ const display = async (terminal: Terminal) => {
     throw e;
   }
 
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const { value, done } = await response.read().catch((e) => {
-      if (rawErrorIsAborted(e)) {
-        return { value: '', done: true };
-      }
-      throw e;
-    });
-
-    if (done) {
-      break;
+  try {
+    for await (const data of streamToGenerator(response)) {
+      slave.write(data);
     }
-
-    slave.write(value);
+  } catch (e) {
+    if (rawErrorIsAborted(e)) {
+      return;
+    }
+    throw e;
   }
 };
 </script>

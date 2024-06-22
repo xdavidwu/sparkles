@@ -34,8 +34,6 @@ enum Streams {
   CLOSE = 255,
 }
 
-let socket: WebSocket | null = null;
-
 const commandOpts = (props.command ?? ['/bin/sh', '-c', findShell]).reduce(
   (a, v) => `${a}&command=${encodeURIComponent(v)}`, '');
 
@@ -69,18 +67,18 @@ const display = async (terminal: Terminal) => {
   terminal.write('Connecting...');
 
   // k8s.io/kubelet/pkg/cri/streaming/remotecommand.createWebSocketStreams
-  socket = new WebSocket(url, token ? supportedProtocols.concat([
+  const socket = new WebSocket(url, token ? supportedProtocols.concat([
     // https://github.com/kubernetes/kubernetes/pull/47740
     `base64url.bearer.authorization.k8s.io.${base64url(token)}`
   ]) : supportedProtocols);
   socket.binaryType = 'arraybuffer';
   socket.onerror = (event) => {
     useErrorPresentation().pendingError = new PresentedError(
-      `WebSocket connetion to ${(event.target! as WebSocket).url} failed`);
+      `WebSocket connetion to ${(event.target as WebSocket).url} failed`);
   };
 
   const resize = (t: { cols: number, rows: number }) => {
-    socket!.send(new Uint8Array([ Streams.RESIZE,
+    socket.send(new Uint8Array([ Streams.RESIZE,
       ...encoder.encode(`{"Width":${t.cols},"Height":${t.rows}}\n`)]));
   };
 
@@ -89,7 +87,7 @@ const display = async (terminal: Terminal) => {
     resize(terminal);
     terminal.write(`${CSI}2J${CSI}H`); // clear all, reset cursor
     terminal.onData((data) => {
-      socket!.send(new Uint8Array([Streams.STDIN, ...encoder.encode(data)]));
+      socket.send(new Uint8Array([Streams.STDIN, ...encoder.encode(data)]));
     });
     terminal.onResize(resize);
   };
@@ -114,21 +112,19 @@ const display = async (terminal: Terminal) => {
       }
       terminal.write(`${CSI}?25l`); // unset mode: cursor visible
 
-      socket!.close();
+      socket.close();
     }
   };
-};
 
-onUnmounted(() => {
-  if (socket) {
+  onUnmounted(() => {
     if (socket.protocol === wsstreamV5Channel) {
       // XXX: there seems to be no way to close underlying tty?
       socket.send(new Uint8Array([Streams.CLOSE, Streams.STDIN]));
     }
 
     socket.close();
-  }
-});
+  });
+};
 </script>
 
 <template>

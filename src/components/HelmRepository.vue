@@ -27,7 +27,7 @@ await store.ensureIndex;
 const charts = readonly(await Promise.all(_charts.value.map(async (c) => ({
   ...c,
   keywords: c.keywords ?
-    await Promise.all(c.keywords!.map(async (text) => ({
+    await Promise.all(c.keywords.map(async (text) => ({
         text,
         color: colorToClass(await hashColor(text, baseColors, variants)),
       }),

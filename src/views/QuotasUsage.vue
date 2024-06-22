@@ -18,7 +18,7 @@ import { listAndUnwaitedWatch } from '@/utils/watch';
 import { real } from '@ragnarpa/quantity';
 
 const namespacesStore = useNamespaces();
-await namespacesStore.ensureNamespaces();
+await namespacesStore.ensureNamespaces;
 const { selectedNamespace } = storeToRefs(namespacesStore);
 
 const api = new CoreV1Api(await useApiConfig().getConfig());

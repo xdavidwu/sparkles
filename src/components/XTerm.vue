@@ -15,7 +15,7 @@ const emit = defineEmits<{
   (e: 'titleChanged', title: string): void,
 }>();
 
-const div = ref<HTMLDivElement | null>(null);
+const div = ref<HTMLDivElement | undefined>();
 const terminal = new Terminal(props.xtermOptions);
 const fitAddon = new FitAddon();
 

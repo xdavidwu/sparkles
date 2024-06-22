@@ -47,7 +47,7 @@ interface ValuesTab {
 }
 
 const namespacesStore = useNamespaces();
-await namespacesStore.ensureNamespaces();
+await namespacesStore.ensureNamespaces;
 const { selectedNamespace } = storeToRefs(namespacesStore);
 
 const config = await useApiConfig().getConfig();
@@ -148,10 +148,10 @@ const { loading, load } = useLoading(async () => {
 
 watch(selectedNamespace, load, { immediate: true });
 
-let worker: Worker | null = null;
+let worker: Worker | undefined;
 
 const prepareWorker = () => {
-  if (worker == null) {
+  if (!worker) {
     worker = new HelmWorker();
   }
   const handlers = [

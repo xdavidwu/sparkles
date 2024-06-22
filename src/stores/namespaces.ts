@@ -8,7 +8,6 @@ import { listAndUnwaitedWatch } from '@/utils/watch';
 
 export const useNamespaces = defineStore('namespace', () => {
   const _namespaces = ref<Array<V1Namespace>>([]);
-  let _updatePromise: Promise<void> | null = null;
   const namespaces = computed(() => _namespaces.value.map((v) => v.metadata!.name!));
   const selectedNamespace = useLocalStorage('namespace', 'default');
   const loading = ref(true);
@@ -27,22 +26,17 @@ export const useNamespaces = defineStore('namespace', () => {
     set: (v) => v && (selectedNamespace.value = v),
   });
 
-  const ensureNamespaces = () => {
-    if (!_updatePromise) {
-      _updatePromise = (async () => {
-        const config = await useApiConfig().getConfig();
-        const api = new CoreV1Api(config);
-        await listAndUnwaitedWatch(
-          _namespaces,
-          V1NamespaceFromJSON,
-          (opt) => api.listNamespaceRaw(opt),
-          (e) => useErrorPresentation().pendingError = e,
-        )
-        loading.value = false;
-      })().catch((e) => useErrorPresentation().pendingError = e);
-    }
-    return _updatePromise;
-  }
+  const ensureNamespaces = (async () => {
+    const config = await useApiConfig().getConfig();
+    const api = new CoreV1Api(config);
+    await listAndUnwaitedWatch(
+      _namespaces,
+      V1NamespaceFromJSON,
+      (opt) => api.listNamespaceRaw(opt),
+      (e) => useErrorPresentation().pendingError = e,
+    )
+    loading.value = false;
+  })().catch((e) => useErrorPresentation().pendingError = e);
 
   watchArray(namespaces, (newNamespaces, old, added, removed) => {
     if (removed.indexOf(selectedNamespace.value) !== -1) {
@@ -50,8 +44,6 @@ export const useNamespaces = defineStore('namespace', () => {
       setDefaultNamespace();
     }
   });
-
-  ensureNamespaces();
 
   return { namespaces, selectedNamespace: rejectUnsetNamespace, loading, ensureNamespaces };
 });

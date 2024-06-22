@@ -66,7 +66,7 @@ const watch = async<T extends KubernetesObject> (
     transformer: (obj: object) => T,
     watchResponse: Promise<ApiResponse<KubernetesList<T>>>,
   ) => {
-  let updates: ApiResponse<KubernetesList<T>> | null = null;
+  let updates;
   try {
     updates = await watchResponse;
   } catch (e) {
@@ -77,7 +77,7 @@ const watch = async<T extends KubernetesObject> (
   }
 
   try {
-    for await (const event of rawResponseToWatchEvents(updates!, transformer)) {
+    for await (const event of rawResponseToWatchEvents(updates, transformer)) {
       if (event.type === 'ADDED') {
         dest.value.push(event.object);
       } else if (event.type === 'DELETED') {
@@ -133,7 +133,7 @@ export const listAndUnwaitedWatchTable = async (
   dest.value = listResponse;
 
   (async () => {
-    let updates: ApiResponse<V1Table> | null = null;
+    let updates;
     try {
       updates = await lister({
         resourceVersion: listResponse.metadata!.resourceVersion,
@@ -147,7 +147,7 @@ export const listAndUnwaitedWatchTable = async (
     }
 
     try {
-      for await (const event of rawResponseToWatchEvents(updates!)) {
+      for await (const event of rawResponseToWatchEvents(updates)) {
         if (event.type === 'ADDED') {
           dest.value.rows!.push(...event.object.rows!);
         } else if (event.type === 'DELETED') {
