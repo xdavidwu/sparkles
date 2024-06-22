@@ -184,7 +184,7 @@ export const loadChartsFromFiles = async (_rawFiles: RawFiles): Promise<Chart[]>
   const subcharts: { [name: string]: typeof rawFiles } = {};
   const parsedSubcharts: Array<Chart> = [];
 
-  await Promise.all(Object.keys(rawFiles).sort().filter((n) => n.startsWith('charts/')).map(async (n) => {
+  await Promise.all(Object.keys(rawFiles).filter((n) => n.startsWith('charts/')).sort().map(async (n) => {
     const data = extractFile(n);
     const name = n.substring(7);
     if (name.endsWith('.tgz')) {
@@ -199,8 +199,9 @@ export const loadChartsFromFiles = async (_rawFiles: RawFiles): Promise<Chart[]>
     subcharts[parts[0]][name.substring(parts[0].length + 1)] = data;
   }));
 
-  (await Promise.all(Object.keys(subcharts).map((name) => loadChartsFromFiles(subcharts[name]))))
-    .forEach((charts) => parsedSubcharts.push(...charts));
+  parsedSubcharts.push(
+    ...(await Promise.all(Object.values(subcharts).map((c) => loadChartsFromFiles(c))))
+      .reduce((a, v) => a.concat(v), []));
 
   return [
     {

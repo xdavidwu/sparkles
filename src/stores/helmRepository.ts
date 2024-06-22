@@ -32,7 +32,7 @@ export const useHelmRepository = defineStore('helmRepository', () => {
 
     const versionInfo = await useApisDiscovery().getVersionInfo();
     // TODO support versioning?
-    const c = Object.keys(index.entries).map((k) => index.entries[k][0])
+    const c = Object.values(index.entries).map((versions) => versions[0])
       .filter((c) => c.type != 'library')
       .filter((c) => c.deprecated != true)
       .filter((c) => c.kubeVersion ? satisfies(versionInfo.gitVersion, c.kubeVersion) : true);
