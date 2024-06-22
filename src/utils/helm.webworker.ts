@@ -58,6 +58,7 @@ const setupGo = async () => {
   if (goInitialized) {
     return;
   }
+  progress('Initializing WebAssembly');
   const go = new Go();
   const wasm = await helmWasmInit(go.importObject);
   go.run(wasm);
@@ -97,6 +98,7 @@ const arrayBufferReplacer = (key: string, value: any): any => {
 
 const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseOptions) => {
   await setupGo();
+  progress('Rendering resource templates');
   const result = await _helm_renderTemplate(
     chart.map((c) => JSON.stringify(c, arrayBufferReplacer)),
     JSON.stringify(value),
@@ -322,7 +324,6 @@ const fns = {
     // TODO history retention
   },
   install: async (chart: Array<Chart>, values: object, name: string, namespace: string) => {
-    progress('Rendering resource templates');
     const results = await renderTemplate(chart, values, {
       Name: name,
       Namespace: namespace,
