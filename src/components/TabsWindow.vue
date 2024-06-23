@@ -11,7 +11,14 @@ provide(windowSelectionInjectionKey, toRef(() => props.modelValue));
 </script>
 
 <template>
-  <VTabsWindow :model-value="props.modelValue">
+  <VTabsWindow :model-value="props.modelValue" class="mh-100">
     <slot />
   </VTabsWindow>
 </template>
+
+<style scoped>
+/* avoid lags from growing to editor */
+.mh-100 {
+  min-height: 100%;
+}
+</style>
