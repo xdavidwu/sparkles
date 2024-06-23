@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { VCard } from 'vuetify/components';
+import LoadingSpinner from '@/components/LoadingSpinner.vue';
 import QuotaDoughnut from '@/components/QuotaDoughnut.vue';
 import { computed, ref, watch } from 'vue';
 import { useAbortController } from '@/composables/abortController';
@@ -75,8 +76,7 @@ const podsResourceUsage = computed(() => {
 
 const { abort: abortRequests, signal } = useAbortController();
 
-// TODO render loading state
-const { load } = useLoading(async () => {
+const { load, loading } = useLoading(async () => {
   abortRequests();
 
   await Promise.all([
@@ -99,9 +99,10 @@ await load();
 watch(selectedNamespace, load);
 </script>
 
+<!-- TODO: mark scoped quotas -->
 <template>
-  <!-- TODO: mark scoped quotas -->
-  <div class="d-flex align-center flex-wrap ga-4">
+  <LoadingSpinner v-if="loading" />
+  <div v-else class="d-flex align-center flex-wrap ga-4">
     <VCard v-for="quota in quotas" :key="uniqueKeyForObject(quota)"
       :title="quota.metadata!.name">
       <template #text>

@@ -41,7 +41,7 @@ const { authScheme } = storeToRefs(configStore);
 const { fullApiBasePath } = configStore;
 
 const drawer = ref<boolean | undefined>();
-const { expandAppBar } = useAppTabs();
+const { expandAppBar, appBarHeightPX } = useAppTabs();
 const showsDialog = ref(false);
 const showsSnackbar = ref(false);
 const snackbarMessage = ref('');
@@ -192,7 +192,8 @@ watch(pendingToast, (toast) => {
       </VCard>
     </VDialog>
     <VMain>
-      <VContainer fluid class="overflow-y-auto">
+      <VContainer fluid class="overflow-y-auto h-0"
+        :style="`min-height: calc(100dvh - ${appBarHeightPX}px)`">
         <RouterView #="{ Component }">
           <LoadingSuspense>
             <component v-if="Component" :is="Component" />
@@ -212,10 +213,6 @@ watch(pendingToast, (toast) => {
 <style scoped>
 .mw-100 {
   max-width: 100%;
-}
-
-.full-height {
-  height: calc(100dvh - 96px);
 }
 
 .bottom-auth-line {

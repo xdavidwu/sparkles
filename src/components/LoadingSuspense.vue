@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { VProgressCircular } from 'vuetify/components';
+import LoadingSpinner from '@/components/LoadingSpinner.vue';
 </script>
 
 <template>
   <Suspense timeout="16">
     <slot />
     <template #fallback>
-      <div class="d-flex justify-center align-center flex-column full-height">
-        <VProgressCircular indeterminate class="mb-4" />
-        Loading...
-      </div>
+      <LoadingSpinner />
     </template>
   </Suspense>
 </template>
