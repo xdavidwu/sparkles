@@ -282,7 +282,7 @@ const newDraft = async () => {
     metadata: {
       namespace: type.scope === V2ResourceScope.Namespaced ? selectedNamespace.value : undefined,
       // make it order last to be friendlier
-      name: crypto.randomUUID(),
+      name: crypto.randomUUID().split('-')[0],
     },
   };
   const doc = stringify(template, null, { indentSeq: true });
