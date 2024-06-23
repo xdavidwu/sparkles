@@ -19,7 +19,7 @@ import SpeedDialFab from '@/components/SpeedDialFab.vue';
 import TabsWindow from '@/components/TabsWindow.vue';
 import WindowItem from '@/components/WindowItem.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
-import { computed, watch, ref } from 'vue';
+import { computed, watch, ref, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDisplay } from 'vuetify';
 import { timestamp, useLastChanged, useNow, useTimeAgo } from '@vueuse/core';
@@ -231,7 +231,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
   tab.value = key;
 };
 
-const save = async (r: ObjectRecord) => {
+const save = async (r: ObjectRecord, key: string) => {
   const method = r.metadata.name === NAME_NEW ? 'create' : 'replace';
   let createMeta;
   if (method === 'create') {
@@ -253,14 +253,20 @@ const save = async (r: ObjectRecord) => {
     fieldValidation: 'Strict',
     body: new Blob([r.object], { type: 'application/yaml' }),
   }, chainOverrideFunction(fromYAML, asYAML))).raw.text();
-  if (method === 'create') {
-    r.metadata.name = createMeta?.name;
-    r.metadata.namespace = createMeta?.namespace;
-  }
+
+  // TODO should probably reset part of editor state (selection?)
   r.unsaved = false;
   r.editing = false;
 
-  // TODO create: reset key?
+  if (method === 'create') {
+    const parsedObject = parse(r.object);
+    r.metadata = parsedObject.metadata;
+    const newKey = uniqueKeyForObject(parsedObject);
+    inspectedObjects.value.set(newKey, r);
+    tab.value = newKey;
+    // removing key in this tick would affect tab selection
+    nextTick(() => inspectedObjects.value.delete(key));
+  }
 };
 
 const _delete = async (r: ObjectRecord, key: string) => {
@@ -394,7 +400,7 @@ watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true })
         v-model="r.object" :schema="r.schema" :disabled="!r.editing"
         :selection="r.selection" @change="() => r.unsaved = true" />
 
-      <FixedFab v-if="r.editing" icon="mdi-content-save" @click="() => save(r)" />
+      <FixedFab v-if="r.editing" icon="mdi-content-save" @click="() => save(r, key)" />
       <SpeedDialFab v-else-if="(targetType.verbs.includes('delete') || targetType.verbs.includes('update'))">
         <SpeedDialBtn key="1" label="Delete" icon="mdi-delete"
           :disabled="!targetType.verbs.includes('delete')"
