@@ -182,8 +182,8 @@ const bell = (index: number) => {
   </AppTabs>
   <TabsWindow v-model="tab">
     <WindowItem value="table">
-      <VDataTable hover :items="containers" :headers="columns" :loading="loading"
-        hide-default-footer disable-sort>
+      <VDataTable :items="containers" :headers="columns" :loading="loading"
+        disable-sort>
         <template #[`header._extra.pod.metadata.name`]>
           Pod
           <KeyValueBadge k="annotation" v="value" class="mr-1" />

@@ -55,6 +55,13 @@ app.use(createVuetify({
   theme: {
     defaultTheme: 'dark',
   },
+  defaults: {
+    VDataTable: {
+      hideDefaultFooter: true,
+      hover: true,
+      itemsPerPage: -1,
+    },
+  },
 }));
 app.use(router);
 

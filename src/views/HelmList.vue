@@ -232,9 +232,9 @@ const install = (chart: Array<Chart>, values: object, name: string) => {
   </AppTabs>
   <TabsWindow v-model="tab">
     <WindowItem value="table">
-      <VDataTable hover :items="releases" :headers="columns" :loading="loading"
+      <VDataTable :items="releases" :headers="columns" :loading="loading"
         :row-props="{class: 'darken'}" :group-by="[{ key: 'name', order: 'asc'}]"
-        hide-default-footer disable-sort>
+        disable-sort>
         <template #group-header='groupProps'>
           <VDataTableRow v-bind='{ ...groupProps, item: latestRevision(groupProps.item.items) }' class="group-header">
             <template #[`item.data-table-group`]='{ value }'>

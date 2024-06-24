@@ -371,9 +371,7 @@ watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true })
         </span>
         <VBtn variant="text" size="x-small" color="primary" @click="load">refresh</VBtn>
       </div>
-      <VDataTable hover class="data-table-auto"
-        items-per-page="-1" :items="table.rows" :headers="columns"
-        :loading="loading" hide-default-footer>
+      <VDataTable :items="table.rows" :headers="columns" :loading="loading">
         <!-- TODO: ask vuetify to open up VDataTableHeaderCell -->
         <template v-for="(c, i) in columns" #[`header.${c.key}`]="{ column, getSortIcon }" :key="i">
           <div class="v-data-table-header__content h-100 width-fit-content">
