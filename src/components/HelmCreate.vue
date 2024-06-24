@@ -59,7 +59,6 @@ const proceed = async (next: () => void) => {
       const files = await parseTarball(response.body!);
       parsedChart.value = await loadChartsFromFiles(files);
       defaults.value = files['values.yaml'] ? await files['values.yaml'].text() : '';
-      // TODO reset defaults viewer position?
       schema.value = extractValuesSchema(parsedChart.value);
     }
     break;
@@ -93,7 +92,7 @@ const apply = () => emit('apply', parsedChart.value!, parsedValues.value, 'test'
             :style="`height: calc(100dvh - 48px - 128px - 48px)`" />
         </template>
         <template #[`item.defaults`]>
-          <YAMLEditor :model-value="defaults"
+          <YAMLEditor :model-value="defaults" :key="defaults"
             :style="`height: calc(100dvh - 48px - 128px - 48px)`" disabled />
         </template>
         <!-- TODO schema-based form editor? -->
