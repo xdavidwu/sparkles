@@ -224,19 +224,17 @@ watch(pendingToast, (toast) => {
 <style>
 /*
  * color stolen from chromium: https://github.com/whatwg/html/issues/5426#issuecomment-904021675
- *
- * XXX: do we have a better way to catch plain a tag without affecting vuetify navs?
  */
 
-a[target="_blank"] {
+a:not([class^="v-"]) {
   color: #9e9eff;
 }
 
-a[target="_blank"]:visited {
+a:not([class^="v-"]):visited {
   color: #d0adf0;
 }
 
-a[target="_blank"]:active, a[target="_blank"]:visited:active {
+a:not([class^="v-"]):active, a:not([class^="v-"]):visited:active {
   color: #ff9e9e;
 }
 </style>
