@@ -242,8 +242,6 @@ const save = async (r: ObjectRecord, key: string) => {
     }
   }
 
-  const orig = r.object.trim();
-
   r.object = await (await anyApi[
     `${method}${r.type.scope}CustomObjectRaw`
   ]({
@@ -258,23 +256,16 @@ const save = async (r: ObjectRecord, key: string) => {
 
   r.unsaved = false;
   r.editing = false;
+  const parsedObject = parse(r.object);
+  r.metadata = parsedObject.metadata;
 
   if (method === 'create') {
-    const parsedObject = parse(r.object);
-    r.metadata = parsedObject.metadata;
+    r.selection = undefined;
     const newKey = uniqueKeyForObject(parsedObject);
     inspectedObjects.value.set(newKey, r);
     tab.value = newKey;
     // removing key in this tick would affect tab selection
     nextTick(() => inspectedObjects.value.delete(key));
-  } else if (r.object.trim() != orig) {
-    // server-side change, local editor state (scroll, selection) is likely messed up
-    // dispose editor state via re-mount
-    inspectedObjects.value.delete(key);
-    nextTick(() => {
-      inspectedObjects.value.set(key, r);
-      tab.value = key;
-    });
   }
 };
 
@@ -407,7 +398,7 @@ watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true })
     <WindowItem v-for="[key, r] in inspectedObjects" :key="key" :value="key">
       <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
         v-model="r.object" :schema="r.schema" :disabled="!r.editing"
-        :selection="r.selection" @change="() => r.unsaved = true" />
+        :selection="r.selection" :key="r.metadata.resourceVersion" @change="() => r.unsaved = true" />
 
       <FixedFab v-if="r.editing" icon="mdi-content-save" @click="() => save(r, key)" />
       <SpeedDialFab v-else-if="(targetType.verbs.includes('delete') || targetType.verbs.includes('update'))">
