@@ -245,7 +245,7 @@ const install = (chart: Array<Chart>, values: object, name: string) => {
               {{ value }}
             </template>
             <template #[`item.version`]='{ item, value }'>
-              <span>
+              <span class="pe-2">
                 {{ value }}
                 <LinkedTooltip :text="`Last deployed: ${new Date((item as Release).info.last_deployed!)}`" activator="parent" />
               </span>
@@ -276,7 +276,7 @@ const install = (chart: Array<Chart>, values: object, name: string) => {
           <VBtn size="small" variant="text" disabled icon="mdi-circle-small" />
         </template>
         <template #[`item.version`]='{ item, value }'>
-          <span>
+          <span class="pe-2">
             {{ value }}
             <LinkedTooltip :text="`Last deployed: ${new Date(item.info.last_deployed!)}`" activator="parent" />
           </span>
