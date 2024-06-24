@@ -1,7 +1,11 @@
+import { defineStore, storeToRefs } from 'pinia';
 import { computed, ref, onUnmounted } from 'vue';
 import { useDisplay } from 'vuetify';
 
-const appTabsUsed = ref(false);
+const store = defineStore('app-tabs', () => {
+  const appTabsUsed = ref(false);
+  return { appTabsUsed };
+});
 
 const commonSetup = () => {
   const { xs: expandAppBar } = useDisplay();
@@ -11,6 +15,7 @@ const commonSetup = () => {
 };
 
 export const useAppTabs = () => {
+  const { appTabsUsed } = storeToRefs(store());
   appTabsUsed.value = true;
 
   onUnmounted(() => appTabsUsed.value = false);
@@ -18,4 +23,4 @@ export const useAppTabs = () => {
   return { ...commonSetup() };
 };
 
-export const renderAppTabs = () => ({ appTabsUsed, ...commonSetup() });
+export const renderAppTabs = () => ({ ...storeToRefs(store()), ...commonSetup() });
