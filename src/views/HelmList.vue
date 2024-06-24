@@ -77,6 +77,9 @@ const columns = [
     title: 'Release',
     key: 'data-table-group',
     value: (r: Release) => r.name,
+    cellProps: {
+      class: 'ps-1',
+    },
   },
   {
     title: 'Revision',
@@ -104,7 +107,9 @@ const columns = [
     value: () => '',
     nowrap: true,
     width: 0,
-    align: 'center' as const,
+    cellProps: {
+      class: 'ps-1',
+    },
   },
 ];
 

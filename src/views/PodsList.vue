@@ -117,7 +117,9 @@ const columns = [
     value: () => '',
     nowrap: true,
     width: 0,
-    align: 'center' as const,
+    cellProps: {
+      class: 'ps-1',
+    },
   },
 ];
 
