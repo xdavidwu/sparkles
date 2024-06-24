@@ -27,7 +27,7 @@ import { ResponseError, FetchError, V1StatusFromJSON } from '@/kubernetes-api/sr
 import { PresentedError } from '@/utils/PresentedError';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
-import { useAppTabs } from '@/composables/appTabs';
+import { renderAppTabs } from '@/composables/appTabs';
 import { useRouter } from 'vue-router';
 import { useTitle } from '@vueuse/core';
 import { stringify, parse } from 'yaml';
@@ -41,7 +41,7 @@ const { authScheme } = storeToRefs(configStore);
 const { fullApiBasePath } = configStore;
 
 const drawer = ref<boolean | undefined>();
-const { expandAppBar, appBarHeightPX } = useAppTabs();
+const { expandAppBar, appBarHeightPX, appTabsUsed } = renderAppTabs();
 const showsDialog = ref(false);
 const showsSnackbar = ref(false);
 const snackbarMessage = ref('');
@@ -129,10 +129,10 @@ watch(pendingToast, (toast) => {
     <VAppBar>
       <VAppBarNavIcon @click="drawer = !drawer" />
       <VAppBarTitle>{{ brand }}</VAppBarTitle>
-      <template v-if="expandAppBar" #extension>
+      <template v-if="expandAppBar && appTabsUsed" #extension>
         <div id="appbar-tabs" class="w-100" />
       </template>
-      <div v-if="!expandAppBar" id="appbar-tabs"
+      <div v-if="!expandAppBar && appTabsUsed" id="appbar-tabs"
         style="left: 256px; bottom: 0; width: calc(100vw - 256px)"
         class="position-absolute flex-0-1 d-flex flex-column justify-end" />
     </VAppBar>

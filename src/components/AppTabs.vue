@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { VTabs } from 'vuetify/components';
-import { useAppTabs } from '@/composables/appTabs';
+import { renderAppTabs } from '@/composables/appTabs';
 
 defineOptions({ inheritAttrs: false });
 
-const { render } = useAppTabs();
+// trigger re-teleport to different actual target
+const { expandAppBar } = renderAppTabs();
 </script>
 
 <template>
-  <Teleport v-if="render" to="#appbar-tabs">
+  <Teleport :key="`${expandAppBar}`" to="#appbar-tabs">
     <VTabs v-bind="$attrs" show-arrows>
       <slot />
     </VTabs>

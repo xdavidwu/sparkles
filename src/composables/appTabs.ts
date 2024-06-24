@@ -1,22 +1,21 @@
-import { computed, ref, nextTick, watch } from 'vue';
+import { computed, ref, onUnmounted } from 'vue';
 import { useDisplay } from 'vuetify';
 
-export const useAppTabs = () => {
-  const render = ref(true);
+const appTabsUsed = ref(false);
 
+const commonSetup = () => {
   const { xs: expandAppBar } = useDisplay();
-
-  watch(expandAppBar, async () => {
-    render.value = false;
-    await nextTick();
-    render.value = true;
-  });
-
   const appBarHeightPX = computed(() => expandAppBar.value ? 64 + 48 : 64);
 
-  return {
-    expandAppBar,
-    render,
-    appBarHeightPX,
-  }
+  return { expandAppBar, appBarHeightPX };
 };
+
+export const useAppTabs = () => {
+  appTabsUsed.value = true;
+
+  onUnmounted(() => appTabsUsed.value = false);
+
+  return { ...commonSetup() };
+};
+
+export const renderAppTabs = () => ({ appTabsUsed, ...commonSetup() });

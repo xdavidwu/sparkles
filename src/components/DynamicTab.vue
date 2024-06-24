@@ -13,6 +13,9 @@ withDefaults(defineProps<{
 const emit = defineEmits<{
   (e: 'close'): void,
 }>();
+
+// TODO global alerting state management, dynamice favicon
+// probably also web notification?
 </script>
 
 <template>
