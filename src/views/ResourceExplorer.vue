@@ -413,12 +413,8 @@ watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true })
   </TabsWindow>
 </template>
 
-<style>
-.data-table-auto table {
-  table-layout: auto !important;
-}
-
-.checkbox-intense > .v-input__control > .v-selection-control {
+<style scoped>
+:deep(.checkbox-intense > .v-input__control > .v-selection-control) {
   min-height: unset !important;
 }
 

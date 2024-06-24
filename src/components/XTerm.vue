@@ -36,8 +36,8 @@ onMounted(async () => {
   <div ref="div" style="touch-action: pan-x pinch-zoom; overflow: clip" />
 </template>
 
-<style>
-.xterm-rows span {
+<style scoped>
+:deep(.xterm-rows span) {
   pointer-events: none;
 }
 </style>
