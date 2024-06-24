@@ -11,7 +11,7 @@ provide(windowSelectionInjectionKey, toRef(() => props.modelValue));
 </script>
 
 <template>
-  <VTabsWindow :model-value="props.modelValue" class="mh-100">
+  <VTabsWindow :model-value="props.modelValue" class="mh-100 ma-n4">
     <slot />
   </VTabsWindow>
 </template>

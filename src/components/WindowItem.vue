@@ -15,7 +15,7 @@ provide(windowVisibilityInjectionKey, visible);
 </script>
 
 <template>
-  <VTabsWindowItem :value="props.value">
+  <VTabsWindowItem :value="props.value" class="pa-4">
     <slot />
   </VTabsWindowItem>
 </template>
