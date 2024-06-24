@@ -318,4 +318,9 @@ const install = (chart: Array<Chart>, values: object, name: string) => {
 :deep(.darken) {
   background-color: rgba(var(--v-theme-background), var(--v-medium-emphasis-opacity));
 }
+
+/* newest in history, same as group header */
+:deep(.group-header + .darken) {
+  display: none;
+}
 </style>
