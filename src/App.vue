@@ -30,7 +30,8 @@ import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
 import { renderAppTabs } from '@/composables/appTabs';
 import { useRouter } from 'vue-router';
 import { useTitle } from '@vueuse/core';
-import { stringify, parse } from 'yaml';
+import { stringify } from '@/utils/yaml';
+import { parse } from 'yaml';
 
 const brand = import.meta.env.VITE_APP_BRANDING ?? 'Sparkles';
 
@@ -84,7 +85,7 @@ const handleError = (err: unknown) => {
         if (status.message || status.reason) {
           failedMessage.value = status.message ? status.message : status.reason!;
         } else {
-          failedMessage.value = stringify(o, null, { indentSeq: true });
+          failedMessage.value = stringify(o);
         }
       } catch (e) {
         failedMessage.value = t;

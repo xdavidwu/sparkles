@@ -25,7 +25,7 @@ import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
 import { useLoading } from '@/composables/loading';
-import { stringify } from 'yaml';
+import { stringify } from '@/utils/yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
 import { listAndUnwaitedWatch } from '@/utils/watch'
 import {
@@ -300,7 +300,7 @@ const install = (chart: Array<Chart>, values: object, name: string) => {
     </WindowItem>
     <WindowItem v-for="tab in tabs" :key="tab.id" :value="tab.id">
       <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
-        :model-value="stringify(tab.values, null, { indentSeq: true })" disabled />
+        :model-value="stringify(tab.values)" disabled />
     </WindowItem>
   </TabsWindow>
   <VDialog v-model="creating">

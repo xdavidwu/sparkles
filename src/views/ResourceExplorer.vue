@@ -45,7 +45,8 @@ import { humanDuration } from '@/utils/duration';
 import { nonNullableRef } from '@/utils/reactivity';
 import { PresentedError } from '@/utils/PresentedError';
 import type { JSONSchema4 } from 'json-schema';
-import { stringify, parse } from 'yaml';
+import { stringify } from '@/utils/yaml';
+import { parse } from 'yaml';
 
 type GroupVersion = V2APIVersionDiscovery & { group?: string, groupVersion: string };
 
@@ -291,7 +292,7 @@ const newDraft = async () => {
       name: crypto.randomUUID().split('-')[0],
     },
   };
-  const doc = stringify(template, null, { indentSeq: true });
+  const doc = stringify(template);
   const r: ObjectRecord = {
     object: doc,
     metadata: {
