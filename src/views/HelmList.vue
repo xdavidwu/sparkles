@@ -236,7 +236,7 @@ const install = (chart: Array<Chart>, values: object, name: string) => {
         :row-props="{class: 'darken'}" :group-by="[{ key: 'name', order: 'asc'}]"
         disable-sort>
         <template #group-header='groupProps'>
-          <VDataTableRow v-bind='{ ...groupProps, item: latestRevision(groupProps.item.items) }' class="group-header">
+          <VDataTableRow v-bind="groupProps" :item="latestRevision(groupProps.item.items)" class="group-header">
             <template #[`item.data-table-group`]='{ value }'>
               <VBtn size="small" variant="text"
                 :icon="groupProps.isGroupOpen(groupProps.item) ? '$expand' : '$next'"
