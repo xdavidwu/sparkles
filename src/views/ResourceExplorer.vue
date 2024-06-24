@@ -242,6 +242,8 @@ const save = async (r: ObjectRecord, key: string) => {
     }
   }
 
+  const orig = r.object.trim();
+
   r.object = await (await anyApi[
     `${method}${r.type.scope}CustomObjectRaw`
   ]({
@@ -254,7 +256,6 @@ const save = async (r: ObjectRecord, key: string) => {
     body: new Blob([r.object], { type: 'application/yaml' }),
   }, chainOverrideFunction(fromYAML, asYAML))).raw.text();
 
-  // TODO should probably reset part of editor state (selection?)
   r.unsaved = false;
   r.editing = false;
 
@@ -266,6 +267,14 @@ const save = async (r: ObjectRecord, key: string) => {
     tab.value = newKey;
     // removing key in this tick would affect tab selection
     nextTick(() => inspectedObjects.value.delete(key));
+  } else if (r.object.trim() != orig) {
+    // server-side change, local editor state (scroll, selection) is likely messed up
+    // dispose editor state via re-mount
+    inspectedObjects.value.delete(key);
+    nextTick(() => {
+      inspectedObjects.value.set(key, r);
+      tab.value = key;
+    });
   }
 };
 
