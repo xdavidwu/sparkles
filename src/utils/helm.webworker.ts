@@ -12,7 +12,10 @@ import { errorIsResourceNotFound } from '@/utils/api';
 import { PresentedError } from '@/utils/PresentedError';
 import { parseAllDocuments } from 'yaml';
 import { stringify } from '@/utils/yaml';
-import { type Chart, type Release, Status } from '@/utils/helm';
+import {
+  type Chart, type Release, type SerializedChart,
+  Status,
+} from '@/utils/helm';
 import { type V2APIGroupDiscovery, resolveObject } from '@/utils/discoveryV2';
 import { isSameKubernetesObject, type KubernetesObject } from '@/utils/objects';
 import helmWasmInit from '@/utils/helm.wasm?init';
@@ -108,6 +111,9 @@ const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseO
   );
   return result;
 };
+
+const toSerializedChart = (chart: Chart): SerializedChart =>
+  JSON.parse(JSON.stringify(chart, arrayBufferReplacer));
 
 const releaseSecretType = 'helm.sh/release.v1';
 
@@ -498,7 +504,7 @@ const fns = {
         status: Status.PENDING_INSTALL,
         description: 'Initial install underway',
       },
-      chart: chart[0],
+      chart: toSerializedChart(chart[0]),
       config: values,
       manifest,
       version: 1,

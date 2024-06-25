@@ -76,6 +76,12 @@ export interface File {
   data: ArrayBuffer;
 }
 
+// serialized variants are with unparsed base64 data,
+// for operations on persisted releases, which usually don't need them
+export interface SerializedFile extends Omit<File, 'data'> {
+  data: string;
+}
+
 // helm.sh/helm/v3/pkg/chart.Lock
 export interface Lock {
   generated: string;
@@ -93,12 +99,18 @@ export interface Chart {
   files: Array<File>;
 }
 
+export interface SerializedChart extends Omit<Chart, 'templates' | 'schema' | 'files'> {
+  templates: Array<SerializedFile>;
+  schema?: string;
+  files: Array<SerializedFile>;
+}
+
 // helm.sh/helm/v3/pkg/release.Release
 // labels are serialized externally
 export interface ReleaseWithoutLabels {
   name: string;
   info: Info;
-  chart: Chart;
+  chart: SerializedChart;
   config: object;
   manifest: string;
   hooks?: Array<unknown>; // TODO
