@@ -16,7 +16,7 @@ import TabsWindow from '@/components/TabsWindow.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
 import WindowItem from '@/components/WindowItem.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
-import { ref, watch, toRaw } from 'vue';
+import { computed, ref, watch, toRaw } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -71,6 +71,9 @@ const releases = computedAsync(async () =>
     }
     return b.version - a.version;
   }), []);
+
+const names = computed(() => Array.from(releases.value.map((r) => r.name)
+  .reduce((a, v) => a.set(v, true), new Map<string, boolean>()).keys()));
 
 const columns = [
   {
@@ -304,7 +307,7 @@ const install = (chart: Array<Chart>, values: object, name: string) => {
     </WindowItem>
   </TabsWindow>
   <VDialog v-model="creating">
-    <HelmCreate @apply="install" @cancel="creating = false" />
+    <HelmCreate :used-names="names" @apply="install" @cancel="creating = false" />
   </VDialog>
   <ProgressDialog :model-value="!progressCompleted" :title="operation" :text="progress" />
 </template>

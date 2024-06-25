@@ -228,7 +228,6 @@ const fns = {
     progress('Parsing resources to delete');
 
     const targetResources: Array<KubernetesObject> = parseAllDocuments(target.manifest).map((d) => d.toJS());
-    // TODO sort? helm.sh/helm/v3/pkg/releaseutil.UninstallOrder
     const toDelete = targetResources.filter((r) => !shouldKeepResource(r)).sort(uninstallOrderCompare);
 
     progress('Deleting resources');
