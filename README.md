@@ -9,7 +9,7 @@ Client-side only, with WebAssembly for Helm support
 - NodeJS
 - Go 1.21
 - Kubernetes cluster
-  - Kubernetes features and API versions in [KUBERNETES\_FEATURES.md](KUBERNETES_FEATURES.md)
+  - With feature gates and extension APIs in [KUBERNETES\_FEATURES.md](KUBERNETES_FEATURES.md)
 
 ## Deployment strategy
 
