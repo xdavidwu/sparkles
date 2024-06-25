@@ -47,6 +47,7 @@ import { PresentedError } from '@/utils/PresentedError';
 import type { JSONSchema4 } from 'json-schema';
 import { stringify } from '@/utils/yaml';
 import { parse } from 'yaml';
+import { createNameId } from 'mnemonic-id';
 
 type GroupVersion = V2APIVersionDiscovery & { group?: string, groupVersion: string };
 
@@ -289,7 +290,7 @@ const newDraft = async () => {
     metadata: {
       namespace: type.scope === V2ResourceScope.Namespaced ? selectedNamespace.value : undefined,
       // make it order last to be friendlier
-      name: crypto.randomUUID().split('-')[0],
+      name: createNameId(),
     },
   };
   const doc = stringify(template);
@@ -307,8 +308,9 @@ const newDraft = async () => {
 
   r.schema = await maybeGetSchema(r) ?? undefined;
 
-  inspectedObjects.value.set(template.metadata!.name!, r);
-  tab.value = template.metadata!.name!;
+  const key = crypto.randomUUID();
+  inspectedObjects.value.set(key, r);
+  tab.value = key;
 };
 
 const closeTab = (key: string) => {

@@ -10,6 +10,7 @@ import {
 } from '@/utils/helm';
 import { PresentedError } from '@/utils/PresentedError';
 import { parse } from 'yaml';
+import { createNameId } from 'mnemonic-id';
 
 const emit = defineEmits<{
   (e: 'apply', chart: Array<Chart>, values: object, name: string): void;
@@ -33,8 +34,7 @@ const values = ref('');
 const defaults = ref('');
 const schema = ref({});
 const parsedValues = ref({});
-const name = ref(`s${crypto.randomUUID().split('-')[0]}`); // TODO?
-// TODO any restriction on helm side?
+const name = ref(createNameId());
 const nameError = computed(() => {
   const trimmed = name.value.trim();
   if (props.usedNames && props.usedNames.indexOf(trimmed) != -1) {
