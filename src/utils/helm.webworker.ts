@@ -9,7 +9,9 @@ import {
 import { CoreV1Api, type V1Secret, type VersionInfo } from '@/kubernetes-api/src';
 import { AnyApi } from '@/utils/AnyApi';
 import { errorIsResourceNotFound } from '@/utils/api';
+import { PresentedError } from '@/utils/PresentedError';
 import { parseAllDocuments } from 'yaml';
+import { stringify } from '@/utils/yaml';
 import { type Chart, type Release, Status } from '@/utils/helm';
 import { type V2APIGroupDiscovery, resolveObject } from '@/utils/discoveryV2';
 import { isSameKubernetesObject, type KubernetesObject } from '@/utils/objects';
@@ -97,8 +99,6 @@ const arrayBufferReplacer = (key: string, value: any): any => {
 };
 
 const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseOptions) => {
-  await setupGo();
-  progress('Rendering resource templates');
   const result = await _helm_renderTemplate(
     chart.map((c) => JSON.stringify(c, arrayBufferReplacer)),
     JSON.stringify(value),
@@ -187,13 +187,54 @@ const uninstallOrder = [
   "PriorityClass",
 ];
 
+// helm.sh/v3/pkg/releaseutil.InstallOrder
+// NOT a reverse of uninstallOrder
+const installOrder = [
+  "PriorityClass",
+  "Namespace",
+  "NetworkPolicy",
+  "ResourceQuota",
+  "LimitRange",
+  "PodSecurityPolicy",
+  "PodDisruptionBudget",
+  "ServiceAccount",
+  "Secret",
+  "SecretList",
+  "ConfigMap",
+  "StorageClass",
+  "PersistentVolume",
+  "PersistentVolumeClaim",
+  "CustomResourceDefinition",
+  "ClusterRole",
+  "ClusterRoleList",
+  "ClusterRoleBinding",
+  "ClusterRoleBindingList",
+  "Role",
+  "RoleList",
+  "RoleBinding",
+  "RoleBindingList",
+  "Service",
+  "DaemonSet",
+  "Pod",
+  "ReplicationController",
+  "ReplicaSet",
+  "Deployment",
+  "HorizontalPodAutoscaler",
+  "StatefulSet",
+  "Job",
+  "CronJob",
+  "IngressClass",
+  "Ingress",
+  "APIService",
+];
+
 // helm.sh/v3/pkg/releaseutil.lessByKind
 // reversed for Array.prototype.sort
-const uninstallOrderCompare = (a: KubernetesObject, b: KubernetesObject) => {
+const orderCompare = (order: Array<string>) => (a: KubernetesObject, b: KubernetesObject) => {
   const akind = a.kind ?? '';
   const bkind = b.kind ?? '';
-  const ai = uninstallOrder.indexOf(akind);
-  const bi = uninstallOrder.indexOf(bkind);
+  const ai = order.indexOf(akind);
+  const bi = order.indexOf(bkind);
   if (ai == -1 && bi == -1) {
     return akind.localeCompare(bkind);
   }
@@ -205,6 +246,9 @@ const uninstallOrderCompare = (a: KubernetesObject, b: KubernetesObject) => {
   }
   return ai - bi;
 };
+
+const uninstallOrderCompare = orderCompare(uninstallOrder);
+const installOrderCompare = orderCompare(installOrder);
 
 const fns = {
   // helm.sh/helm/v3/pkg/action.Uninstall.Run
@@ -392,6 +436,15 @@ const fns = {
     // TODO history retention
   },
   install: async (chart: Array<Chart>, values: object, name: string, namespace: string) => {
+    await setupGo();
+
+    const config = await getConfig();
+    const api = new CoreV1Api(config);
+    const anyApi = new AnyApi(config);
+    // TODO support crds
+
+    progress('Rendering resource templates');
+
     const results = await renderTemplate(chart, values, {
       Name: name,
       Namespace: namespace,
@@ -400,6 +453,117 @@ const fns = {
       IsInstall: true,
     });
     console.log(results);
+
+    let notes = '';
+
+    // helm seems to allow fooNOTES.txt?
+    Object.keys(results).filter((f) => f.endsWith('NOTES.txt')).forEach((f) => {
+      if (f == `${chart[0].metadata.name}/templates/NOTES.txt`) {
+        notes = results[f];
+      }
+      // XXX do something with subnotes? but that's not helm default
+      delete results[f];
+    });
+    // TODO make it proper
+    console.log(notes);
+
+    // TODO detect and seperate hooks
+    const files = Object.entries(results).map(([k, v]) => 
+      parseAllDocuments(v).map((d) => ({
+        filename: k,
+        resource: d.toJS() as KubernetesObject,
+      })).filter((f) => f.resource),
+    ).reduce((a, v) => a.concat(v), []).sort((a, b) => installOrderCompare(a.resource, b.resource));
+
+    const manifest = files.map((f) =>
+      // XXX cut from original doc?
+      `---\n# Source: ${f.filename}\n${stringify(f.resource)}\n`).join('');
+
+    const resources = files.map((f) => f.resource);
+
+    progress('Checking resource conflicts');
+
+    const groups = await getGroups();
+
+    const resolved = resources.map((r) => ({ r, kindInfo: resolveObject(groups, r) }));
+
+    // XXX helm allows adoption if managed, but this is for installing a new release?
+    await Promise.all(resolved.map(async (r) => {
+      try {
+        await anyApi[`get${r.kindInfo.scope!}CustomObject`]({
+          group: r.kindInfo.group!,
+          version: r.kindInfo.version!,
+          plural: r.kindInfo.resource!,
+          namespace: r.r.metadata!.namespace!,
+          name: r.r.metadata!.name!,
+        });
+      } catch (e) {
+        if (await errorIsResourceNotFound(e)) {
+          return;
+        }
+        throw e;
+      }
+      // TODO rephrase
+      throw new PresentedError(`Cannot install: ${r.kindInfo.responseKind!.kind} ${r.r.metadata!.name} already exists`);
+    }));
+
+    progress('Creating release');
+
+    const release: Release = {
+      name,
+      info: {
+        first_deployed: (new Date()).toISOString(),
+        last_deployed: (new Date()).toISOString(),
+        status: Status.PENDING_INSTALL,
+        description: 'Initial install underway',
+      },
+      chart: chart[0],
+      config: values,
+      manifest,
+      version: 1,
+      namespace,
+      labels: {},
+    };
+
+    const secret = await encodeSecret(release);
+    await api.createNamespacedSecret({ namespace: secret.metadata!.namespace!, body: secret });
+
+    progress('Creating resources');
+
+    resolved.forEach((v) => {
+      const r = v.r;
+      if (!r.metadata!.annotations) {
+        r.metadata!.annotations = {};
+      }
+      if (!r.metadata!.labels) {
+        r.metadata!.labels = {};
+      }
+      r.metadata!.labels['app.kubernetes.io/managed-by'] = 'Helm';
+      r.metadata!.annotations['meta.helm.sh/release-name'] = release.name;
+      r.metadata!.annotations['meta.helm.sh/release-namespace'] = release.namespace;
+    });
+
+    await resolved.reduce(async (a, r) => {
+      await a;
+      await anyApi[`create${r.kindInfo.scope!}CustomObject`]({
+        group: r.kindInfo.group!,
+        version: r.kindInfo.version!,
+        plural: r.kindInfo.resource!,
+        namespace: r.r.metadata!.namespace!,
+        body: r.r,
+      });
+    }, (async () => {})());
+
+    progress('Marking release status');
+
+    release.info.status = Status.DEPLOYED;
+    release.info.description = 'Install complete';
+    const finalSecret = await encodeSecret(release);
+    await api.replaceNamespacedSecret({
+      namespace: finalSecret.metadata!.namespace!,
+      name: finalSecret.metadata!.name!,
+      body: finalSecret,
+    });
   }
 };
 

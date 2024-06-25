@@ -33,7 +33,7 @@ const values = ref('');
 const defaults = ref('');
 const schema = ref({});
 const parsedValues = ref({});
-const name = ref(crypto.randomUUID().split('-')[0]);
+const name = ref(`s${crypto.randomUUID().split('-')[0]}`); // TODO?
 // TODO any restriction on helm side?
 const nameError = computed(() => {
   const trimmed = name.value.trim();
