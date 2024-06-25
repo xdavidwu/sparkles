@@ -74,3 +74,16 @@ kubectl proxy --reject-paths=
   - Like above but without client side tooling
 - Production bundle + OIDC
   - No configuration or tooling needed at client side
+
+## Helm support
+
+Helm is re-implemented in TypeScript, except templating, which is ported to WebAssembly.
+
+For Helm repositories, due to cross-origin limitations, currently only a repository hosting under `/charts/` is supported.
+
+`utils/helm-repo-mirror.sh` helps to mirror a HTTP-based Helm repository.
+
+```sh
+# ./utils/helm-repo-mirror.sh REPO_URL DESTINATION HOSTED_AT
+./utils/helm-repo-mirror.sh https://charts.bitnami.com/bitnami ./public/charts/ http://localhost:5173/charts/
+```
