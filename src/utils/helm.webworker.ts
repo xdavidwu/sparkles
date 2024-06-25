@@ -250,28 +250,62 @@ const orderCompare = (order: Array<string>) => (a: KubernetesObject, b: Kubernet
 const uninstallOrderCompare = orderCompare(uninstallOrder);
 const installOrderCompare = orderCompare(installOrder);
 
+const setupClients = async () => {
+  const config = await getConfig();
+  return { api: new CoreV1Api(config), anyApi: new AnyApi(config) };
+};
+
+const updateRelease = async (api: CoreV1Api, release: Release) => {
+  const secret = await encodeSecret(release);
+  await api.replaceNamespacedSecret({
+    namespace: secret.metadata!.namespace!,
+    name: secret.metadata!.name!,
+    body: secret,
+  });
+};
+
+const createRelease = async (api: CoreV1Api, release: Release) => {
+  const secret = await encodeSecret(release);
+  await api.createNamespacedSecret({
+    namespace: secret.metadata!.namespace!,
+    body: secret,
+  });
+};
+
+const parseManifests = (manifest: string) =>
+  parseAllDocuments(manifest).map((d) => d.toJS() as KubernetesObject);
+
+const addManagedMetadata = (resource: KubernetesObject, release: Release): KubernetesObject => ({
+  ...resource,
+  metadata: {
+    ...resource.metadata,
+    annotations: {
+      ...resource.metadata!.annotations,
+      'meta.helm.sh/release-name': release.name,
+      'meta.helm.sh/release-namespace': release.namespace,
+    },
+    labels: {
+      ...resource.metadata!.labels,
+      'app.kubernetes.io/managed-by': 'Helm',
+    },
+  },
+});
+
 const fns = {
   // helm.sh/helm/v3/pkg/action.Uninstall.Run
   uninstall: async (target: Release) => {
     progress('Marking release as uninstalling');
 
-    const config = await getConfig();
-    const api = new CoreV1Api(config);
-    const anyApi = new AnyApi(config);
+    const { api, anyApi } = await setupClients();
 
     target.info.status = Status.UNINSTALLING;
     target.info.deleted = (new Date()).toISOString();
     target.info.description = 'Deletion in progress (or sliently failed)';
-    const updatedSecret = await encodeSecret(target);
-    await api.replaceNamespacedSecret({
-      namespace: updatedSecret.metadata!.namespace!,
-      name: updatedSecret.metadata!.name!,
-      body: updatedSecret,
-    });
+    await updateRelease(api, target);
 
     progress('Parsing resources to delete');
 
-    const targetResources: Array<KubernetesObject> = parseAllDocuments(target.manifest).map((d) => d.toJS());
+    const targetResources = parseManifests(target.manifest);
     const toDelete = targetResources.filter((r) => !shouldKeepResource(r)).sort(uninstallOrderCompare);
 
     progress('Deleting resources');
@@ -296,20 +330,13 @@ const fns = {
 
     target.info.status = Status.UNINSTALLED;
     target.info.description = 'Uninstallation complete';
-    const finalSecret = await encodeSecret(target);
-    await api.replaceNamespacedSecret({
-      namespace: finalSecret.metadata!.namespace!,
-      name: finalSecret.metadata!.name!,
-      body: finalSecret,
-    });
+    await updateRelease(api, target);
   },
   // helm.sh/helm/v3/pkg/action.Rollback.Run
   rollback: async (target: Release, releases: Array<Release>) => {
     progress('Creating new release');
 
-    const config = await getConfig();
-    const api = new CoreV1Api(config);
-    const anyApi = new AnyApi(config);
+    const { api, anyApi } = await setupClients();
 
     const latest = releases.filter((r) => r.name == target.name)[0];
 
@@ -323,89 +350,57 @@ const fns = {
     };
     release.version = latest.version + 1;
 
-    const secret = await encodeSecret(release);
-    await api.createNamespacedSecret({ namespace: secret.metadata!.namespace!, body: secret });
+    await createRelease(api, release);
 
     progress('Calculating rollback difference')
 
-    const targetResources: Array<KubernetesObject> = parseAllDocuments(target.manifest).map((d) => d.toJS());
-    const latestResources: Array<KubernetesObject> = parseAllDocuments(latest.manifest).map((d) => d.toJS());
+    const targetResources = parseManifests(release.manifest);
+    const latestResources = parseManifests(latest.manifest);
 
-    targetResources.forEach((r) => {
-      if (!r.metadata!.annotations) {
-        r.metadata!.annotations = {};
-      }
-      if (!r.metadata!.labels) {
-        r.metadata!.labels = {};
-      }
-      r.metadata!.labels['app.kubernetes.io/managed-by'] = 'Helm';
-      r.metadata!.annotations['meta.helm.sh/release-name'] = target.name;
-      r.metadata!.annotations['meta.helm.sh/release-namespace'] = target.namespace;
-    });
-
-    const groups = await getGroups();
-
-    // create/update first, then delete
-    // manifests are already sorted in installation order
-    const ops = targetResources.map((r) => ({
-      op: latestResources.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
-      target: r,
-    })).concat(latestResources.filter(
+    const createsAndUpdates = targetResources.map((r) => ({
+      type: latestResources.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
+      target: addManagedMetadata(r, release),
+    }));
+    const deletes = latestResources.filter(
       (r) => !targetResources.some((t) => isSameKubernetesObject(r, t)) && !shouldKeepResource(r),
     // helm does not seems to care about ordering here, but probably should
     ).sort(uninstallOrderCompare).map((r) => ({
-      op: 'delete',
+      type: 'delete',
       target: r,
-    }))).map((op) => ({
-      ...op,
+    }));
+
+    const groups = await getGroups();
+    // create/update first, then delete
+    // manifests are already sorted in installation order
+    const ops = createsAndUpdates.concat(deletes).map((op) => ({
+      type: op.type as 'create' | 'replace' | 'delete',
+      target: op.target,
       kindInfo: resolveObject(groups, op.target),
     }));
 
     progress('Applying rollback');
 
     await ops.reduce(async (a, op) => {
-      const create = () => anyApi[`create${op.kindInfo.scope!}CustomObject`]({
-        group: op.kindInfo.group,
-        version: op.kindInfo.version,
-        plural: op.kindInfo.resource!,
-        namespace: op.target.metadata!.namespace!,
-        body: op.target,
-        fieldManager,
-      });
-      await a;
-      switch (op.op) {
-      case 'create':
-        await create();
-        return;
-      case 'replace':
-        try {
-          await anyApi[`replace${op.kindInfo.scope!}CustomObject`]({
-            group: op.kindInfo.group,
-            version: op.kindInfo.version,
-            plural: op.kindInfo.resource!,
-            namespace: op.target.metadata!.namespace!,
-            name: op.target.metadata!.name!,
-            body: op.target,
-            fieldManager,
-          });
-          return;
-        } catch (e) {
-          // some (apps/v1 Deployment) does not treat PUT without existing resource as create, but the others does
-          if (await errorIsResourceNotFound(e)) {
-            await create();
-            return;
-          }
-          throw e;
-        }
-      case 'delete':
-        await anyApi[`delete${op.kindInfo.scope!}CustomObject`]({
+      const act = (verb: 'create' | 'replace' | 'delete') =>
+        anyApi[`${verb}${op.kindInfo.scope!}CustomObject`]({
           group: op.kindInfo.group,
           version: op.kindInfo.version,
           plural: op.kindInfo.resource!,
           namespace: op.target.metadata!.namespace!,
           name: op.target.metadata!.name!,
+          body: op.target,
+          fieldManager,
         });
-        return;
+      await a;
+      try {
+        await act(op.type);
+      } catch (e) {
+        // some (apps/v1 Deployment) does not treat PUT without existing resource as create, but the others does
+        if (op.type == 'replace' && await errorIsResourceNotFound(e)) {
+          await act('create');
+          return;
+        }
+        throw e;
       }
     }, (async () => {})());
     // TODO error handling, undo on failure?
@@ -418,29 +413,19 @@ const fns = {
       (r) => r.name == target.name && r.info.status == Status.DEPLOYED,
     ).map(async (r) => {
       r.info.status = Status.SUPERSEDED;
-      const updatedSecret = await encodeSecret(r);
-      return await api.replaceNamespacedSecret({
-        namespace: updatedSecret.metadata!.namespace!,
-        name: updatedSecret.metadata!.name!,
-        body: updatedSecret,
-      });
+      await updateRelease(api, r);
     }));
 
     release.info.status = Status.DEPLOYED;
-    const finalSecret = await encodeSecret(release);
-    await api.replaceNamespacedSecret({
-      namespace: finalSecret.metadata!.namespace!,
-      name: finalSecret.metadata!.name!,
-      body: finalSecret,
-    });
+    await updateRelease(api, release);
     // TODO history retention
   },
+  // helm.sh/helm/v3/pkg/action.Install.RunWithContext
   install: async (chart: Array<Chart>, values: object, name: string, namespace: string) => {
     await setupGo();
 
-    const config = await getConfig();
-    const api = new CoreV1Api(config);
-    const anyApi = new AnyApi(config);
+    const { api, anyApi } = await setupClients();
+
     // TODO support crds
 
     progress('Rendering resource templates');
@@ -452,7 +437,6 @@ const fns = {
       IsUpgrade: false,
       IsInstall: true,
     });
-    console.log(results);
 
     let notes = '';
 
@@ -468,11 +452,8 @@ const fns = {
     console.log(notes);
 
     // TODO detect and seperate hooks
-    const files = Object.entries(results).map(([k, v]) => 
-      parseAllDocuments(v).map((d) => ({
-        filename: k,
-        resource: d.toJS() as KubernetesObject,
-      })).filter((f) => f.resource),
+    const files = Object.entries(results).map(([k, v]) =>
+      parseManifests(v).filter((r) => r).map((r) => ({ filename: k, resource: r })),
     ).reduce((a, v) => a.concat(v), []).sort((a, b) => installOrderCompare(a.resource, b.resource));
 
     const manifest = files.map((f) =>
@@ -503,8 +484,8 @@ const fns = {
         }
         throw e;
       }
-      // TODO rephrase
-      throw new PresentedError(`Cannot install: ${r.kindInfo.responseKind!.kind} ${r.r.metadata!.name} already exists`);
+      const groupVersion = r.kindInfo.group ? `${r.kindInfo.group}/${r.kindInfo.version}` : r.kindInfo.version;
+      throw new PresentedError(`Cannot install Helm release ${name}:\nResource conflict: ${groupVersion} ${r.kindInfo.responseKind!.kind} ${r.r.metadata!.name} already exists`);
     }));
 
     progress('Creating release');
@@ -525,25 +506,14 @@ const fns = {
       labels: {},
     };
 
-    const secret = await encodeSecret(release);
-    await api.createNamespacedSecret({ namespace: secret.metadata!.namespace!, body: secret });
+    await createRelease(api, release);
 
     progress('Creating resources');
 
-    resolved.forEach((v) => {
-      const r = v.r;
-      if (!r.metadata!.annotations) {
-        r.metadata!.annotations = {};
-      }
-      if (!r.metadata!.labels) {
-        r.metadata!.labels = {};
-      }
-      r.metadata!.labels['app.kubernetes.io/managed-by'] = 'Helm';
-      r.metadata!.annotations['meta.helm.sh/release-name'] = release.name;
-      r.metadata!.annotations['meta.helm.sh/release-namespace'] = release.namespace;
-    });
-
-    await resolved.reduce(async (a, r) => {
+    await resolved.map((v) => ({
+      r: addManagedMetadata(v.r, release),
+      kindInfo: v.kindInfo,
+    })).reduce(async (a, r) => {
       await a;
       await anyApi[`create${r.kindInfo.scope!}CustomObject`]({
         group: r.kindInfo.group!,
@@ -551,6 +521,7 @@ const fns = {
         plural: r.kindInfo.resource!,
         namespace: r.r.metadata!.namespace!,
         body: r.r,
+        fieldManager,
       });
     }, (async () => {})());
 
@@ -558,12 +529,7 @@ const fns = {
 
     release.info.status = Status.DEPLOYED;
     release.info.description = 'Install complete';
-    const finalSecret = await encodeSecret(release);
-    await api.replaceNamespacedSecret({
-      namespace: finalSecret.metadata!.namespace!,
-      name: finalSecret.metadata!.name!,
-      body: finalSecret,
-    });
+    await updateRelease(api, release);
   }
 };
 
