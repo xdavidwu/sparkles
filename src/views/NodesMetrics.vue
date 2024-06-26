@@ -188,10 +188,11 @@ onUnmounted(pause);
 </script>
 
 <template>
-  <div style="display: flow-root">
-    <VSwitch v-model="stacked" label="Stacked" hide-details class="float-right" />
+  <div class="mb-2" style="display: flow-root">
+    <VSwitch v-model="stacked" label="Stacked" class="float-right"
+      density="compact" hide-details />
   </div>
-  <VRow>
+  <VRow dense>
     <VCol v-for="(opt, i) in chartOptions" :key="i" cols="12" md="6">
       <VCard><template #text>
         <Line style="height: 250px" :data="chartData" :options="opt" />
