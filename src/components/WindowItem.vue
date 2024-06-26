@@ -3,9 +3,12 @@ import { VTabsWindowItem } from 'vuetify/components';
 import { computed, inject, provide, ref } from 'vue';
 import { windowSelectionInjectionKey, windowVisibilityInjectionKey } from '@/utils/keys';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   value: string;
-}>();
+  noGutters?: boolean;
+}>(), {
+  noGutters: false,
+});
 
 const selection = inject(windowSelectionInjectionKey, ref(''));
 
@@ -15,7 +18,7 @@ provide(windowVisibilityInjectionKey, visible);
 </script>
 
 <template>
-  <VTabsWindowItem :value="props.value" class="pa-4">
+  <VTabsWindowItem :value="props.value" :class="{ 'pa-4': !props.noGutters }">
     <slot />
   </VTabsWindowItem>
 </template>

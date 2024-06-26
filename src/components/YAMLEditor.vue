@@ -32,10 +32,12 @@ const foldOnReady: Array<Array<PathHistoryItem>> = [
 ];
 
 const props = withDefaults(defineProps<{
-  disabled?: boolean,
-  schema?: JSONSchema4,
+  disabled?: boolean;
+  schema?: JSONSchema4;
+  innerGutters: boolean;
 }>(), {
   disabled: false,
+  innerGutters: false,
 });
 
 // yaml.parse has more insight on errors,
@@ -169,11 +171,35 @@ const extensions = computed(() => {
 
 <template>
   <Codemirror class="rounded overflow-hidden d-block elevation-1"
+    :class="{ 'inner-gutters': props.innerGutters }"
     :autofocus="!disabled" :extensions="extensions" @ready="codemirrorReady" />
 </template>
 
 <style scoped>
 :deep(.cm-tooltip) {
   z-index: 10000 !important;
+}
+
+.inner-gutters :deep(.cm-content) {
+  padding: 16px 16px 16px 0;
+  background-color: #282c34;
+  background-clip: content-box;
+}
+
+.inner-gutters :deep(.cm-gutters) {
+  margin-left: 16px;
+  /* cm code auto align it with content, hack it with padding and clipping */
+  padding: 16px 0;
+  background: #282c34;
+  background-clip: content-box;
+}
+
+.inner-gutters :deep(.cm-gutter) {
+  /* padding on gutters mess with auto align from cm code, revert it */
+  margin-top: -16px;
+}
+
+.inner-gutters :deep(.cm-editor) {
+  background-color: var(--v-theme-background);
 }
 </style>
