@@ -188,7 +188,7 @@ onUnmounted(pause);
 </script>
 
 <template>
-  <div class="overflow-hidden">
+  <div style="display: flow-root">
     <VSwitch v-model="stacked" label="Stacked" hide-details class="float-right" />
   </div>
   <VRow>
