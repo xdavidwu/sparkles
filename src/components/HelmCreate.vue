@@ -156,4 +156,9 @@ const apply = () => emit('apply', parsedChart.value!, parsedValues.value, name.v
   margin-top: 4px;
   margin-bottom: 8px;
 }
+
+/* YAMLEditor popups */
+:deep(.v-tabs-window) {
+  overflow: visible !important;
+}
 </style>

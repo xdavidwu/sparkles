@@ -181,7 +181,7 @@ const extensions = computed(() => {
 </script>
 
 <template>
-  <Codemirror class="rounded overflow-hidden d-block elevation-1"
+  <Codemirror class="rounded d-block elevation-1"
     :autofocus="!disabled" :extensions="extensions" @ready="codemirrorReady"
     @update="viewUpdate" />
 </template>
