@@ -1,11 +1,11 @@
 <script lang="ts" setup>
 import LinkedTooltipContent from '@/components/LinkedTooltipContent.vue';
-import { createApp, computed, watch } from 'vue';
+import { createApp, computed, ref, watch } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { EditorState } from '@codemirror/state';
-import { EditorView, hoverTooltip } from '@codemirror/view';
+import { EditorView, hoverTooltip, type ViewUpdate } from '@codemirror/view';
 import { autocompletion } from '@codemirror/autocomplete';
-import { linter, lintGutter, type Diagnostic } from '@codemirror/lint';
+import { diagnosticCount, linter, lintGutter, type Diagnostic } from '@codemirror/lint';
 import { yaml, yamlLanguage } from '@codemirror/lang-yaml';
 import { foldEffect, syntaxTree, ensureSyntaxTree } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
@@ -37,6 +37,12 @@ const props = withDefaults(defineProps<{
 }>(), {
   disabled: false,
 });
+
+const emit = defineEmits<{
+  (e: 'update:diagnosticCount', value: number): void;
+}>();
+
+const diagCount = ref(0);
 
 // yaml.parse has more insight on errors,
 // but lezer can catch multiple errors via recovery, and is already parsed
@@ -133,6 +139,14 @@ const tooltipExtension = hoverTooltip(async (view, pos, side) => {
   return { ...h, ...posOverride, arrow: false };
 });
 
+const viewUpdate = (update: ViewUpdate) => {
+  const count = diagnosticCount(update.state);
+  if (count != diagCount.value) {
+    diagCount.value = count;
+    emit('update:diagnosticCount', count);
+  }
+}
+
 const extensions = computed(() => {
   const e = [
     oneDark,
@@ -168,7 +182,8 @@ const extensions = computed(() => {
 
 <template>
   <Codemirror class="rounded overflow-hidden d-block elevation-1"
-    :autofocus="!disabled" :extensions="extensions" @ready="codemirrorReady" />
+    :autofocus="!disabled" :extensions="extensions" @ready="codemirrorReady"
+    @update="viewUpdate" />
 </template>
 
 <style scoped>

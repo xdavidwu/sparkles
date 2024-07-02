@@ -33,6 +33,7 @@ const step = ref<Step>(Step.SELECT_CHART);
 const values = ref('');
 const defaults = ref('');
 const schema = ref({});
+const diagnosticCount = ref(0);
 const parsedValues = ref({});
 const name = ref(createNameId());
 const nameError = computed(() => {
@@ -59,6 +60,8 @@ const stepCompleted = computed(() => {
   switch (step.value) {
   case Step.SELECT_CHART:
     return !!selectedChart.value;
+  case Step.SET_VALUES:
+    return !diagnosticCount.value;
   case Step.SET_NAME:
     return !nameError.value;
   default:
@@ -90,7 +93,6 @@ const proceed = async (next: () => void) => {
     }
     break;
   case Step.SET_VALUES:
-    // TODO prevent on codemirror diag?
     try {
       parsedValues.value = parse(values.value);
     } catch (e) {
@@ -116,7 +118,8 @@ const apply = () => emit('apply', parsedChart.value!, parsedValues.value, name.v
       <VTabs :items="valuesTabs">
         <template #[`item.values`]>
           <YAMLEditor v-model="values" :schema="schema"
-            :style="`height: calc(100dvh - 48px - 128px - 48px)`" />
+            :style="`height: calc(100dvh - 48px - 128px - 48px)`"
+            v-model:diagnosticCount="diagnosticCount" />
         </template>
         <template #[`item.defaults`]>
           <YAMLEditor :model-value="defaults" :key="defaults"
