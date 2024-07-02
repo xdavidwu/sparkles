@@ -353,6 +353,7 @@ const fns = {
       status: Status.PENDING_ROLLBACK,
       notes: release.info.notes,
       description: `Rollback to ${release.version}`,
+      deleted: '',
     };
     release.version = latest.version + 1;
 
@@ -503,6 +504,7 @@ const fns = {
         last_deployed: (new Date()).toISOString(),
         status: Status.PENDING_INSTALL,
         description: 'Initial install underway',
+        deleted: '',
       },
       chart: toSerializedChart(chart[0]),
       config: values,

@@ -5,8 +5,6 @@ import { parse } from 'yaml';
 // XXX: the library helm uses support v4,6,7, but codemirror-json-schema uses v4
 import type { JSONSchema4 } from 'json-schema';
 
-// XXX: why omitempty everywhere?
-
 // helm.sh/helm/v3/pkg/release.Status
 export enum Status {
   UNKNOWN = "unknown",
@@ -22,20 +20,22 @@ export enum Status {
 
 // helm.sh/helm/v3/pkg/release.Info
 export interface Info {
-  first_deployed?: string;
-  last_deployed?: string;
-  deleted?: string;
-  description?: string; // TODO is this always set?
-  status?: Status; // TODO is this always set?
+  // empty string when time.Time.IsZero via helm.sh/helm/v3/pkg/time.Time.MarshalJSON
+  first_deployed: string;
+  last_deployed: string;
+  deleted: string;
+
+  description: string; // unset in helm.sh/helm/v3/pkg/action/install.createRelease, but always set before persisting
+  status: Status; // omitempty, but always set by helm
   notes?: string;
-  resources?: object; // TODO is this even used now? Release.manifest?
+  // resources?: object; // used internally by helm.sh/helm/v3/pkg/action/status, never persisted in storage
 }
 
 // helm.sh/helm/v3/pkg/chart.Dependency
 export interface Dependency {
   name: string;
   version?: string;
-  repository?: string;
+  repository: string;
   condition?: string;
   tags?: Array<string>;
   enabled?: boolean;
@@ -44,6 +44,7 @@ export interface Dependency {
 }
 
 // helm.sh/helm/v3/pkg/chart.Metadata
+// omitempty everywhere, but loader does Chart.Validate
 export interface Metadata {
   name: string;
   home?: string;
@@ -60,7 +61,7 @@ export interface Metadata {
   apiVersion: string;
   condition?: string;
   tags?: string;
-  appVersion?: string; // TODO is this always set?
+  appVersion?: string; // not always set
   deprecated?: boolean;
   annotations?: {
     [key: string]: string;
@@ -112,7 +113,7 @@ export interface ReleaseWithoutLabels {
   info: Info;
   chart: SerializedChart;
   config: object;
-  manifest: string;
+  manifest: string; // unset in helm.sh/helm/v3/pkg/action/install.createRelease, but always set before persisting
   hooks?: Array<unknown>; // TODO
   version: number;
   namespace: string;
@@ -129,7 +130,7 @@ export interface ChartVersion extends Metadata {
   urls: Array<string>;
   created?: string;
   removed?: boolean;
-  digest?: string;
+  digest?: string; // sha256sum
 }
 
 // helm.sh/helm/v3/pkg/repo.IndexFile
