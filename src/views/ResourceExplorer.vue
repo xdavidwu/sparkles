@@ -398,11 +398,10 @@ watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true })
       <!-- TODO we should show info for type somewhere -->
       <FixedFab v-if="targetType.verbs.includes('create')" icon="$plus" @click="newDraft" />
     </WindowItem>
-    <WindowItem v-for="[key, r] in inspectedObjects" :key="key" :value="key" no-gutters>
-      <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px)`"
+    <WindowItem v-for="[key, r] in inspectedObjects" :key="key" :value="key">
+      <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
         v-model="r.object" :schema="r.schema" :disabled="!r.editing"
-        :selection="r.selection" :key="r.metadata.resourceVersion"
-        inner-gutters @change="() => r.unsaved = true" />
+        :selection="r.selection" :key="r.metadata.resourceVersion" @change="() => r.unsaved = true" />
 
       <FixedFab v-if="r.editing" icon="mdi-content-save" @click="() => save(r, key)" />
       <SpeedDialFab v-else-if="(targetType.verbs.includes('delete') || targetType.verbs.includes('update'))">
