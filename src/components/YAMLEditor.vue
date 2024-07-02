@@ -5,7 +5,7 @@ import { Codemirror } from 'vue-codemirror';
 import { EditorState } from '@codemirror/state';
 import { EditorView, hoverTooltip } from '@codemirror/view';
 import { autocompletion } from '@codemirror/autocomplete';
-import { linter, type Diagnostic } from '@codemirror/lint';
+import { linter, lintGutter, type Diagnostic } from '@codemirror/lint';
 import { yaml, yamlLanguage } from '@codemirror/lang-yaml';
 import { foldEffect, syntaxTree, ensureSyntaxTree } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
@@ -144,6 +144,10 @@ const extensions = computed(() => {
     yaml(),
   ];
 
+  if (props.schema) {
+    e.push(tooltipExtension, stateExtensions(props.schema as JSONSchema7));
+  }
+
   if (!props.disabled) {
     e.push(autocompletion({
       // TODO: no bring-your-own-tooltip,
@@ -151,18 +155,13 @@ const extensions = computed(() => {
       // XXX: default stying feels reversed on selection
       tooltipClass: () => 'text-caption elevation-1 rounded',
     }));
-    e.push(lezerParserLinter);
-  }
-
-  if (props.schema) {
-    if (!props.disabled) {
+    e.push(lezerParserLinter, lintGutter());
+    if (props.schema) {
       e.push(
         yamlLanguage.data.of({ autocomplete: yamlCompletion() }),
         linter(yamlSchemaLinter()), // TODO: how do we style it?
       );
     }
-
-    e.push(tooltipExtension, stateExtensions(props.schema as JSONSchema7));
   }
 
   return e;
@@ -180,6 +179,20 @@ const extensions = computed(() => {
   z-index: 10000 !important;
 }
 
+/* shrink them a bit */
+:deep(.cm-lint-marker) {
+  width: 10px;
+  height: 1em;
+}
+:deep(.cm-gutter-lint) {
+  width: 1em;
+}
+
+/* darker for gutter vs content, theme-one-dark darkBackground */
+:deep(.cm-gutters) {
+  background: #21252b;
+}
+
 .inner-gutters :deep(.cm-content) {
   padding: 16px 16px 16px 0;
   background-color: #282c34;
@@ -190,7 +203,6 @@ const extensions = computed(() => {
   margin-left: 16px;
   /* cm code auto align it with content, hack it with padding and clipping */
   padding: 16px 0;
-  background: #282c34;
   background-clip: content-box;
 }
 
