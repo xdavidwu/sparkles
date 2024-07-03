@@ -111,3 +111,15 @@ export const doSelfSubjectReview = async (config: Configuration): Promise<V1Self
     }
   }
 }
+
+export const serializeFetchError = (e: FetchError) => ({
+  type: 'FetchError',
+  cause: e.cause,
+  msg: e.message,
+});
+
+export const deserializeFetchError = (e: unknown) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const eany = e as any;
+  return new FetchError(eany.cause, eany.msg);
+};

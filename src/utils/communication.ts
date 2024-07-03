@@ -9,6 +9,7 @@ import type {
   CompletedMessage,
 } from '@/utils/fnCall.webworker';
 import { PresentedError } from '@/utils/PresentedError';
+import { deserializeFetchError } from '@/utils/api';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
@@ -60,8 +61,13 @@ export const handleErrorMessages = (e: MessageEvent): boolean => {
   if (data.type == 'error') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let e = data.error as any;
-    if (e.type == 'PresentedError') {
+    switch (e.type) {
+    case 'PresentedError':
       e = PresentedError.deserialize(e);
+      break;
+    case 'FetchError':
+      e = deserializeFetchError(e);
+      break;
     }
     useErrorPresentation().pendingError = e;
     return true;
