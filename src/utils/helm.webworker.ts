@@ -13,8 +13,8 @@ import { PresentedError } from '@/utils/PresentedError';
 import { parseAllDocuments } from 'yaml';
 import { stringify } from '@/utils/yaml';
 import {
-  type Chart, type Release, type SerializedChart,
-  Status,
+  type Chart, type Hook, type Release, type SerializedChart,
+  DeletePolicy, Event, Phase, Status,
 } from '@/utils/helm';
 import { type V2APIGroupDiscovery, resolveObject } from '@/utils/discoveryV2';
 import { isSameKubernetesObject, type KubernetesObject } from '@/utils/objects';
@@ -458,16 +458,39 @@ const fns = {
     // TODO make it proper
     console.log(notes);
 
-    // TODO detect and seperate hooks
     const files = Object.entries(results).map(([k, v]) =>
       parseManifests(v).filter((r) => r).map((r) => ({ filename: k, resource: r })),
     ).reduce((a, v) => a.concat(v), []).sort((a, b) => installOrderCompare(a.resource, b.resource));
 
-    const manifest = files.map((f) =>
+    const hooks = files.filter((r) => r.resource.metadata!.annotations?.['helm.sh/hook']).map((r): Hook => {
+      const w = parseInt(r.resource.metadata!.annotations!['helm.sh/hook-weight']);
+      return {
+        name: r.resource.metadata!.name!,
+        kind: r.resource.kind!,
+        path: r.filename,
+        // XXX cut from original doc?
+        manifest: stringify(r.resource),
+        events: r.resource.metadata!.annotations!['helm.sh/hook'].split(',')
+          .map((s) => s.trim().toLowerCase())
+          .filter((h): h is Event => Object.values(Event).includes(h as Event)),
+        last_run: {
+          started_at: '',
+          completed_at: '',
+          phase: Phase.UNKNOWN,
+        },
+        weight: isNaN(w) ? 0 : w,
+        delete_policies: r.resource.metadata!.annotations!['helm.sh/hook-delete-policy']?.split(',')
+          .map((s) => s.trim().toLowerCase())
+          .filter((h): h is DeletePolicy => Object.values(DeletePolicy).includes(h as DeletePolicy)),
+      };
+    });
+    const manifests = files.filter((r) => !(r.resource.metadata!.annotations?.['helm.sh/hook']));
+
+    const manifest = manifests.map((f) =>
       // XXX cut from original doc?
       `---\n# Source: ${f.filename}\n${stringify(f.resource)}\n`).join('');
 
-    const resources = files.map((f) => f.resource);
+    const resources = manifests.map((f) => f.resource);
 
     progress('Checking resource conflicts');
 
@@ -509,6 +532,7 @@ const fns = {
       chart: toSerializedChart(chart[0]),
       config: values,
       manifest,
+      hooks,
       version: 1,
       namespace,
       labels: {},

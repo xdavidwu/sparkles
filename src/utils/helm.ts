@@ -106,6 +106,50 @@ export interface SerializedChart extends Omit<Chart, 'templates' | 'schema' | 'f
   files: Array<SerializedFile>;
 }
 
+// helm.sh/helm/v3/pkg/release.HookEvent
+export enum Event {
+  PRE_INSTALL = 'pre-install',
+  POST_INSTALL = 'post-install',
+  PRE_DELETE = 'pre-delete',
+  POST_DELETE = 'post-delete',
+  PRE_UPGRADE = 'pre-upgrade',
+  POST_UPGRADE = 'post-upgrade',
+  PRE_ROLLBACK = 'pre-rollback',
+  POST_ROLLBACK = 'post-rollback',
+  TEST = 'test',
+}
+
+// helm.sh/helm/v3/pkg/release.HookPhase
+export enum Phase {
+  UNKNOWN = 'Unknown',
+  RUNNING = 'Running',
+  SUCCEEDED = 'Succeeded',
+  FAILED = 'Failed',
+}
+
+// helm.sh/helm/v3/pkg/release.HookDeletePolicy
+export enum DeletePolicy {
+  SUCCEEDED = 'hook-succeeded',
+  FAILED = 'hook-failed',
+  BEFORE_HOOK_CREATION = 'before-hook-creation',
+}
+
+// helm.sh/helm/v3/pkg/release.Hook
+export interface Hook {
+  name: string;
+  kind: string;
+  path: string;
+  manifest: string;
+  events?: Array<Event>;
+  last_run: {
+    started_at: string;
+    completed_at: string;
+    phase: Phase;
+  };
+  weight: number;
+  delete_policies?: Array<string>;
+}
+
 // helm.sh/helm/v3/pkg/release.Release
 // labels are serialized externally
 export interface ReleaseWithoutLabels {
@@ -114,7 +158,7 @@ export interface ReleaseWithoutLabels {
   chart: SerializedChart;
   config: object;
   manifest: string; // unset in helm.sh/helm/v3/pkg/action/install.createRelease, but always set before persisting
-  hooks?: Array<unknown>; // TODO
+  hooks?: Array<Hook>;
   version: number;
   namespace: string;
 }
