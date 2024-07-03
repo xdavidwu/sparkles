@@ -8,6 +8,7 @@ import type {
   ProgressMessage,
   CompletedMessage,
 } from '@/utils/fnCall.webworker';
+import { PresentedError } from '@/utils/PresentedError';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
@@ -57,7 +58,12 @@ export const handleDataRequestMessages = (worker: Worker) => {
 export const handleErrorMessages = (e: MessageEvent): boolean => {
   const data: ErrorMessage = e.data;
   if (data.type == 'error') {
-    useErrorPresentation().pendingError = data.error;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let e = data.error as any;
+    if (e.type == 'PresentedError') {
+      e = PresentedError.deserialize(e);
+    }
+    useErrorPresentation().pendingError = e;
     return true;
   }
   return false;

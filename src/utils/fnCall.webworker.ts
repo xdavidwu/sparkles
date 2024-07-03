@@ -49,7 +49,13 @@ export const handleFnCall = <T extends AnyFuncsImpl>(fns: T) =>
         throw new Error(`unimplemented ${JSON.stringify(data)}`);
       }
       await fns[data.func](...data.args);
-    } catch (e) {
+    } catch (_e) {
+      let e = _e;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ea = e as any;
+      if (typeof ea.serialize == 'function') {
+        e = ea.serialize();
+      }
       const msg: FnCallOutboundMessage = {
         type: 'error',
         error: e,
