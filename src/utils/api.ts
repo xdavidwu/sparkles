@@ -118,11 +118,8 @@ export const serializeFetchError = (e: FetchError) => ({
   msg: e.message,
 });
 
-export const deserializeFetchError = (e: unknown) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const eany = e as any;
-  return new FetchError(eany.cause, eany.msg);
-};
+export const deserializeFetchError = (e: ReturnType<typeof serializeFetchError>) =>
+  new FetchError(e.cause, e.msg);
 
 export const serializeResponseError = async (e: ResponseError) => ({
   type: 'ResponseError',
@@ -137,12 +134,9 @@ export const serializeResponseError = async (e: ResponseError) => ({
   url: e.response.url,
 });
 
-export const deserializeResponseError = (e: unknown) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const eany = e as any;
-  return new ResponseError(
-    Object.defineProperty(new Response(eany.body, eany),
-      'url', { value: eany.url }),
-    eany.msg,
+export const deserializeResponseError = (e: Awaited<ReturnType<typeof serializeResponseError>>) =>
+  new ResponseError(
+    Object.defineProperty(new Response(e.body, e),
+      'url', { value: e.url }),
+    e.msg,
   );
-};

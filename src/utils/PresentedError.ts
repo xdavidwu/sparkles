@@ -11,9 +11,7 @@ export class PresentedError extends Error {
     };
   }
 
-  static deserialize(i: unknown): PresentedError {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const iany = i as any;
-    return new PresentedError(iany.msg);
+  static deserialize(i: ReturnType<PresentedError['serialize']>) {
+    return new PresentedError(i.msg);
   }
 }
