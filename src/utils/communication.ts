@@ -9,7 +9,7 @@ import type {
   CompletedMessage,
 } from '@/utils/fnCall.webworker';
 import { PresentedError } from '@/utils/PresentedError';
-import { deserializeFetchError } from '@/utils/api';
+import { deserializeFetchError, deserializeResponseError } from '@/utils/api';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
@@ -67,6 +67,9 @@ export const handleErrorMessages = (e: MessageEvent): boolean => {
       break;
     case 'FetchError':
       e = deserializeFetchError(e);
+      break;
+    case 'ResponseError':
+      e = deserializeResponseError(e);
       break;
     }
     useErrorPresentation().pendingError = e;

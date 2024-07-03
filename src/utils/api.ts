@@ -123,3 +123,26 @@ export const deserializeFetchError = (e: unknown) => {
   const eany = e as any;
   return new FetchError(eany.cause, eany.msg);
 };
+
+export const serializeResponseError = async (e: ResponseError) => ({
+  type: 'ResponseError',
+  msg: e.message,
+
+  // fetch(body, options)
+  body: await e.response.arrayBuffer(),
+  status: e.response.status,
+  statusText: e.response.statusText,
+  headers: Array.from(e.response.headers.entries()),
+
+  url: e.response.url,
+});
+
+export const deserializeResponseError = (e: unknown) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const eany = e as any;
+  return new ResponseError(
+    Object.defineProperty(new Response(eany.body, eany),
+      'url', { value: eany.url }),
+    eany.msg,
+  );
+};

@@ -1,5 +1,5 @@
-import { FetchError } from '@/kubernetes-api/src';
-import { serializeFetchError } from '@/utils/api';
+import { FetchError, ResponseError } from '@/kubernetes-api/src';
+import { serializeFetchError, serializeResponseError } from '@/utils/api';
 
 export interface ErrorMessage {
   type: 'error';
@@ -60,6 +60,8 @@ export const handleFnCall = <T extends AnyFuncsImpl>(fns: T) =>
         e = ea.serialize();
       } else if (e instanceof FetchError) {
         e = serializeFetchError(e);
+      } else if (e instanceof ResponseError) {
+        e = await serializeResponseError(e);
       }
       const msg: FnCallOutboundMessage = {
         type: 'error',
