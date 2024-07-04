@@ -326,12 +326,16 @@ const execHooks = async (
       };
       await updateRelease(api, r);
       try {
+        const info = resolveObject(groups, obj);
+        await anyApi[`create${info.scope!}CustomObject`]({
+          group: info.group,
+          version: info.version,
+          plural: info.resource!,
+          namespace: obj.metadata!.namespace!,
+          body: obj,
+          fieldManager,
+        });
         if (obj.apiVersion == 'batch/v1' && obj.kind == 'Job') {
-          await batchApi.createNamespacedJob({
-            namespace: obj.metadata!.namespace!,
-            body: obj,
-            fieldManager,
-          });
           await watchUntil(
             (opt) => batchApi.listNamespacedJobRaw({
               namespace: obj.metadata!.namespace!,
@@ -356,11 +360,6 @@ const execHooks = async (
             },
           )
         } else if (obj.apiVersion == 'v1' && obj.kind == 'Pod') {
-          await api.createNamespacedPod({
-            namespace: obj.metadata!.namespace!,
-            body: obj,
-            fieldManager,
-          });
           await watchUntil(
             (opt) => api.listNamespacedPodRaw({
               namespace: obj.metadata!.namespace!,
@@ -386,16 +385,6 @@ const execHooks = async (
               return false;
             },
           )
-        } else {
-          const info = resolveObject(groups, obj);
-          await anyApi[`create${info.scope!}CustomObject`]({
-            group: info.group,
-            version: info.version,
-            plural: info.resource!,
-            namespace: obj.metadata!.namespace!,
-            body: obj,
-            fieldManager,
-          });
         }
         h.last_run.phase = Phase.SUCCEEDED;
         h.last_run.completed_at = (new Date()).toISOString();
