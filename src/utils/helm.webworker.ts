@@ -429,13 +429,19 @@ const fns = {
     await toDelete.reduce(async (a, v) => {
       await a;
       const info = resolveObject(groups, v);
-      await anyApi[`delete${info.scope!}CustomObject`]({
-        group: info.group,
-        version: info.version,
-        plural: info.resource!,
-        namespace: v.metadata!.namespace!,
-        name: v.metadata!.name!,
-      });
+      try {
+        await anyApi[`delete${info.scope!}CustomObject`]({
+          group: info.group,
+          version: info.version,
+          plural: info.resource!,
+          namespace: v.metadata!.namespace!,
+          name: v.metadata!.name!,
+        });
+      } catch (e) {
+        if (!errorIsResourceNotFound(e)) {
+          throw e;
+        }
+      }
     }, (async () => {})());
 
     // TODO perhaps tell user what are kept
