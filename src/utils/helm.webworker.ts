@@ -6,11 +6,15 @@ import {
   getConfig, getGroups, getVersionInfo, handleDataResponse,
   type RequestDataInboundMessage, type RequestDataOutboundMessage,
 } from '@/utils/requestData.webworker';
-import { CoreV1Api, type V1Secret, type VersionInfo } from '@/kubernetes-api/src';
+import {
+  BatchV1Api, CoreV1Api,
+  V1JobFromJSON, V1PodFromJSON,
+  type V1Secret, type VersionInfo,
+} from '@/kubernetes-api/src';
 import { AnyApi } from '@/utils/AnyApi';
 import { errorIsResourceNotFound } from '@/utils/api';
 import { PresentedError } from '@/utils/PresentedError';
-import { parseAllDocuments } from 'yaml';
+import { parse, parseAllDocuments } from 'yaml';
 import { stringify } from '@/utils/yaml';
 import {
   type Chart, type Hook, type Release, type SerializedChart,
@@ -18,6 +22,7 @@ import {
 } from '@/utils/helm';
 import { type V2APIGroupDiscovery, resolveObject } from '@/utils/discoveryV2';
 import { isSameKubernetesObject, type KubernetesObject } from '@/utils/objects';
+import { watchUntil } from '@/utils/watch';
 import helmWasmInit from '@/utils/helm.wasm?init';
 import '@/vendor/wasm_exec';
 
@@ -258,7 +263,11 @@ const installOrderCompare = orderCompare(installOrder);
 
 const setupClients = async () => {
   const config = await getConfig();
-  return { api: new CoreV1Api(config), anyApi: new AnyApi(config) };
+  return {
+    api: new CoreV1Api(config),
+    batchApi: new BatchV1Api(config),
+    anyApi: new AnyApi(config),
+  };
 };
 
 const updateRelease = async (api: CoreV1Api, release: Release) => {
@@ -297,26 +306,133 @@ const addManagedMetadata = (resource: KubernetesObject, release: Release): Kuber
   },
 });
 
+// TODO hook deletion, timeouts
+const execHooks = async (
+  api: CoreV1Api, batchApi: BatchV1Api, anyApi: AnyApi,
+  r: Release, ev: Event, groups: Array<V2APIGroupDiscovery>,
+) => {
+  if (!r.hooks) {
+    return;
+  }
+  await r.hooks.filter((h) => h.events?.includes(ev))
+    .sort((a, b) => a.weight - b.weight)
+    .reduce(async (a, h) => {
+      await a;
+      const obj: KubernetesObject = parse(h.manifest);
+      h.last_run = {
+        started_at: (new Date()).toISOString(),
+        phase: Phase.RUNNING,
+        completed_at: '',
+      };
+      await updateRelease(api, r);
+      try {
+        if (obj.apiVersion == 'batch/v1' && obj.kind == 'Job') {
+          await batchApi.createNamespacedJob({
+            namespace: obj.metadata!.namespace!,
+            body: obj,
+            fieldManager,
+          });
+          await watchUntil(
+            (opt) => batchApi.listNamespacedJobRaw({
+              namespace: obj.metadata!.namespace!,
+              fieldSelector: `metadata.name=${obj.metadata!.name}`,
+              ...opt,
+            }),
+            V1JobFromJSON,
+            (ev) => {
+              if (ev.type == 'ADDED' || ev.type == 'MODIFIED') {
+                if (ev.object.status?.conditions?.some((c) => c.type == 'Complete' && c.status == 'True')) {
+                  return true;
+                }
+                if (ev.object.status?.conditions?.some((c) => c.type == 'Failed' && c.status == 'True')) {
+                  throw new PresentedError(`Failed to exec hook: Job ${obj.metadata!.name} failed`);
+                }
+                return false;
+              } else if (ev.type == 'DELETED') {
+                // throw new PresentedError(`Failed to exec hook: Job ${obj.metadata!.name} deleted while waiting for completion`);
+                return true; // helm seems to treat as a success?
+              }
+              return false;
+            },
+          )
+        } else if (obj.apiVersion == 'v1' && obj.kind == 'Pod') {
+          await api.createNamespacedPod({
+            namespace: obj.metadata!.namespace!,
+            body: obj,
+            fieldManager,
+          });
+          await watchUntil(
+            (opt) => api.listNamespacedPodRaw({
+              namespace: obj.metadata!.namespace!,
+              fieldSelector: `metadata.name=${obj.metadata!.name}`,
+              ...opt,
+            }),
+            V1PodFromJSON,
+            (ev) => {
+              if (ev.type == 'ADDED' || ev.type == 'MODIFIED') {
+                switch (ev.object.status?.phase) {
+                case 'Succeeded':
+                  return true;
+                case 'Failed':
+                  throw new PresentedError(`Failed to exec hook: Pod ${obj.metadata!.name} failed`);
+                default:
+                  return false;
+
+                }
+              } else if (ev.type == 'DELETED') {
+                // throw new PresentedError(`Failed to exec hook: Pod ${obj.metadata!.name} deleted while waiting for completion`);
+                return true; // helm seems to treat as a success?
+              }
+              return false;
+            },
+          )
+        } else {
+          const info = resolveObject(groups, obj);
+          await anyApi[`create${info.scope!}CustomObject`]({
+            group: info.group,
+            version: info.version,
+            plural: info.resource!,
+            namespace: obj.metadata!.namespace!,
+            body: obj,
+            fieldManager,
+          });
+        }
+        h.last_run.phase = Phase.SUCCEEDED;
+        h.last_run.completed_at = (new Date()).toISOString();
+      } catch (e) {
+        h.last_run.phase = Phase.FAILED;
+        h.last_run.completed_at = (new Date()).toISOString();
+        throw e;
+      }
+      await updateRelease(api, r);
+    }, (async () => {})());
+};
+
 const fns = {
   // helm.sh/helm/v3/pkg/action.Uninstall.Run
+  // TODO align namings
   uninstall: async (target: Release) => {
-    progress('Marking release as uninstalling');
+    progress(`Running ${Event.PRE_DELETE} hooks`);
 
-    const { api, anyApi } = await setupClients();
+    const { api, batchApi, anyApi } = await setupClients();
+    const groups = await getGroups();
 
-    target.info.status = Status.UNINSTALLING;
-    target.info.deleted = (new Date()).toISOString();
-    target.info.description = 'Deletion in progress (or sliently failed)';
-    await updateRelease(api, target);
+    await execHooks(api, batchApi, anyApi, target, Event.PRE_DELETE, groups);
 
     progress('Parsing resources to delete');
 
     const targetResources = parseManifests(target.manifest);
     const toDelete = targetResources.filter((r) => !shouldKeepResource(r)).sort(uninstallOrderCompare);
 
+    progress('Marking release as uninstalling');
+
+    target.info.status = Status.UNINSTALLING;
+    target.info.deleted = (new Date()).toISOString();
+    target.info.description = 'Deletion in progress (or sliently failed)';
+    await updateRelease(api, target);
+
     progress('Deleting resources');
 
-    const groups = await getGroups();
     await toDelete.reduce(async (a, v) => {
       await a;
       const info = resolveObject(groups, v);
@@ -330,7 +446,11 @@ const fns = {
     }, (async () => {})());
 
     // TODO perhaps tell user what are kept
-    // TODO wait, hook
+    // TODO wait?
+
+    progress(`Running ${Event.POST_DELETE} hooks`);
+
+    await execHooks(api, batchApi, anyApi, target, Event.POST_DELETE, groups);
 
     progress('Marking release as uninstalled');
 
@@ -342,7 +462,7 @@ const fns = {
   rollback: async (target: Release, releases: Array<Release>) => {
     progress('Creating new release');
 
-    const { api, anyApi } = await setupClients();
+    const { api, batchApi, anyApi } = await setupClients();
 
     const latest = releases.filter((r) => r.name == target.name)[0];
 
@@ -385,6 +505,10 @@ const fns = {
       kindInfo: resolveObject(groups, op.target),
     }));
 
+    progress(`Running ${Event.PRE_ROLLBACK} hooks`);
+
+    await execHooks(api, batchApi, anyApi, release, Event.PRE_ROLLBACK, groups);
+
     progress('Applying rollback');
 
     await ops.reduce(async (a, op) => {
@@ -412,7 +536,11 @@ const fns = {
     }, (async () => {})());
     // TODO error handling, undo on failure?
 
-    // TODO recreate? (delete old pod to trigger a rollout?), wait?, hooks?
+    // TODO recreate? (delete old pod to trigger a rollout?), wait?
+
+    progress(`Running ${Event.POST_ROLLBACK} hooks`);
+
+    await execHooks(api, batchApi, anyApi, release, Event.POST_ROLLBACK, groups);
 
     progress('Marking release statuses');
 
@@ -431,7 +559,7 @@ const fns = {
   install: async (chart: Array<Chart>, values: object, name: string, namespace: string) => {
     await setupGo();
 
-    const { api, anyApi } = await setupClients();
+    const { api, batchApi, anyApi } = await setupClients();
 
     // TODO support crds
 
@@ -540,6 +668,10 @@ const fns = {
 
     await createRelease(api, release);
 
+    progress(`Running ${Event.PRE_INSTALL} hooks`);
+
+    await execHooks(api, batchApi, anyApi, release, Event.PRE_INSTALL, groups);
+
     progress('Creating resources');
 
     await resolved.map((v) => ({
@@ -556,6 +688,10 @@ const fns = {
         fieldManager,
       });
     }, (async () => {})());
+
+    progress(`Running ${Event.POST_INSTALL} hooks`);
+
+    await execHooks(api, batchApi, anyApi, release, Event.POST_INSTALL, groups);
 
     progress('Marking release status');
 

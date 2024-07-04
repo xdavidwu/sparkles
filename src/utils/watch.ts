@@ -116,6 +116,27 @@ export const listAndUnwaitedWatch = async<T extends KubernetesObject> (
   ).catch(catcher);
 };
 
+// abortion is expected to be handled downstream for timeout
+export const watchUntil = async<T extends KubernetesObject> (
+  lister: (opt: WatchOpt) => Promise<ApiResponse<KubernetesList<T>>>,
+  transformer: (obj: object) => T,
+  condition: (e: TypedV1WatchEvent<T>) => boolean,
+) => {
+  const listResponse = await (await lister({})).value();
+  for (const i of listResponse.items) {
+    if (condition({ type: 'ADDED', object: i })) {
+      return;
+    }
+  }
+  const updates = await lister({ resourceVersion: listResponse.metadata!.resourceVersion, watch: true });
+
+  for await (const event of rawResponseToWatchEvents(updates, transformer)) {
+    if (condition(event)) {
+      return;
+    }
+  }
+};
+
 const isKubernetesObjectInRows = (
   a: V1TableRow<V1PartialObjectMetadata>,
   b: Array<V1TableRow<V1PartialObjectMetadata>>,
