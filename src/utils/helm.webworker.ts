@@ -309,7 +309,7 @@ const addManagedMetadata = (resource: KubernetesObject, release: Release): Kuber
   },
 });
 
-// TODO hook deletion, timeouts
+// TODO timeouts
 const execHooks = async (
   api: CoreV1Api, batchApi: BatchV1Api, anyApi: AnyApi,
   r: Release, ev: Event, groups: Array<V2APIGroupDiscovery>,
@@ -322,14 +322,37 @@ const execHooks = async (
     .reduce(async (a, h) => {
       await a;
       const obj: KubernetesObject = parse(h.manifest);
+      const info = resolveObject(groups, obj);
+      const enforceDeletePolicy = async (p: DeletePolicy) => {
+        // if empty, defaults to BEFORE_HOOK_CREATION
+        if (!h.delete_policies?.includes(p) &&
+            !(p == DeletePolicy.BEFORE_HOOK_CREATION && !h.delete_policies?.length)) {
+          try {
+            await anyApi[`delete${info.scope!}CustomObject`]({
+              group: info.group,
+              version: info.version,
+              plural: info.resource!,
+              namespace: obj.metadata!.namespace!,
+              name: obj.metadata!.name!,
+            });
+          } catch (e) {
+            if (!errorIsResourceNotFound(e)) {
+              throw e;
+            }
+          }
+        }
+      };
+
+      await enforceDeletePolicy(DeletePolicy.BEFORE_HOOK_CREATION);
+
       h.last_run = {
         started_at: (new Date()).toISOString(),
         phase: Phase.RUNNING,
         completed_at: '',
       };
       await updateRelease(api, r);
+
       try {
-        const info = resolveObject(groups, obj);
         await anyApi[`create${info.scope!}CustomObject`]({
           group: info.group,
           version: info.version,
@@ -390,11 +413,17 @@ const execHooks = async (
             },
           )
         }
+
         h.last_run.phase = Phase.SUCCEEDED;
         h.last_run.completed_at = (new Date()).toISOString();
+
+        await enforceDeletePolicy(DeletePolicy.SUCCEEDED);
       } catch (e) {
         h.last_run.phase = Phase.FAILED;
         h.last_run.completed_at = (new Date()).toISOString();
+
+        await enforceDeletePolicy(DeletePolicy.FAILED);
+
         throw e;
       }
       await updateRelease(api, r);
