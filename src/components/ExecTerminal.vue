@@ -4,7 +4,7 @@ import { onUnmounted } from 'vue';
 import type { Terminal } from '@xterm/xterm';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api, V1StatusFromJSON } from '@/kubernetes-api/src';
-import { ExtractedRequestContext, extractRequestContext } from '@/utils/api';
+import { ExtractedRequestContext, extractRequestContext, V1StatusStatus } from '@/utils/api';
 import { PresentedError } from '@/utils/PresentedError';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 
@@ -103,7 +103,7 @@ const display = async (terminal: Terminal) => {
       ));
 
       terminal.write(`${CSI}0m`); // SGR reset
-      if (status.status === 'Success') {
+      if (status.status === V1StatusStatus.SUCCESS) {
         // SGR: fg: green
         terminal.write(`${CSI}32mcommand terminated normally`);
       } else {

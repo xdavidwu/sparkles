@@ -6,6 +6,79 @@ import {
   type InitOverrideFunction, type HTTPRequestInit, type HTTPHeaders, type RequestContext, type Middleware,
 } from '@/kubernetes-api/src';
 
+/*
+ * enums in openapi codegen uses exhaustive enums on types,
+ * which is not forward-compatible, thus trimmed for now
+ * https://github.com/kubernetes/kubernetes/issues/109177
+ *
+ * let's add it back by hand without wiring up types
+ */
+
+// meta/v1
+
+// XXX kubernetes does not really use type alias on meta/v1 yet, but has
+// k8s.io/apimachinery/pkg/watch.EventType on watch.Event
+// is ERROR used on-wire?
+export enum V1WatchEventType {
+  ADDED = 'ADDED',
+  MODIFIED = 'MODIFIED',
+  DELETED = 'DELETED',
+  BOOKMARK = 'BOOKMARK',
+}
+
+export enum V1StatusStatus {
+  SUCCESS = 'Success',
+  FAILURE = 'Failure',
+}
+
+export enum V1StatusReason {
+  UNKNOWN = '',
+  UNAUTHORIZED = 'Unauthorized',
+  FORBIDDEN = 'Forbidden',
+  NOT_FOUND = 'NotFound',
+  ALREADY_EXISTS = 'AlreadyExists',
+  CONFLICT = 'Conflict',
+  GONE = 'Gone',
+  INVALID = 'Invalid',
+  SERVER_TIMEOUT = 'ServerTimeout',
+  TIMEOUT = 'Timeout',
+  TOO_MANY_REQUESTS = 'TooManyRequests',
+  BAD_REQUESTS = 'BadRequests',
+  METHOD_NOT_ALLOWED = 'MethodNotAllowed',
+  NOT_ACCEPTABLE = 'NotAcceptable',
+  REQUEST_ENTITY_TOO_LARGE = 'RequestEntityTooLarge',
+  UNSUPPORTED_MEDIA_TYPE = 'UnsupportedMediaType',
+  INTERNAL_ERROR = 'InternalError',
+  EXPIRED = 'Expired',
+  SERVICE_UNAVAILABLE = 'ServiceUnavailable',
+}
+
+// core/v1
+
+export enum V1PodStatusPhase {
+  PENDING = 'Pending',
+  RUNNING = 'Running',
+  SUCCEEDED = 'Succeeded',
+  FAILED = 'Failed',
+  UNKNOWN = 'Unknown',
+}
+
+export enum V1ConditionStatus {
+  TRUE = 'True',
+  FALSE = 'False',
+  UNKNOWN = 'Unknown',
+}
+
+// batch/v1
+
+export enum V1JobConditionType {
+  SUSPENDED = 'Suspended',
+  COMPLETE = 'Complete',
+  FAILED = 'Failed',
+  FAILURE_TARGET = 'FailureTarget',
+  SUCCESS_CRITERIA_MET = 'SuccessCriteriaMet',
+}
+
 export type ChainableInitOverrideFunction = (...p: Parameters<InitOverrideFunction>) =>
   (Promise<Awaited<ReturnType<InitOverrideFunction>> & HTTPRequestInit & { headers: HTTPHeaders }>);
 
@@ -73,7 +146,7 @@ export const setFieldManager: Middleware['pre'] = async (context) => {
 export const errorIsResourceNotFound = async (err: unknown) => {
   if (err instanceof ResponseError && err.response.status === 404) {
     const status = V1StatusFromJSON(await err.response.json());
-    if (status.status === 'Failure' && status.reason === 'NotFound') {
+    if (status.status === V1StatusStatus.FAILURE && status.reason === V1StatusReason.NOT_FOUND) {
       return true;
     }
   }
@@ -83,7 +156,7 @@ export const errorIsResourceNotFound = async (err: unknown) => {
 export const errorIsTypeUnsupported = async (err: unknown) => {
   if (err instanceof ResponseError && err.response.status === 404) {
     const status = V1StatusFromJSON(await err.response.json());
-    if (status.status === 'Failure' && status.reason === 'NotFound' &&
+    if (status.status === V1StatusStatus.FAILURE && status.reason === V1StatusReason.NOT_FOUND &&
         status.message === 'the server could not find the requested resource') {
       return true;
     }

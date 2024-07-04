@@ -14,6 +14,7 @@ import {
   type V1ResourceQuota, V1ResourceQuotaFromJSON,
   type V1Pod, V1PodFromJSON,
 } from '@/kubernetes-api/src';
+import { V1PodStatusPhase } from '@/utils/api';
 import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndUnwaitedWatch } from '@/utils/watch';
 import { real } from '@ragnarpa/quantity';
@@ -88,7 +89,7 @@ const { load, loading } = useLoading(async () => {
       (opt) => api.listNamespacedPodRaw({
         ...opt,
         namespace: selectedNamespace.value,
-        fieldSelector: 'status.phase!=Failed,status.phase!=Succeeded',
+        fieldSelector: `status.phase!=${V1PodStatusPhase.FAILED},status.phase!=${V1PodStatusPhase.SUCCEEDED}`,
       }, { signal: signal.value }),
       (e) => useErrorPresentation().pendingError = e,
     ),

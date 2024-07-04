@@ -12,7 +12,10 @@ import {
   type V1Secret, type VersionInfo,
 } from '@/kubernetes-api/src';
 import { AnyApi } from '@/utils/AnyApi';
-import { errorIsResourceNotFound } from '@/utils/api';
+import {
+  errorIsResourceNotFound,
+  V1ConditionStatus, V1JobConditionType, V1PodStatusPhase, V1WatchEventType,
+} from '@/utils/api';
 import { PresentedError } from '@/utils/PresentedError';
 import { parse, parseAllDocuments } from 'yaml';
 import { stringify } from '@/utils/yaml';
@@ -344,15 +347,17 @@ const execHooks = async (
             }),
             V1JobFromJSON,
             (ev) => {
-              if (ev.type == 'ADDED' || ev.type == 'MODIFIED') {
-                if (ev.object.status?.conditions?.some((c) => c.type == 'Complete' && c.status == 'True')) {
+              if (ev.type == V1WatchEventType.ADDED || ev.type == V1WatchEventType.MODIFIED) {
+                if (ev.object.status?.conditions?.some((c) =>
+                    c.type == V1JobConditionType.COMPLETE && c.status == V1ConditionStatus.TRUE)) {
                   return true;
                 }
-                if (ev.object.status?.conditions?.some((c) => c.type == 'Failed' && c.status == 'True')) {
+                if (ev.object.status?.conditions?.some((c) =>
+                    c.type == V1JobConditionType.FAILED && c.status == V1ConditionStatus.TRUE)) {
                   throw new PresentedError(`Failed to exec hook: Job ${obj.metadata!.name} failed`);
                 }
                 return false;
-              } else if (ev.type == 'DELETED') {
+              } else if (ev.type == V1WatchEventType.DELETED) {
                 // throw new PresentedError(`Failed to exec hook: Job ${obj.metadata!.name} deleted while waiting for completion`);
                 return true; // helm seems to treat as a success?
               }
@@ -368,17 +373,16 @@ const execHooks = async (
             }),
             V1PodFromJSON,
             (ev) => {
-              if (ev.type == 'ADDED' || ev.type == 'MODIFIED') {
+              if (ev.type == V1WatchEventType.ADDED || ev.type == V1WatchEventType.MODIFIED) {
                 switch (ev.object.status?.phase) {
-                case 'Succeeded':
+                case V1PodStatusPhase.SUCCEEDED:
                   return true;
-                case 'Failed':
+                case V1PodStatusPhase.FAILED:
                   throw new PresentedError(`Failed to exec hook: Pod ${obj.metadata!.name} failed`);
                 default:
                   return false;
-
                 }
-              } else if (ev.type == 'DELETED') {
+              } else if (ev.type == V1WatchEventType.DELETED) {
                 // throw new PresentedError(`Failed to exec hook: Pod ${obj.metadata!.name} deleted while waiting for completion`);
                 return true; // helm seems to treat as a success?
               }

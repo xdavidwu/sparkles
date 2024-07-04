@@ -4,7 +4,7 @@ import {
 } from '@/kubernetes-api/src';
 import type { V1PartialObjectMetadata, V1Table, V1TableRow } from '@/utils/AnyApi';
 import { isSameKubernetesObject, type KubernetesObject, type KubernetesList } from '@/utils/objects';
-import { rawErrorIsAborted, errorIsAborted } from '@/utils/api';
+import { rawErrorIsAborted, errorIsAborted, V1WatchEventType } from '@/utils/api';
 import { streamToGenerator } from '@/utils/lang';
 import type { Ref } from 'vue';
 
@@ -27,6 +27,7 @@ const createLineDelimitedJSONStream = () => {
 };
 
 type TypedV1WatchEvent<T extends object> = V1WatchEvent & {
+  type: V1WatchEventType;
   object: T;
 };
 
@@ -78,11 +79,11 @@ const watch = async<T extends KubernetesObject> (
 
   try {
     for await (const event of rawResponseToWatchEvents(updates, transformer)) {
-      if (event.type === 'ADDED') {
+      if (event.type === V1WatchEventType.ADDED) {
         dest.value.push(event.object);
-      } else if (event.type === 'DELETED') {
+      } else if (event.type === V1WatchEventType.DELETED) {
         dest.value = dest.value.filter((v) => !isSameKubernetesObject(event.object, v));
-      } else if (event.type === 'MODIFIED') {
+      } else if (event.type === V1WatchEventType.MODIFIED) {
         const index = dest.value.findIndex((v) => isSameKubernetesObject(event.object, v));
         dest.value[index] = event.object;
       }
@@ -124,7 +125,7 @@ export const watchUntil = async<T extends KubernetesObject> (
 ) => {
   const listResponse = await (await lister({})).value();
   for (const i of listResponse.items) {
-    if (condition({ type: 'ADDED', object: i })) {
+    if (condition({ type: V1WatchEventType.ADDED, object: i })) {
       return;
     }
   }
@@ -169,11 +170,11 @@ export const listAndUnwaitedWatchTable = async (
 
     try {
       for await (const event of rawResponseToWatchEvents(updates)) {
-        if (event.type === 'ADDED') {
+        if (event.type === V1WatchEventType.ADDED) {
           dest.value.rows!.push(...event.object.rows!);
-        } else if (event.type === 'DELETED') {
+        } else if (event.type === V1WatchEventType.DELETED) {
           dest.value.rows = dest.value.rows!.filter((v) => !isKubernetesObjectInRows(v, event.object.rows!));
-        } else if (event.type === 'MODIFIED') {
+        } else if (event.type === V1WatchEventType.MODIFIED) {
           for (const r of event.object.rows!) {
             const index = dest.value.rows!.findIndex(
               (v) => isSameKubernetesObject(v.object, r.object)
