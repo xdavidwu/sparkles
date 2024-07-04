@@ -101,6 +101,13 @@ interface WatchOpt {
   resourceVersion?: string;
 }
 
+/*
+ * XXX after we become comfortable with raising ootb support to 1.31,
+ * use watch-list, which can reduce number of request, and avoid abort on fetch
+ * itself since there should always be initial event if we expect list to be
+ * non-empty (e.g. watchUntil on a created resource)
+ */
+
 export const listAndUnwaitedWatch = async<T extends KubernetesObject> (
     dest: Ref<Array<T>>,
     transformer: (obj: object) => T,

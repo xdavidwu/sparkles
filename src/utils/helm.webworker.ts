@@ -310,152 +310,146 @@ const addManagedMetadata = (resource: KubernetesObject, release: Release): Kuber
 });
 
 // TODO timeouts
-const execHooks = async (
+const execHooks = (
   api: CoreV1Api, batchApi: BatchV1Api, anyApi: AnyApi,
   r: Release, ev: Event, groups: Array<V2APIGroupDiscovery>,
-) => {
-  if (!r.hooks) {
-    return;
-  }
-  await r.hooks.filter((h) => h.events?.includes(ev))
-    .sort((a, b) => a.weight - b.weight)
-    .reduce(async (a, h) => {
-      await a;
-      const obj: KubernetesObject = parse(h.manifest);
-      const info = resolveObject(groups, obj);
-      const enforceDeletePolicy = async (p: DeletePolicy) => {
-        // if empty, defaults to BEFORE_HOOK_CREATION
-        if (!h.delete_policies?.includes(p) &&
-            !(p == DeletePolicy.BEFORE_HOOK_CREATION && !h.delete_policies?.length)) {
-          try {
-            await anyApi[`delete${info.scope!}CustomObject`]({
-              group: info.group,
-              version: info.version,
-              plural: info.resource!,
-              namespace: obj.metadata!.namespace!,
-              name: obj.metadata!.name!,
-            });
-          } catch (e) {
-            if (!errorIsResourceNotFound(e)) {
-              throw e;
-            }
+) => r.hooks?.filter((h) => h.events?.includes(ev))
+  .sort((a, b) => a.weight - b.weight)
+  .reduce(async (a, h) => {
+    await a;
+    const obj: KubernetesObject = parse(h.manifest);
+    const info = resolveObject(groups, obj);
+    const enforceDeletePolicy = async (p: DeletePolicy) => {
+      // if empty, defaults to BEFORE_HOOK_CREATION
+      if (!h.delete_policies?.includes(p) &&
+          !(p == DeletePolicy.BEFORE_HOOK_CREATION && !h.delete_policies?.length)) {
+        try {
+          await anyApi[`delete${info.scope!}CustomObject`]({
+            group: info.group,
+            version: info.version,
+            plural: info.resource!,
+            namespace: obj.metadata!.namespace!,
+            name: obj.metadata!.name!,
+          });
+        } catch (e) {
+          if (!errorIsResourceNotFound(e)) {
+            throw e;
           }
         }
-      };
-
-      await enforceDeletePolicy(DeletePolicy.BEFORE_HOOK_CREATION);
-
-      h.last_run = {
-        started_at: (new Date()).toISOString(),
-        phase: Phase.RUNNING,
-        completed_at: '',
-      };
-      await updateRelease(api, r);
-
-      try {
-        await anyApi[`create${info.scope!}CustomObject`]({
-          group: info.group,
-          version: info.version,
-          plural: info.resource!,
-          namespace: obj.metadata!.namespace!,
-          body: obj,
-          fieldManager,
-        });
-        if (obj.apiVersion == 'batch/v1' && obj.kind == 'Job') {
-          await watchUntil(
-            (opt) => batchApi.listNamespacedJobRaw({
-              namespace: obj.metadata!.namespace!,
-              fieldSelector: `metadata.name=${obj.metadata!.name}`,
-              ...opt,
-            }),
-            V1JobFromJSON,
-            (ev) => {
-              if (ev.type == V1WatchEventType.ADDED || ev.type == V1WatchEventType.MODIFIED) {
-                if (ev.object.status?.conditions?.some((c) =>
-                    c.type == V1JobConditionType.COMPLETE && c.status == V1ConditionStatus.TRUE)) {
-                  return true;
-                }
-                if (ev.object.status?.conditions?.some((c) =>
-                    c.type == V1JobConditionType.FAILED && c.status == V1ConditionStatus.TRUE)) {
-                  throw new PresentedError(`Failed to exec hook: Job ${obj.metadata!.name} failed`);
-                }
-                return false;
-              } else if (ev.type == V1WatchEventType.DELETED) {
-                // throw new PresentedError(`Failed to exec hook: Job ${obj.metadata!.name} deleted while waiting for completion`);
-                return true; // helm seems to treat as a success?
-              }
-              return false;
-            },
-          )
-        } else if (obj.apiVersion == 'v1' && obj.kind == 'Pod') {
-          await watchUntil(
-            (opt) => api.listNamespacedPodRaw({
-              namespace: obj.metadata!.namespace!,
-              fieldSelector: `metadata.name=${obj.metadata!.name}`,
-              ...opt,
-            }),
-            V1PodFromJSON,
-            (ev) => {
-              if (ev.type == V1WatchEventType.ADDED || ev.type == V1WatchEventType.MODIFIED) {
-                switch (ev.object.status?.phase) {
-                case V1PodStatusPhase.SUCCEEDED:
-                  return true;
-                case V1PodStatusPhase.FAILED:
-                  throw new PresentedError(`Failed to exec hook: Pod ${obj.metadata!.name} failed`);
-                default:
-                  return false;
-                }
-              } else if (ev.type == V1WatchEventType.DELETED) {
-                // throw new PresentedError(`Failed to exec hook: Pod ${obj.metadata!.name} deleted while waiting for completion`);
-                return true; // helm seems to treat as a success?
-              }
-              return false;
-            },
-          )
-        }
-
-        h.last_run.phase = Phase.SUCCEEDED;
-        h.last_run.completed_at = (new Date()).toISOString();
-
-        await enforceDeletePolicy(DeletePolicy.SUCCEEDED);
-      } catch (e) {
-        h.last_run.phase = Phase.FAILED;
-        h.last_run.completed_at = (new Date()).toISOString();
-
-        await enforceDeletePolicy(DeletePolicy.FAILED);
-
-        throw e;
       }
-      await updateRelease(api, r);
-    }, (async () => {})());
-};
+    };
+
+    await enforceDeletePolicy(DeletePolicy.BEFORE_HOOK_CREATION);
+
+    h.last_run = {
+      started_at: (new Date()).toISOString(),
+      phase: Phase.RUNNING,
+      completed_at: '',
+    };
+    await updateRelease(api, r);
+
+    try {
+      await anyApi[`create${info.scope!}CustomObject`]({
+        group: info.group,
+        version: info.version,
+        plural: info.resource!,
+        namespace: obj.metadata!.namespace!,
+        body: obj,
+        fieldManager,
+      });
+      if (obj.apiVersion == 'batch/v1' && obj.kind == 'Job') {
+        await watchUntil(
+          (opt) => batchApi.listNamespacedJobRaw({
+            namespace: obj.metadata!.namespace!,
+            fieldSelector: `metadata.name=${obj.metadata!.name}`,
+            ...opt,
+          }),
+          V1JobFromJSON,
+          (ev) => {
+            if (ev.type == V1WatchEventType.ADDED || ev.type == V1WatchEventType.MODIFIED) {
+              if (ev.object.status?.conditions?.some((c) =>
+                  c.type == V1JobConditionType.COMPLETE && c.status == V1ConditionStatus.TRUE)) {
+                return true;
+              }
+              if (ev.object.status?.conditions?.some((c) =>
+                  c.type == V1JobConditionType.FAILED && c.status == V1ConditionStatus.TRUE)) {
+                throw new PresentedError(`Failed to exec hook: Job ${obj.metadata!.name} failed`);
+              }
+              return false;
+            } else if (ev.type == V1WatchEventType.DELETED) {
+              // throw new PresentedError(`Failed to exec hook: Job ${obj.metadata!.name} deleted while waiting for completion`);
+              return true; // helm seems to treat as a success?
+            }
+            return false;
+          },
+        )
+      } else if (obj.apiVersion == 'v1' && obj.kind == 'Pod') {
+        await watchUntil(
+          (opt) => api.listNamespacedPodRaw({
+            namespace: obj.metadata!.namespace!,
+            fieldSelector: `metadata.name=${obj.metadata!.name}`,
+            ...opt,
+          }),
+          V1PodFromJSON,
+          (ev) => {
+            if (ev.type == V1WatchEventType.ADDED || ev.type == V1WatchEventType.MODIFIED) {
+              switch (ev.object.status?.phase) {
+              case V1PodStatusPhase.SUCCEEDED:
+                return true;
+              case V1PodStatusPhase.FAILED:
+                throw new PresentedError(`Failed to exec hook: Pod ${obj.metadata!.name} failed`);
+              default:
+                return false;
+              }
+            } else if (ev.type == V1WatchEventType.DELETED) {
+              // throw new PresentedError(`Failed to exec hook: Pod ${obj.metadata!.name} deleted while waiting for completion`);
+              return true; // helm seems to treat as a success?
+            }
+            return false;
+          },
+        )
+      }
+
+      h.last_run.phase = Phase.SUCCEEDED;
+      h.last_run.completed_at = (new Date()).toISOString();
+
+      await enforceDeletePolicy(DeletePolicy.SUCCEEDED);
+    } catch (e) {
+      h.last_run.phase = Phase.FAILED;
+      h.last_run.completed_at = (new Date()).toISOString();
+
+      await enforceDeletePolicy(DeletePolicy.FAILED);
+
+      throw e;
+    }
+    await updateRelease(api, r);
+  }, (async () => {})());
 
 const fns = {
   // helm.sh/helm/v3/pkg/action.Uninstall.Run
-  // TODO align namings
-  uninstall: async (target: Release) => {
+  uninstall: async (release: Release) => {
     progress(`Running ${Event.PRE_DELETE} hooks`);
 
     const { api, batchApi, anyApi } = await setupClients();
     const groups = await getGroups();
 
-    await execHooks(api, batchApi, anyApi, target, Event.PRE_DELETE, groups);
+    await execHooks(api, batchApi, anyApi, release, Event.PRE_DELETE, groups);
 
     progress('Parsing resources to delete');
 
-    const targetResources = parseManifests(target.manifest);
-    const toDelete = targetResources.filter((r) => !shouldKeepResource(r)).sort(uninstallOrderCompare);
+    const resources = parseManifests(release.manifest)
+      .filter((r) => !shouldKeepResource(r)).sort(uninstallOrderCompare);
 
     progress('Marking release as uninstalling');
 
-    target.info.status = Status.UNINSTALLING;
-    target.info.deleted = (new Date()).toISOString();
-    target.info.description = 'Deletion in progress (or sliently failed)';
-    await updateRelease(api, target);
+    release.info.status = Status.UNINSTALLING;
+    release.info.deleted = (new Date()).toISOString();
+    release.info.description = 'Deletion in progress (or sliently failed)';
+    await updateRelease(api, release);
 
     progress('Deleting resources');
 
-    await toDelete.reduce(async (a, v) => {
+    await resources.reduce(async (a, v) => {
       await a;
       const info = resolveObject(groups, v);
       try {
@@ -478,23 +472,23 @@ const fns = {
 
     progress(`Running ${Event.POST_DELETE} hooks`);
 
-    await execHooks(api, batchApi, anyApi, target, Event.POST_DELETE, groups);
+    await execHooks(api, batchApi, anyApi, release, Event.POST_DELETE, groups);
 
     progress('Marking release as uninstalled');
 
-    target.info.status = Status.UNINSTALLED;
-    target.info.description = 'Uninstallation complete';
-    await updateRelease(api, target);
+    release.info.status = Status.UNINSTALLED;
+    release.info.description = 'Uninstallation complete';
+    await updateRelease(api, release);
   },
   // helm.sh/helm/v3/pkg/action.Rollback.Run
-  rollback: async (target: Release, releases: Array<Release>) => {
+  // expect lastest state at first of history (reverse time order)
+  rollback: async (release: Release, history: Array<Release>) => {
     progress('Creating new release');
 
     const { api, batchApi, anyApi } = await setupClients();
 
-    const latest = releases.filter((r) => r.name == target.name)[0];
+    const latest = history[0];
 
-    const release = structuredClone(target);
     release.info = {
       first_deployed: latest.info.first_deployed,
       last_deployed: (new Date()).toISOString(),
@@ -509,28 +503,28 @@ const fns = {
 
     progress('Calculating rollback difference')
 
-    const targetResources = parseManifests(release.manifest);
+    const resources = parseManifests(release.manifest);
     const latestResources = parseManifests(latest.manifest);
 
-    const createsAndUpdates = targetResources.map((r) => ({
-      type: latestResources.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
-      target: addManagedMetadata(r, release),
+    const createsAndUpdates = resources.map((r) => ({
+      op: latestResources.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
+      resource: addManagedMetadata(r, release),
     }));
     const deletes = latestResources.filter(
-      (r) => !targetResources.some((t) => isSameKubernetesObject(r, t)) && !shouldKeepResource(r),
+      (r) => !shouldKeepResource(r) && !resources.some((t) => isSameKubernetesObject(r, t)),
     // helm does not seems to care about ordering here, but probably should
     ).sort(uninstallOrderCompare).map((r) => ({
-      type: 'delete',
-      target: r,
+      op: 'delete',
+      resource: r,
     }));
 
     const groups = await getGroups();
     // create/update first, then delete
     // manifests are already sorted in installation order
-    const ops = createsAndUpdates.concat(deletes).map((op) => ({
-      type: op.type as 'create' | 'replace' | 'delete',
-      target: op.target,
-      kindInfo: resolveObject(groups, op.target),
+    const steps = createsAndUpdates.concat(deletes).map((step) => ({
+      op: step.op as 'create' | 'replace' | 'delete',
+      resource: step.resource,
+      kindInfo: resolveObject(groups, step.resource),
     }));
 
     progress(`Running ${Event.PRE_ROLLBACK} hooks`);
@@ -539,23 +533,23 @@ const fns = {
 
     progress('Applying rollback');
 
-    await ops.reduce(async (a, op) => {
+    await steps.reduce(async (a, step) => {
       const act = (verb: 'create' | 'replace' | 'delete') =>
-        anyApi[`${verb}${op.kindInfo.scope!}CustomObject`]({
-          group: op.kindInfo.group,
-          version: op.kindInfo.version,
-          plural: op.kindInfo.resource!,
-          namespace: op.target.metadata!.namespace!,
-          name: op.target.metadata!.name!,
-          body: op.target,
+        anyApi[`${verb}${step.kindInfo.scope!}CustomObject`]({
+          group: step.kindInfo.group,
+          version: step.kindInfo.version,
+          plural: step.kindInfo.resource!,
+          namespace: step.resource.metadata!.namespace!,
+          name: step.resource.metadata!.name!,
+          body: step.resource,
           fieldManager,
         });
       await a;
       try {
-        await act(op.type);
+        await act(step.op);
       } catch (e) {
         // some (apps/v1 Deployment) does not treat PUT without existing resource as create, but the others does
-        if (op.type == 'replace' && await errorIsResourceNotFound(e)) {
+        if (step.op == 'replace' && await errorIsResourceNotFound(e)) {
           await act('create');
           return;
         }
@@ -572,12 +566,11 @@ const fns = {
 
     progress('Marking release statuses');
 
-    await Promise.all(releases.filter(
-      (r) => r.name == target.name && r.info.status == Status.DEPLOYED,
-    ).map(async (r) => {
-      r.info.status = Status.SUPERSEDED;
-      await updateRelease(api, r);
-    }));
+    await Promise.all(history.filter((r) => r.info.status == Status.DEPLOYED)
+      .map(async (r) => {
+        r.info.status = Status.SUPERSEDED;
+        await updateRelease(api, r);
+      }));
 
     release.info.status = Status.DEPLOYED;
     await updateRelease(api, release);
@@ -618,28 +611,29 @@ const fns = {
       parseManifests(v).filter((r) => r).map((r) => ({ filename: k, resource: r })),
     ).reduce((a, v) => a.concat(v), []).sort((a, b) => installOrderCompare(a.resource, b.resource));
 
-    const hooks = files.filter((r) => r.resource.metadata!.annotations?.['helm.sh/hook']).map((r): Hook => {
-      const w = parseInt(r.resource.metadata!.annotations!['helm.sh/hook-weight']);
-      return {
-        name: r.resource.metadata!.name!,
-        kind: r.resource.kind!,
-        path: r.filename,
-        // XXX cut from original doc?
-        manifest: stringify(r.resource),
-        events: r.resource.metadata!.annotations!['helm.sh/hook'].split(',')
-          .map((s) => s.trim().toLowerCase())
-          .filter((h): h is Event => Object.values(Event).includes(h as Event)),
-        last_run: {
-          started_at: '',
-          completed_at: '',
-          phase: Phase.UNKNOWN,
-        },
-        weight: isNaN(w) ? 0 : w,
-        delete_policies: r.resource.metadata!.annotations!['helm.sh/hook-delete-policy']?.split(',')
-          .map((s) => s.trim().toLowerCase())
-          .filter((h): h is DeletePolicy => Object.values(DeletePolicy).includes(h as DeletePolicy)),
-      };
-    });
+    const hooks = files.filter((r) => r.resource.metadata!.annotations?.['helm.sh/hook'])
+      .map((r): Hook => {
+        const w = parseInt(r.resource.metadata!.annotations!['helm.sh/hook-weight']);
+        return {
+          name: r.resource.metadata!.name!,
+          kind: r.resource.kind!,
+          path: r.filename,
+          // XXX cut from original doc?
+          manifest: stringify(r.resource),
+          events: r.resource.metadata!.annotations!['helm.sh/hook'].split(',')
+            .map((s) => s.trim().toLowerCase())
+            .filter((h): h is Event => Object.values(Event).includes(h as Event)),
+          last_run: {
+            started_at: '',
+            completed_at: '',
+            phase: Phase.UNKNOWN,
+          },
+          weight: isNaN(w) ? 0 : w,
+          delete_policies: r.resource.metadata!.annotations!['helm.sh/hook-delete-policy']?.split(',')
+            .map((s) => s.trim().toLowerCase())
+            .filter((h): h is DeletePolicy => Object.values(DeletePolicy).includes(h as DeletePolicy)),
+        };
+      });
     const manifests = files.filter((r) => !(r.resource.metadata!.annotations?.['helm.sh/hook']));
 
     const manifest = manifests.map((f) =>
@@ -703,7 +697,7 @@ const fns = {
     progress('Creating resources');
 
     await resolved.map((v) => ({
-      r: addManagedMetadata(v.r, release),
+      resource: addManagedMetadata(v.r, release),
       kindInfo: v.kindInfo,
     })).reduce(async (a, r) => {
       await a;
@@ -711,8 +705,8 @@ const fns = {
         group: r.kindInfo.group!,
         version: r.kindInfo.version!,
         plural: r.kindInfo.resource!,
-        namespace: r.r.metadata!.namespace!,
-        body: r.r,
+        namespace: r.resource.metadata!.namespace!,
+        body: r.resource,
         fieldManager,
       });
     }, (async () => {})());

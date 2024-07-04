@@ -196,7 +196,7 @@ const rollback = (target: Release) => {
   const op: InboundMessage = {
     type: 'call',
     func: 'rollback',
-    args: [toRaw(target), toRaw(releases.value)],
+    args: [toRaw(target), toRaw(releases.value.filter((r) => r.name == target.name))],
   };
   worker.postMessage(op);
 };
