@@ -31,7 +31,7 @@ import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src
 import { listAndUnwaitedWatch } from '@/utils/watch'
 import {
   type Chart, type Release,
-  parseSecret, secretsLabelSelector, Status,
+  parseSecret, secretsLabelSelector, secretName, Status,
 } from '@/utils/helm';
 import type { InboundMessage } from '@/utils/helm.webworker';
 import {
@@ -234,6 +234,15 @@ const install = (chart: Array<Chart>, values: object, name: string) => {
   worker.postMessage(op, findBuffers(chart));
   creating.value = false;
 };
+
+const purge = (name: string) => Promise.all(
+  releases.value.filter((r) => r.name == name).map(
+    (r) => api.deleteNamespacedSecret({
+      namespace: selectedNamespace.value,
+      name: secretName(r),
+    }),
+  ),
+);
 </script>
 
 <template>
@@ -278,9 +287,12 @@ const install = (chart: Array<Chart>, values: object, name: string) => {
               <TippedBtn v-if="(item as Release).info.status == Status.DEPLOYED"
                 size="small" icon="mdi-delete" tooltip="Uninstall" variant="text"
                 @click="() => uninstall(item as Release)" />
-              <TippedBtn v-if="(item as Release).info.status == Status.UNINSTALLED"
-                size="small" icon="mdi-reload" tooltip="Restore" variant="text"
-                @click="() => rollback(item as Release)" />
+              <template v-if="(item as Release).info.status == Status.UNINSTALLED">
+                <TippedBtn size="small" icon="mdi-reload" tooltip="Restore" variant="text"
+                  @click="() => rollback(item as Release)" />
+                <TippedBtn size="small" icon="$close" tooltip="Remove history" variant="text"
+                  @click="() => purge((item as Release).name)" />
+              </template>
             </template>
           </VDataTableRow>
         </template>

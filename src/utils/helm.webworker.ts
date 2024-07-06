@@ -20,6 +20,7 @@ import { PresentedError } from '@/utils/PresentedError';
 import { parse, parseAllDocuments } from 'yaml';
 import { stringify } from '@/utils/yaml';
 import {
+  secretName,
   type Chart, type Hook, type Release, type SerializedChart,
   DeletePolicy, Event, Phase, Status,
 } from '@/utils/helm';
@@ -140,7 +141,7 @@ const encodeSecret = async (r: Release): Promise<V1Secret> => {
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
-      name: `sh.helm.release.v1.${r.name}.v${r.version}`,
+      name: secretName(r),
       namespace: r.namespace,
       labels: {
         ...r.labels,

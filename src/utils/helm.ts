@@ -208,6 +208,7 @@ export const parseSecret = async (s: V1Secret): Promise<Release> => {
     labels: s.metadata!.labels ?? {},
   };
 };
+export const secretName = (r: Release) => `sh.helm.release.v1.${r.name}.v${r.version}`;
 
 export interface RawFiles {
   [name: string]: Blob;
