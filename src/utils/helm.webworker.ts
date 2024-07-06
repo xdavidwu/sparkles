@@ -604,8 +604,6 @@ const fns = {
       // XXX do something with subnotes? but that's not helm default
       delete results[f];
     });
-    // TODO make it proper
-    console.log(notes);
 
     const files = Object.entries(results).map(([k, v]) =>
       parseManifests(v).filter((r) => r).map((r) => ({ filename: k, resource: r })),
@@ -720,6 +718,8 @@ const fns = {
     release.info.status = Status.DEPLOYED;
     release.info.description = 'Install complete';
     await updateRelease(api, release);
+
+    return notes;
   }
 };
 

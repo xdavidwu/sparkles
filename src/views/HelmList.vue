@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {
   VBtn,
+  VCard,
   VDataTable,
   VDataTableRow,
   VDialog,
@@ -60,8 +61,10 @@ const tabs = ref<Array<ValuesTab>>([]);
 const creating = ref(false);
 
 const operation = ref('');
-const progress = ref('');
+const progressMessage = ref('');
 const progressCompleted = ref(true);
+const notes = ref<string | undefined>();
+const showNotes = ref(false);
 
 const releases = computedAsync(async () =>
   // avoid multiple layer of proxy via toRaw, for easier cloning
@@ -163,7 +166,7 @@ const prepareWorker = () => {
   const handlers = [
     handleDataRequestMessages(worker),
     handleErrorMessages,
-    handleProgressMessages(progress, progressCompleted),
+    handleProgressMessages(progressMessage, progressCompleted, notes),
   ];
   worker.onmessage = async (e) => {
     for (const handler of handlers) {
@@ -175,10 +178,16 @@ const prepareWorker = () => {
   return worker;
 };
 
+watch(progressCompleted, () => {
+  if (progressCompleted.value && notes.value?.length) {
+    showNotes.value = true;
+  }
+});
+
 const uninstall = (target: Release) => {
   const worker = prepareWorker();
   operation.value = `Uninstalling release ${target.name}`;
-  progress.value = 'Uninstalling release';
+  progressMessage.value = 'Uninstalling release';
   progressCompleted.value = false;
   const op: InboundMessage = {
     type: 'call',
@@ -191,7 +200,7 @@ const uninstall = (target: Release) => {
 const rollback = (target: Release) => {
   const worker = prepareWorker();
   operation.value = `Rolling back release ${target.name} to ${target.version}`;
-  progress.value = 'Rolling back release';
+  progressMessage.value = 'Rolling back release';
   progressCompleted.value = false;
   const op: InboundMessage = {
     type: 'call',
@@ -215,7 +224,7 @@ const findBuffers = (o: unknown): Array<ArrayBuffer> => {
 const install = (chart: Array<Chart>, values: object, name: string) => {
   const worker = prepareWorker();
   operation.value = `Installing release ${name}`;
-  progress.value = 'Installing release';
+  progressMessage.value = 'Installing release';
   progressCompleted.value = false;
   const op: InboundMessage = {
     type: 'call',
@@ -309,7 +318,17 @@ const install = (chart: Array<Chart>, values: object, name: string) => {
   <VDialog v-model="creating">
     <HelmCreate :used-names="names" @apply="install" @cancel="creating = false" />
   </VDialog>
-  <ProgressDialog :model-value="!progressCompleted" :title="operation" :text="progress" />
+  <ProgressDialog :model-value="!progressCompleted" :title="operation" :text="progressMessage" />
+  <VDialog v-model="showNotes">
+    <VCard title="Notes from release">
+      <template #text>
+        <pre class="text-pre-wrap">{{ notes }}</pre>
+      </template>
+      <template #actions>
+        <VBtn color="primary" @click="showNotes = false">Close</VBtn>
+      </template>
+    </VCard>
+  </VDialog>
 </template>
 
 <style scoped>

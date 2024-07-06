@@ -8,6 +8,7 @@ export interface ErrorMessage {
 
 export interface CompletedMessage {
   type: 'completed';
+  message?: string;
 }
 
 export interface ProgressMessage {
@@ -47,11 +48,12 @@ export const handleFnCall = <T extends AnyFuncsImpl>(fns: T) =>
     if (data.type != 'call') {
       return false;
     }
+    let message;
     try {
       if (!fns[data.func]) {
         throw new Error(`unimplemented ${JSON.stringify(data)}`);
       }
-      await fns[data.func](...data.args);
+      message = await fns[data.func](...data.args);
     } catch (_e) {
       let e = _e;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,6 +74,7 @@ export const handleFnCall = <T extends AnyFuncsImpl>(fns: T) =>
     }
     const msg: FnCallOutboundMessage = {
       type: 'completed',
+      message,
     };
     postMessage(msg);
     return true;

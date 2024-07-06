@@ -78,17 +78,21 @@ export const handleErrorMessages = (e: MessageEvent): boolean => {
   return false;
 };
 
-export const handleProgressMessages = (message: Ref<string>, completed: Ref<boolean>) =>
-  (e: MessageEvent): boolean => {
-    const data: ProgressMessage | CompletedMessage = e.data;
-    switch (data.type) {
-    case 'progress':
-      message.value = data.message;
-      return true;
-    case 'completed':
-      completed.value = true;
-      return true;
-    default:
-      return false;
-    }
-  };
+export const handleProgressMessages =
+  (message: Ref<string>, completed: Ref<boolean>, completedMessage?: Ref<string | undefined>) =>
+    (e: MessageEvent): boolean => {
+      const data: ProgressMessage | CompletedMessage = e.data;
+      switch (data.type) {
+      case 'progress':
+        message.value = data.message;
+        return true;
+      case 'completed':
+        completed.value = true;
+        if (completedMessage) {
+          completedMessage.value = data.message;
+        }
+        return true;
+      default:
+        return false;
+      }
+    };
