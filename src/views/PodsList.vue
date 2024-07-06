@@ -26,7 +26,7 @@ import { usePermissions } from '@/stores/permissions';
 import {
   CoreV1Api,
   type V1Pod, V1PodFromJSON, type V1Container, type V1ContainerStatus,
-} from '@/kubernetes-api/src';
+} from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { truncateStart } from '@/utils/text';
 import { listAndUnwaitedWatch } from '@/utils/watch';
 

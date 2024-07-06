@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { useLocalStorage, watchArray } from '@vueuse/core';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useApiConfig } from '@/stores/apiConfig';
-import { CoreV1Api, type V1Namespace, V1NamespaceFromJSON } from '@/kubernetes-api/src';
+import { CoreV1Api, type V1Namespace, V1NamespaceFromJSON } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { listAndUnwaitedWatch } from '@/utils/watch';
 
 export const useNamespaces = defineStore('namespace', () => {

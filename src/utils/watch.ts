@@ -1,7 +1,7 @@
 import {
   V1WatchEventFromJSON,
   type ApiResponse, type V1WatchEvent,
-} from '@/kubernetes-api/src';
+} from '@xdavidwu/kubernetes-client-typescript-fetch';
 import type { V1PartialObjectMetadata, V1Table, V1TableRow } from '@/utils/AnyApi';
 import { isSameKubernetesObject, type KubernetesObject, type KubernetesList } from '@/utils/objects';
 import { rawErrorIsAborted, errorIsAborted, V1WatchEventType } from '@/utils/api';

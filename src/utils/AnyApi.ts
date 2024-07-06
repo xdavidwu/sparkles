@@ -19,7 +19,7 @@ import {
   type HTTPHeaders,
   type Middleware,
   type InitOverrideFunction,
-} from '@/kubernetes-api/src';
+} from '@xdavidwu/kubernetes-client-typescript-fetch';
 import type { OpenAPIV3 } from 'openapi-types';
 import type { KubernetesObject } from '@/utils/objects';
 import { chainOverrideFunction, type ChainableInitOverrideFunction } from '@/utils/api';

@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import {
   Configuration,
   type ConfigurationParameters, type HTTPHeaders, type Middleware,
-} from '@/kubernetes-api/src';
+} from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { useLocalStorage } from '@vueuse/core';
 import { computed } from 'vue';
 import { UserManager, WebStorageStateStore } from 'oidc-client-ts';

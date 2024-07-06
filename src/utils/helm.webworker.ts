@@ -10,7 +10,7 @@ import {
   BatchV1Api, CoreV1Api,
   V1JobFromJSON, V1PodFromJSON,
   type V1Secret, type VersionInfo,
-} from '@/kubernetes-api/src';
+} from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { AnyApi } from '@/utils/AnyApi';
 import {
   errorIsResourceNotFound,

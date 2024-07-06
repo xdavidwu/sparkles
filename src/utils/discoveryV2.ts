@@ -1,4 +1,4 @@
-import type { Middleware } from '@/kubernetes-api/src';
+import type { Middleware } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import type { KubernetesObject, KubernetesList } from '@/utils/objects';
 
 export const discoveryV2Beta1ContentType =

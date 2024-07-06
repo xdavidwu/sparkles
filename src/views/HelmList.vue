@@ -27,7 +27,7 @@ import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
 import { useLoading } from '@/composables/loading';
 import { stringify } from '@/utils/yaml';
-import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@/kubernetes-api/src';
+import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { listAndUnwaitedWatch } from '@/utils/watch'
 import {
   type Chart, type Release,

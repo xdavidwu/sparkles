@@ -31,7 +31,7 @@ import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import { useErrorPresentation } from '@/stores/errorPresentation';
-import type { V1ObjectMeta } from '@/kubernetes-api/src';
+import type { V1ObjectMeta } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import {
   AnyApi,
   type V1Table, type V1PartialObjectMetadata, type V1TableColumnDefinition, type V1TableRow,

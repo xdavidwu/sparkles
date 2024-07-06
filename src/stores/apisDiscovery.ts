@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
-import { CoreApi, ApisApi, VersionApi, type VersionInfo } from '@/kubernetes-api/src';
+import { CoreApi, ApisApi, VersionApi, type VersionInfo } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import {
   toV2Discovery, resolveObject,
   type V2APIGroupDiscoveryList, type V2APIGroupDiscovery,

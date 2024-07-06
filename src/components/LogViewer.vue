@@ -5,7 +5,7 @@ import type { Terminal } from '@xterm/xterm';
 import { openpty } from 'xterm-pty';
 import { useAbortController } from '@/composables/abortController';
 import { useApiConfig } from '@/stores/apiConfig';
-import { CoreV1Api } from '@/kubernetes-api/src';
+import { CoreV1Api } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { errorIsAborted, rawErrorIsAborted } from '@/utils/api';
 import { streamToGenerator } from '@/utils/lang';
 

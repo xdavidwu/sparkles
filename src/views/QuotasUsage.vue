@@ -13,7 +13,7 @@ import {
   CoreV1Api,
   type V1ResourceQuota, V1ResourceQuotaFromJSON,
   type V1Pod, V1PodFromJSON,
-} from '@/kubernetes-api/src';
+} from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { V1PodStatusPhase } from '@/utils/api';
 import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndUnwaitedWatch } from '@/utils/watch';

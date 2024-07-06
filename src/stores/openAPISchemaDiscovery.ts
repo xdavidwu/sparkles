@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
-import { Configuration } from '@/kubernetes-api/src';
+import { Configuration } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { AnyApi, type AnyApiGetOpenAPISchemaRequest } from '@/utils/AnyApi';
 import { ExtractedRequestContext, extractRequestContext } from '@/utils/api';
 import type { V2APIResourceDiscovery } from '@/utils/discoveryV2';

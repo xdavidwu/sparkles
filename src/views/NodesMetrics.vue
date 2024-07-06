@@ -7,7 +7,7 @@ import { useIntervalFn } from '@vueuse/core';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
-import { CustomObjectsApi, CoreV1Api, ResponseError, V1NodeFromJSON, type V1Node } from '@/kubernetes-api/src';
+import { CustomObjectsApi, CoreV1Api, ResponseError, V1NodeFromJSON, type V1Node } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { listAndUnwaitedWatch } from '@/utils/watch';
 import { BaseColor, ColorVariant, colorToCode } from '@/utils/colors';
 import type { KubernetesList } from '@/utils/objects';

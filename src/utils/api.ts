@@ -4,7 +4,7 @@ import {
   type V1SelfSubjectReview,
   Configuration, FetchError, ResponseError,
   type InitOverrideFunction, type HTTPRequestInit, type HTTPHeaders, type RequestContext, type Middleware,
-} from '@/kubernetes-api/src';
+} from '@xdavidwu/kubernetes-client-typescript-fetch';
 
 /*
  * enums in openapi codegen uses exhaustive enums on types,

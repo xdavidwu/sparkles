@@ -23,7 +23,7 @@ import LoadingSuspense from '@/components/LoadingSuspense.vue';
 import { useNamespaces } from '@/stores/namespaces';
 import { storeToRefs } from 'pinia';
 import { computed, ref, onErrorCaptured, watch } from 'vue';
-import { ResponseError, FetchError, V1StatusFromJSON } from '@/kubernetes-api/src';
+import { ResponseError, FetchError, V1StatusFromJSON } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { PresentedError } from '@/utils/PresentedError';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';

@@ -1,4 +1,4 @@
-import type { V1Secret } from '@/kubernetes-api/src';
+import type { V1Secret } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { streamToGenerator } from '@/utils/lang';
 import { extract } from 'it-tar';
 import { parse } from 'yaml';

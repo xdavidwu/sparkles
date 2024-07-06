@@ -3,7 +3,7 @@ import XTerm from '@/components/XTerm.vue';
 import { onUnmounted } from 'vue';
 import type { Terminal } from '@xterm/xterm';
 import { useApiConfig } from '@/stores/apiConfig';
-import { CoreV1Api, V1StatusFromJSON } from '@/kubernetes-api/src';
+import { CoreV1Api, V1StatusFromJSON } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { ExtractedRequestContext, extractRequestContext, V1StatusStatus } from '@/utils/api';
 import { PresentedError } from '@/utils/PresentedError';
 import { useErrorPresentation } from '@/stores/errorPresentation';

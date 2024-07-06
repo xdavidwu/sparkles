@@ -1,4 +1,4 @@
-import { FetchError, ResponseError } from '@/kubernetes-api/src';
+import { FetchError, ResponseError } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { serializeFetchError, serializeResponseError } from '@/utils/api';
 
 export interface ErrorMessage {

@@ -1,7 +1,7 @@
 import {
   Configuration,
   type ConfigurationParameters, type VersionInfo,
-} from '@/kubernetes-api/src';
+} from '@xdavidwu/kubernetes-client-typescript-fetch';
 import type { V2APIGroupDiscovery } from '@/utils/discoveryV2';
 import { setFieldManager } from '@/utils/api';
 

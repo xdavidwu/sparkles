@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
-import { AuthorizationV1Api, type V1SubjectRulesReviewStatus } from '@/kubernetes-api/src';
+import { AuthorizationV1Api, type V1SubjectRulesReviewStatus } from '@xdavidwu/kubernetes-client-typescript-fetch';
 
 export enum PermissionStatus {
   Allowed = "allowed",
