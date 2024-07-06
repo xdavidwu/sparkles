@@ -119,11 +119,6 @@ const columns = [
   },
 ];
 
-// DataTableItem<T> is not exported
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const latestRevision = (releases: ReadonlyArray<any>) => releases.reduce(
-  (a, v) => (v.raw.version > a.raw.version) ? v : a, releases[0]);
-
 const { appBarHeightPX } = useAppTabs();
 
 const { abort: abortRequests, signal } = useAbortController();
@@ -257,7 +252,7 @@ const purge = (name: string) => Promise.all(
         :row-props="{class: 'darken'}" :group-by="[{ key: 'name', order: 'asc'}]"
         disable-sort>
         <template #group-header='groupProps'>
-          <VDataTableRow v-bind="groupProps" :item="latestRevision(groupProps.item.items)" class="group-header">
+          <VDataTableRow v-bind="groupProps" :item="groupProps.item.items[0]" class="group-header">
             <template #[`item.data-table-group`]='{ value }'>
               <VBtn size="small" variant="text"
                 :icon="groupProps.isGroupOpen(groupProps.item) ? '$expand' : '$next'"
