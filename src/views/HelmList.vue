@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {
+  VBadge,
   VBtn,
   VCard,
   VDataTable,
@@ -21,6 +22,7 @@ import { computed, ref, watch, toRaw } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
+import { useHelmRepository } from '@/stores/helmRepository';
 import { useNamespaces } from '@/stores/namespaces';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
@@ -30,9 +32,10 @@ import { stringify } from '@/utils/yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { listAndUnwaitedWatch } from '@/utils/watch'
 import {
-  type Chart, type Release,
+  type Chart, type Metadata, type Release,
   parseSecret, secretsLabelSelector, secretName, Status,
 } from '@/utils/helm';
+import { gt } from 'semver';
 import type { InboundMessage } from '@/utils/helm.webworker';
 import {
   handleDataRequestMessages,
@@ -65,6 +68,9 @@ const progressMessage = ref('');
 const progressCompleted = ref(true);
 const notes = ref<string | undefined>();
 const showNotes = ref(false);
+
+const { charts } = storeToRefs(useHelmRepository());
+await useHelmRepository().ensureIndex; // TODO maybe not
 
 const releases = computedAsync(async () =>
   // avoid multiple layer of proxy via toRaw, for easier cloning
@@ -151,6 +157,20 @@ const { loading, load } = useLoading(async () => {
 });
 
 watch(selectedNamespace, load, { immediate: true });
+
+// TODO be safer
+const isSameChart = (a: Metadata, b: Metadata) => a.name == b.name;
+
+const latestChart = (release: Release) =>
+  charts.value.find((c) => isSameChart(c, release.chart.metadata));
+const upgradableLatestChart = (release: Release) => {
+  const latest = latestChart(release);
+  if (latest && gt(latest.version, release.chart.metadata.version)) {
+    return latest;
+  }
+};
+const upgradeText = (c: Metadata) =>
+  `Upgrade to chart version ${c.version}, app version ${c.appVersion}`;
 
 let worker: Worker | undefined;
 
@@ -249,7 +269,7 @@ const purge = (name: string) => Promise.all(
   <TabsWindow v-model="tab">
     <WindowItem value="table">
       <VDataTable :items="releases" :headers="columns" :loading="loading"
-        :row-props="{class: 'darken'}" :group-by="[{ key: 'name', order: 'asc'}]"
+        :row-props="{ class: 'darken' }" :group-by="[{ key: 'name', order: 'asc' }]"
         disable-sort>
         <template #group-header='groupProps'>
           <VDataTableRow v-bind="groupProps" :item="groupProps.item.items[0]" class="group-header">
@@ -276,12 +296,36 @@ const purge = (name: string) => Promise.all(
                   activator="parent" />
               </div>
             </template>
+            <template #[`item.chart.metadata.version`]='{ item, value }'>
+              <template v-if="upgradableLatestChart(item as Release)">
+                <VBadge dot>
+                  {{ value }}&nbsp;&nbsp;
+                  <LinkedTooltip activator="parent"
+                    :text="`${upgradableLatestChart(item as Release)!.version} is available`" />
+                </VBadge>
+              </template>
+              <template v-else>{{ value }}</template>
+            </template>
+            <template #[`item.chart.metadata.appVersion`]='{ item, value }'>
+              <template v-if="upgradableLatestChart(item as Release)">
+                <VBadge dot>
+                  {{ value }}&nbsp;&nbsp;
+                  <LinkedTooltip activator="parent"
+                    :text="`${upgradableLatestChart(item as Release)!.appVersion} is available`" />
+                </VBadge>
+              </template>
+              <template v-else>{{ value }}</template>
+            </template>
             <template #[`item.actions`]='{ item }'>
               <TippedBtn size="small" icon="mdi-file-document" tooltip="Values" variant="text"
                 @click="() => createTab(item as Release)" />
-              <TippedBtn v-if="(item as Release).info.status == Status.DEPLOYED"
-                size="small" icon="mdi-delete" tooltip="Uninstall" variant="text"
-                @click="() => uninstall(item as Release)" />
+              <template v-if="(item as Release).info.status == Status.DEPLOYED">
+                <TippedBtn size="small" icon="mdi-delete" tooltip="Uninstall" variant="text"
+                  @click="() => uninstall(item as Release)" />
+                <TippedBtn v-if="upgradableLatestChart(item as Release)"
+                  size="small" icon="mdi-update" variant="text"
+                  :tooltip="upgradeText(upgradableLatestChart(item as Release)!)"/>
+              </template>
               <template v-if="(item as Release).info.status == Status.UNINSTALLED">
                 <TippedBtn size="small" icon="mdi-reload" tooltip="Restore" variant="text"
                   @click="() => rollback(item as Release)" />
