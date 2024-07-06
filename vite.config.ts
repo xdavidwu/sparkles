@@ -47,6 +47,7 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
+    reportCompressedSize: false,
   },
   experimental: {
     renderBuiltUrl: (filename: string, { hostType }: { hostType: 'js' | 'css' | 'html' }) => {
