@@ -677,6 +677,7 @@ const fns = {
         status: Status.PENDING_INSTALL,
         description: 'Initial install underway',
         deleted: '',
+        notes,
       },
       chart: toSerializedChart(chart[0]),
       config: values,
