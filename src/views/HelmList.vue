@@ -135,8 +135,10 @@ const { loading, load } = useLoading(async () => {
 
 watch(selectedNamespace, load, { immediate: true });
 
-// TODO be safer
-const isSameChart = (a: Metadata, b: Metadata) => a.name == b.name;
+// we don't really know where chart of a release is from,
+// but with home and sources should make us confident enough?
+const isSameChart = (a: Metadata, b: Metadata) =>
+  a.name == b.name && a.home == b.home && a.sources?.sort().join('') == b.sources?.sort().join('');
 
 const latestChart = (release: Release) =>
   charts.value.find((c) => isSameChart(c, release.chart.metadata));
