@@ -34,13 +34,13 @@ const router = createRouter({
       path: '/pods',
       name: 'pods',
       component: () => import('@/views/PodsList.vue'),
-      meta: { name: 'Pods', namespaced: true, unsupported: checkNamespacedResourcePermission('', 'resourcequotas') },
+      meta: { name: 'Pods', namespaced: true, unsupported: checkNamespacedResourcePermission('', 'pods') },
     },
     {
       path: '/quotas',
       name: 'quotas',
       component: () => import('@/views/QuotasUsage.vue'),
-      meta: { name: 'Quotas', namespaced: true, unsupported: checkNamespacedResourcePermission('', 'secrets') },
+      meta: { name: 'Quotas', namespaced: true, unsupported: checkNamespacedResourcePermission('', 'resourcequotas') },
     },
     {
       path: '/helm',
