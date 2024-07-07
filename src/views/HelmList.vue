@@ -49,8 +49,7 @@ const creating = ref(false);
 const operation = ref('');
 const progressMessage = ref('');
 const progressCompleted = ref(true);
-const notes = ref<string | undefined>();
-const showNotes = ref(false);
+const installedSecret = ref<string | undefined>();
 const inspectedRelease = ref<Release | undefined>();
 const inspect = ref(false);
 
@@ -151,7 +150,7 @@ const prepareWorker = () => {
   const handlers = [
     handleDataRequestMessages(worker),
     handleErrorMessages,
-    handleProgressMessages(progressMessage, progressCompleted, notes),
+    handleProgressMessages(progressMessage, progressCompleted, installedSecret),
   ];
   worker.onmessage = async (e) => {
     for (const handler of handlers) {
@@ -164,8 +163,13 @@ const prepareWorker = () => {
 };
 
 watch(progressCompleted, () => {
-  if (progressCompleted.value && notes.value?.length) {
-    showNotes.value = true;
+  if (progressCompleted.value && installedSecret.value?.length) {
+    // may race with watch, but extremely unlikely
+    // since it is at least persisted once early before resources creation
+    const r = releases.value.find((r) => secretName(r) == installedSecret.value);
+    if (r) {
+      view(r);
+    }
   }
 });
 
@@ -263,16 +267,6 @@ const purge = (name: string) => Promise.all(
     <HelmCreate :used-names="names" @apply="install" @cancel="creating = false" />
   </VDialog>
   <ProgressDialog :model-value="!progressCompleted" :title="operation" :text="progressMessage" />
-  <VDialog v-model="showNotes">
-    <VCard title="Notes from release">
-      <template #text>
-        <pre class="text-pre-wrap">{{ notes }}</pre>
-      </template>
-      <template #actions>
-        <VBtn color="primary" @click="showNotes = false">Close</VBtn>
-      </template>
-    </VCard>
-  </VDialog>
   <VDialog v-model="inspect">
     <VCard v-if="inspectedRelease"
       :title="`Details for release ${inspectedRelease.name}, revision ${inspectedRelease.version}`">

@@ -721,7 +721,7 @@ const fns = {
     release.info.description = 'Install complete';
     await updateRelease(api, release);
 
-    return notes;
+    return secretName(release);
   }
 };
 
