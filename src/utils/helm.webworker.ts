@@ -13,7 +13,7 @@ import {
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { AnyApi } from '@/utils/AnyApi';
 import {
-  errorIsResourceNotFound,
+  errorIsResourceNotFound, errorIsAborted, rawErrorIsAborted,
   V1ConditionStatus, V1JobConditionType, V1PodStatusPhase, V1WatchEventType,
 } from '@/utils/api';
 import { PresentedError } from '@/utils/PresentedError';
@@ -310,7 +310,6 @@ const addManagedMetadata = (resource: KubernetesObject, release: Release): Kuber
   },
 });
 
-// TODO timeouts
 const execHooks = (
   api: CoreV1Api, batchApi: BatchV1Api, anyApi: AnyApi,
   r: Release, ev: Event, groups: Array<V2APIGroupDiscovery>,
@@ -358,13 +357,17 @@ const execHooks = (
         body: obj,
         fieldManager,
       });
+
+      const abortController = new AbortController();
+      // helm defaults to 5m
+      const t = setTimeout(() => abortController.abort(), 5 * 60 * 1000);
       if (obj.apiVersion == 'batch/v1' && obj.kind == 'Job') {
         await watchUntil(
           (opt) => batchApi.listNamespacedJobRaw({
             namespace: obj.metadata!.namespace!,
             fieldSelector: `metadata.name=${obj.metadata!.name}`,
             ...opt,
-          }),
+          }, { signal: abortController.signal }),
           V1JobFromJSON,
           (ev) => {
             if (ev.type == V1WatchEventType.ADDED || ev.type == V1WatchEventType.MODIFIED) {
@@ -390,7 +393,7 @@ const execHooks = (
             namespace: obj.metadata!.namespace!,
             fieldSelector: `metadata.name=${obj.metadata!.name}`,
             ...opt,
-          }),
+          }, { signal: abortController.signal }),
           V1PodFromJSON,
           (ev) => {
             if (ev.type == V1WatchEventType.ADDED || ev.type == V1WatchEventType.MODIFIED) {
@@ -410,14 +413,20 @@ const execHooks = (
           },
         )
       }
+      clearTimeout(t);
 
       h.last_run.phase = Phase.SUCCEEDED;
       h.last_run.completed_at = (new Date()).toISOString();
 
       await enforceDeletePolicy(DeletePolicy.SUCCEEDED);
-    } catch (e) {
+    } catch (_e) {
+      let e = _e;
       h.last_run.phase = Phase.FAILED;
       h.last_run.completed_at = (new Date()).toISOString();
+
+      if (errorIsAborted(e) || rawErrorIsAborted(e)) {
+        e = new PresentedError(`Timeout waiting for hook ${h.kind} ${h.name}`);
+      }
 
       await enforceDeletePolicy(DeletePolicy.FAILED);
 
