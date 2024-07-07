@@ -66,7 +66,12 @@ const notes = ref<string | undefined>();
 const showNotes = ref(false);
 
 const { charts } = storeToRefs(useHelmRepository());
-await useHelmRepository().ensureIndex; // TODO maybe not
+try {
+  await useHelmRepository().ensureIndex;
+} catch (e) {
+  // affects only update check, not fatal,
+  // letting HelmCreate notify user should be enough
+}
 
 const releases = computedAsync(async () =>
   // avoid multiple layer of proxy via toRaw, for easier cloning
