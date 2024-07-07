@@ -4,16 +4,12 @@ import {
   VCard,
   VDataTable,
   VDialog,
-  VTab,
+  VTabs,
 } from 'vuetify/components';
-import AppTabs from '@/components/AppTabs.vue';
-import DynamicTab from '@/components/DynamicTab.vue';
 import FixedFab from '@/components/FixedFab.vue';
 import HelmCreate from '@/components/HelmCreate.vue';
 import HelmListRow from '@/components/HelmListRow.vue';
 import ProgressDialog from '@/components/ProgressDialog.vue';
-import TabsWindow from '@/components/TabsWindow.vue';
-import WindowItem from '@/components/WindowItem.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
 import { computed, ref, watch, toRaw } from 'vue';
 import { computedAsync } from '@vueuse/core';
@@ -23,7 +19,6 @@ import { useHelmRepository } from '@/stores/helmRepository';
 import { useNamespaces } from '@/stores/namespaces';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
-import { useAppTabs } from '@/composables/appTabs';
 import { useLoading } from '@/composables/loading';
 import { stringify } from '@/utils/yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@xdavidwu/kubernetes-client-typescript-fetch';
@@ -40,12 +35,6 @@ import {
 } from '@/utils/communication';
 import HelmWorker from '@/utils/helm.webworker?worker';
 
-// TODO drop tabs?
-interface ValuesTab {
-  id: string,
-  values: object,
-}
-
 const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces;
 const { selectedNamespace } = storeToRefs(namespacesStore);
@@ -54,8 +43,6 @@ const config = await useApiConfig().getConfig();
 const api = new CoreV1Api(config);
 
 const secrets = ref<Array<V1Secret>>([]);
-const tab = ref('table');
-const tabs = ref<Array<ValuesTab>>([]);
 
 const creating = ref(false);
 
@@ -64,6 +51,8 @@ const progressMessage = ref('');
 const progressCompleted = ref(true);
 const notes = ref<string | undefined>();
 const showNotes = ref(false);
+const inspectedRelease = ref<Release | undefined>();
+const inspect = ref(false);
 
 const { charts } = storeToRefs(useHelmRepository());
 try {
@@ -126,25 +115,13 @@ const columns = [
   },
 ];
 
-const { appBarHeightPX } = useAppTabs();
+const inspectTabs = [
+  { text: 'Notes', value: 'notes' },
+  { text: 'Values', value: 'values' },
+  { text: 'Default values', value: 'defaults' },
+];
 
 const { abort: abortRequests, signal } = useAbortController();
-
-const createTab = (release: Release) => {
-  const id = `${release.name}@${release.version}`;
-  if (!tabs.value.some((t) => t.id === id)) {
-    tabs.value.push({
-      id,
-      values: release.config ?? {},
-    });
-  }
-  tab.value = id;
-};
-
-const closeTab = (idx: number) => {
-  tab.value = 'table';
-  tabs.value.splice(idx, 1);
-};
 
 const { loading, load } = useLoading(async () => {
   abortRequests();
@@ -191,6 +168,11 @@ watch(progressCompleted, () => {
     showNotes.value = true;
   }
 });
+
+const view = (target: Release) => {
+  inspectedRelease.value = target;
+  inspect.value = true;
+};
 
 const uninstall = (target: Release) => {
   const worker = prepareWorker();
@@ -254,42 +236,29 @@ const purge = (name: string) => Promise.all(
 </script>
 
 <template>
-  <AppTabs v-model="tab">
-    <VTab value="table">Releases</VTab>
-    <DynamicTab v-for="(tab, index) in tabs" :key="tab.id" :value="tab.id"
-      :title="`Values: ${ tab.id }`" @close="() => closeTab(index)" />
-  </AppTabs>
-  <TabsWindow v-model="tab">
-    <WindowItem value="table">
-      <VDataTable :items="releases" :headers="columns" :loading="loading"
-        :row-props="{ class: 'darken' }" :group-by="[{ key: 'name', order: 'asc' }]"
-        disable-sort>
-        <template #group-header='groupProps'>
-          <HelmListRow v-bind="groupProps"
-            :latest-chart="latestChart(groupProps.item.items[0].raw as Release)"
-            :item="groupProps.item.items[0]"
-            :expandable="groupProps.item.items.length > 1"
-            :expanded="groupProps.isGroupOpen(groupProps.item)"
-            @toggle-expand="groupProps.toggleGroup(groupProps.item)"
-            @view="createTab(groupProps.item.items[0].raw as Release)"
-            @uninstall="uninstall(groupProps.item.items[0].raw as Release)"
-            @rollback="rollback(groupProps.item.items[0].raw as Release)"
-            @purge="purge((groupProps.item.items[0].raw as Release).name)" />
-        </template>
-        <template #item="{ props }">
-          <!-- XXX: VDataTableRows internally use this .props, but type is lost -->
-          <HelmListRow v-bind="props as any" history
-            @view="createTab(props.item.raw as Release)"
-            @rollback="rollback(props.item.raw as Release)" />
-        </template>
-      </VDataTable>
-      <FixedFab icon="$plus" @click="() => creating = true" />
-    </WindowItem>
-    <WindowItem v-for="tab in tabs" :key="tab.id" :value="tab.id">
-      <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
-        :model-value="stringify(tab.values)" disabled />
-    </WindowItem>
-  </TabsWindow>
+  <VDataTable :items="releases" :headers="columns" :loading="loading"
+    :row-props="{ class: 'darken' }" :group-by="[{ key: 'name', order: 'asc' }]"
+    disable-sort>
+    <template #group-header='groupProps'>
+      <HelmListRow v-bind="groupProps"
+        :latest-chart="latestChart(groupProps.item.items[0].raw as Release)"
+        :item="groupProps.item.items[0]"
+        :expandable="groupProps.item.items.length > 1"
+        :expanded="groupProps.isGroupOpen(groupProps.item)"
+        @toggle-expand="groupProps.toggleGroup(groupProps.item)"
+        @view="view(groupProps.item.items[0].raw as Release)"
+        @uninstall="uninstall(groupProps.item.items[0].raw as Release)"
+        @rollback="rollback(groupProps.item.items[0].raw as Release)"
+        @purge="purge((groupProps.item.items[0].raw as Release).name)" />
+    </template>
+    <template #item="{ props }">
+      <!-- XXX: VDataTableRows internally use this .props, but type is lost -->
+      <HelmListRow v-bind="props as any" history
+        @view="view(props.item.raw as Release)"
+        @rollback="rollback(props.item.raw as Release)" />
+    </template>
+  </VDataTable>
+  <FixedFab icon="$plus" @click="() => creating = true" />
   <VDialog v-model="creating">
     <HelmCreate :used-names="names" @apply="install" @cancel="creating = false" />
   </VDialog>
@@ -301,6 +270,33 @@ const purge = (name: string) => Promise.all(
       </template>
       <template #actions>
         <VBtn color="primary" @click="showNotes = false">Close</VBtn>
+      </template>
+    </VCard>
+  </VDialog>
+  <VDialog v-model="inspect">
+    <VCard v-if="inspectedRelease"
+      :title="`Details for release ${inspectedRelease.name}, revision ${inspectedRelease.version}`">
+      <template #text>
+        <div class="mb-n6">
+        <VTabs :items="inspectTabs">
+          <template #[`item.notes`]>
+            <pre :style="`height: calc(100dvh - 48px - 140px - 48px)`"
+              class="text-pre-wrap pt-2 overflow-y-auto bg-black"
+              v-text="inspectedRelease.info.notes ?? '(none)'" />
+          </template>
+          <template #[`item.values`]>
+            <YAMLEditor :style="`height: calc(100dvh - 48px - 140px - 48px)`"
+              :model-value="stringify(inspectedRelease.config ?? {})" disabled />
+          </template>
+          <template #[`item.defaults`]>
+            <YAMLEditor :style="`height: calc(100dvh - 48px - 140px - 48px)`"
+              :model-value="stringify(inspectedRelease.chart.values)" disabled />
+          </template>
+        </VTabs>
+        </div>
+      </template>
+      <template #actions>
+        <VBtn color="primary" @click="inspect = false">Close</VBtn>
       </template>
     </VCard>
   </VDialog>

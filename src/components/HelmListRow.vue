@@ -72,7 +72,7 @@ const upgrade = computed(() =>
       <template v-else>{{ value }}</template>
     </template>
     <template #[`item.actions`]>
-      <TippedBtn size="small" icon="mdi-file-document" tooltip="Values" variant="text"
+      <TippedBtn size="small" icon="$info" tooltip="More information" variant="text"
         @click="emit('view')" />
       <template v-if="!history">
         <template v-if="release.info.status == Status.DEPLOYED">
