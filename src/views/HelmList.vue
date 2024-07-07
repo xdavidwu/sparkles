@@ -1,10 +1,8 @@
 <script lang="ts" setup>
 import {
-  VBadge,
   VBtn,
   VCard,
   VDataTable,
-  VDataTableRow,
   VDialog,
   VTab,
 } from 'vuetify/components';
@@ -12,10 +10,9 @@ import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
 import FixedFab from '@/components/FixedFab.vue';
 import HelmCreate from '@/components/HelmCreate.vue';
-import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import HelmListRow from '@/components/HelmListRow.vue';
 import ProgressDialog from '@/components/ProgressDialog.vue';
 import TabsWindow from '@/components/TabsWindow.vue';
-import TippedBtn from '@/components/TippedBtn.vue';
 import WindowItem from '@/components/WindowItem.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
 import { computed, ref, watch, toRaw } from 'vue';
@@ -33,9 +30,8 @@ import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@xdavidwu/kubernetes
 import { listAndUnwaitedWatch } from '@/utils/watch'
 import {
   type Chart, type Metadata, type Release,
-  parseSecret, secretsLabelSelector, secretName, Status,
+  parseSecret, secretsLabelSelector, secretName,
 } from '@/utils/helm';
-import { gt } from 'semver';
 import type { InboundMessage } from '@/utils/helm.webworker';
 import {
   handleDataRequestMessages,
@@ -163,14 +159,6 @@ const isSameChart = (a: Metadata, b: Metadata) => a.name == b.name;
 
 const latestChart = (release: Release) =>
   charts.value.find((c) => isSameChart(c, release.chart.metadata));
-const upgradableLatestChart = (release: Release) => {
-  const latest = latestChart(release);
-  if (latest && gt(latest.version, release.chart.metadata.version)) {
-    return latest;
-  }
-};
-const upgradeText = (c: Metadata) =>
-  `Upgrade to chart version ${c.version}, app version ${c.appVersion}`;
 
 let worker: Worker | undefined;
 
@@ -272,95 +260,22 @@ const purge = (name: string) => Promise.all(
         :row-props="{ class: 'darken' }" :group-by="[{ key: 'name', order: 'asc' }]"
         disable-sort>
         <template #group-header='groupProps'>
-          <VDataTableRow v-for="{ item, upgradableChart } in [{
-              item: groupProps.item.items[0].raw as Release,
-              upgradableChart: upgradableLatestChart(groupProps.item.items[0].raw as Release),
-            }]" :key="item.name"
-            v-bind="groupProps" :item="groupProps.item.items[0]" class="group-header">
-            <template #[`item.data-table-group`]="{ value }">
-              <VBtn size="small" variant="text"
-                :icon="groupProps.isGroupOpen(groupProps.item) ? '$expand' : '$next'"
-                :disabled="groupProps.item.items.length == 1"
-                @click="groupProps.toggleGroup(groupProps.item)" />
-              {{ value }}
-            </template>
-            <template #[`item.version`]="{ value }">
-              <span class="pe-2">
-                {{ value }}
-                <LinkedTooltip :text="`Last deployed: ${new Date(item.info.last_deployed!)}`" activator="parent" />
-              </span>
-            </template>
-            <template #[`item.chart.metadata.name`]="{ value }">
-              <div class="d-flex align-center">
-                <img :src="item.chart.metadata.icon" class="chart-icon mr-2" />
-                {{ value }}
-                <LinkedTooltip
-                  v-if="item.chart.metadata.description"
-                  :text="item.chart.metadata.description!"
-                  activator="parent" />
-              </div>
-            </template>
-            <template #[`item.chart.metadata.version`]="{ value }">
-              <template v-if="upgradableChart && upgradableChart.version != item.chart.metadata.version">
-                <VBadge dot color="red">
-                  {{ value }}&nbsp;&nbsp;
-                  <LinkedTooltip activator="parent"
-                    :text="`${upgradableChart!.version} is available`" />
-                </VBadge>
-              </template>
-              <template v-else>{{ value }}</template>
-            </template>
-            <template #[`item.chart.metadata.appVersion`]="{ value }">
-              <template v-if="upgradableChart && upgradableChart.appVersion != item.chart.metadata.appVersion">
-                <VBadge dot color="red">
-                  {{ value }}&nbsp;&nbsp;
-                  <LinkedTooltip activator="parent"
-                    :text="`${upgradableChart.appVersion} is available`" />
-                </VBadge>
-              </template>
-              <template v-else>{{ value }}</template>
-            </template>
-            <template #[`item.actions`]>
-              <TippedBtn size="small" icon="mdi-file-document" tooltip="Values" variant="text"
-                @click="() => createTab(item)" />
-              <template v-if="item.info.status == Status.DEPLOYED">
-                <TippedBtn size="small" icon="mdi-delete" tooltip="Uninstall" variant="text"
-                  @click="() => uninstall(item)" />
-                <TippedBtn v-if="upgradableChart"
-                  size="small" icon="mdi-update" variant="text"
-                  :tooltip="upgradeText(upgradableChart)"/>
-              </template>
-              <template v-if="item.info.status == Status.UNINSTALLED">
-                <TippedBtn size="small" icon="mdi-reload" tooltip="Restore" variant="text"
-                  @click="() => rollback(item)" />
-                <TippedBtn size="small" icon="$close" tooltip="Remove history" variant="text"
-                  @click="() => purge(item.name)" />
-              </template>
-            </template>
-          </VDataTableRow>
+          <HelmListRow v-bind="groupProps"
+            :latest-chart="latestChart(groupProps.item.items[0].raw as Release)"
+            :item="groupProps.item.items[0]"
+            :expandable="groupProps.item.items.length > 1"
+            :expanded="groupProps.isGroupOpen(groupProps.item)"
+            @toggle-expand="groupProps.toggleGroup(groupProps.item)"
+            @view="createTab(groupProps.item.items[0].raw as Release)"
+            @uninstall="uninstall(groupProps.item.items[0].raw as Release)"
+            @rollback="rollback(groupProps.item.items[0].raw as Release)"
+            @purge="purge((groupProps.item.items[0].raw as Release).name)" />
         </template>
-        <template #[`item.data-table-group`]>
-          <VBtn size="small" variant="text" disabled icon="mdi-circle-small" />
-        </template>
-        <template #[`item.version`]="{ item, value }">
-          <span class="pe-2">
-            {{ value }}
-            <LinkedTooltip :text="`Last deployed: ${new Date(item.info.last_deployed!)}`" activator="parent" />
-          </span>
-        </template>
-        <template #[`item.chart.metadata.name`]="{ item, value }">
-          <div class="d-flex align-center">
-            <img :src="item.chart.metadata.icon" class="chart-icon mr-2" />
-            {{ value }}
-            <LinkedTooltip v-if="item.chart.metadata.description"
-              :text="item.chart.metadata.description" activator="parent" />
-          </div>
-        </template>
-        <template #[`item.actions`]="{ item }">
-          <TippedBtn size="small" icon="mdi-file-document" tooltip="Values" variant="text"
-            @click="() => createTab(item)" />
-          <TippedBtn v-if="item.info.status == Status.SUPERSEDED" size="small"
-            icon="mdi-reload" tooltip="Rollback" variant="text" @click="() => rollback(item)" />
+        <template #item="{ props }">
+          <!-- XXX: VDataTableRows internally use this .props, but type is lost -->
+          <HelmListRow v-bind="props as any" history
+            @view="createTab(props.item.raw as Release)"
+            @rollback="rollback(props.item.raw as Release)" />
         </template>
       </VDataTable>
       <FixedFab icon="$plus" @click="() => creating = true" />
@@ -385,19 +300,3 @@ const purge = (name: string) => Promise.all(
     </VCard>
   </VDialog>
 </template>
-
-<style scoped>
-.chart-icon {
-  max-height: 2em;
-  max-width: 2em;
-}
-
-:deep(.darken) {
-  background-color: rgba(var(--v-theme-background), var(--v-medium-emphasis-opacity));
-}
-
-/* newest in history, same as group header */
-:deep(.group-header + .darken) {
-  display: none;
-}
-</style>
