@@ -272,65 +272,66 @@ const purge = (name: string) => Promise.all(
         :row-props="{ class: 'darken' }" :group-by="[{ key: 'name', order: 'asc' }]"
         disable-sort>
         <template #group-header='groupProps'>
-          <VDataTableRow v-bind="groupProps" :item="groupProps.item.items[0]" class="group-header">
-            <template #[`item.data-table-group`]='{ value }'>
+          <VDataTableRow v-for="item in [groupProps.item.items[0].raw as Release]" :key="item.name"
+            v-bind="groupProps" :item="groupProps.item.items[0]" class="group-header">
+            <template #[`item.data-table-group`]="{ value }">
               <VBtn size="small" variant="text"
                 :icon="groupProps.isGroupOpen(groupProps.item) ? '$expand' : '$next'"
                 :disabled="groupProps.item.items.length == 1"
                 @click="groupProps.toggleGroup(groupProps.item)" />
               {{ value }}
             </template>
-            <template #[`item.version`]='{ item, value }'>
+            <template #[`item.version`]="{ value }">
               <span class="pe-2">
                 {{ value }}
-                <LinkedTooltip :text="`Last deployed: ${new Date((item as Release).info.last_deployed!)}`" activator="parent" />
+                <LinkedTooltip :text="`Last deployed: ${new Date(item.info.last_deployed!)}`" activator="parent" />
               </span>
             </template>
-            <template #[`item.chart.metadata.name`]='{ item, value }'>
+            <template #[`item.chart.metadata.name`]="{ value }">
               <div class="d-flex align-center">
-                <img :src="(item as Release).chart.metadata.icon" class="chart-icon mr-2" />
+                <img :src="item.chart.metadata.icon" class="chart-icon mr-2" />
                 {{ value }}
                 <LinkedTooltip
-                  v-if="(item as Release).chart.metadata.description"
-                  :text="(item as Release).chart.metadata.description!"
+                  v-if="item.chart.metadata.description"
+                  :text="item.chart.metadata.description!"
                   activator="parent" />
               </div>
             </template>
-            <template #[`item.chart.metadata.version`]='{ item, value }'>
-              <template v-if="upgradableLatestChart(item as Release)">
+            <template #[`item.chart.metadata.version`]="{ value }">
+              <template v-if="upgradableLatestChart(item)">
                 <VBadge dot>
                   {{ value }}&nbsp;&nbsp;
                   <LinkedTooltip activator="parent"
-                    :text="`${upgradableLatestChart(item as Release)!.version} is available`" />
+                    :text="`${upgradableLatestChart(item)!.version} is available`" />
                 </VBadge>
               </template>
               <template v-else>{{ value }}</template>
             </template>
-            <template #[`item.chart.metadata.appVersion`]='{ item, value }'>
-              <template v-if="upgradableLatestChart(item as Release)">
+            <template #[`item.chart.metadata.appVersion`]="{ value }">
+              <template v-if="upgradableLatestChart(item)">
                 <VBadge dot>
                   {{ value }}&nbsp;&nbsp;
                   <LinkedTooltip activator="parent"
-                    :text="`${upgradableLatestChart(item as Release)!.appVersion} is available`" />
+                    :text="`${upgradableLatestChart(item)!.appVersion} is available`" />
                 </VBadge>
               </template>
               <template v-else>{{ value }}</template>
             </template>
-            <template #[`item.actions`]='{ item }'>
+            <template #[`item.actions`]>
               <TippedBtn size="small" icon="mdi-file-document" tooltip="Values" variant="text"
-                @click="() => createTab(item as Release)" />
-              <template v-if="(item as Release).info.status == Status.DEPLOYED">
+                @click="() => createTab(item)" />
+              <template v-if="item.info.status == Status.DEPLOYED">
                 <TippedBtn size="small" icon="mdi-delete" tooltip="Uninstall" variant="text"
-                  @click="() => uninstall(item as Release)" />
-                <TippedBtn v-if="upgradableLatestChart(item as Release)"
+                  @click="() => uninstall(item)" />
+                <TippedBtn v-if="upgradableLatestChart(item)"
                   size="small" icon="mdi-update" variant="text"
-                  :tooltip="upgradeText(upgradableLatestChart(item as Release)!)"/>
+                  :tooltip="upgradeText(upgradableLatestChart(item)!)"/>
               </template>
-              <template v-if="(item as Release).info.status == Status.UNINSTALLED">
+              <template v-if="item.info.status == Status.UNINSTALLED">
                 <TippedBtn size="small" icon="mdi-reload" tooltip="Restore" variant="text"
-                  @click="() => rollback(item as Release)" />
+                  @click="() => rollback(item)" />
                 <TippedBtn size="small" icon="$close" tooltip="Remove history" variant="text"
-                  @click="() => purge((item as Release).name)" />
+                  @click="() => purge(item.name)" />
               </template>
             </template>
           </VDataTableRow>
@@ -338,13 +339,13 @@ const purge = (name: string) => Promise.all(
         <template #[`item.data-table-group`]>
           <VBtn size="small" variant="text" disabled icon="mdi-circle-small" />
         </template>
-        <template #[`item.version`]='{ item, value }'>
+        <template #[`item.version`]="{ item, value }">
           <span class="pe-2">
             {{ value }}
             <LinkedTooltip :text="`Last deployed: ${new Date(item.info.last_deployed!)}`" activator="parent" />
           </span>
         </template>
-        <template #[`item.chart.metadata.name`]='{ item, value }'>
+        <template #[`item.chart.metadata.name`]="{ item, value }">
           <div class="d-flex align-center">
             <img :src="item.chart.metadata.icon" class="chart-icon mr-2" />
             {{ value }}
@@ -352,7 +353,7 @@ const purge = (name: string) => Promise.all(
               :text="item.chart.metadata.description" activator="parent" />
           </div>
         </template>
-        <template #[`item.actions`]='{ item }'>
+        <template #[`item.actions`]="{ item }">
           <TippedBtn size="small" icon="mdi-file-document" tooltip="Values" variant="text"
             @click="() => createTab(item)" />
           <TippedBtn v-if="item.info.status == Status.SUPERSEDED" size="small"
