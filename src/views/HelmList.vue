@@ -272,7 +272,10 @@ const purge = (name: string) => Promise.all(
         :row-props="{ class: 'darken' }" :group-by="[{ key: 'name', order: 'asc' }]"
         disable-sort>
         <template #group-header='groupProps'>
-          <VDataTableRow v-for="item in [groupProps.item.items[0].raw as Release]" :key="item.name"
+          <VDataTableRow v-for="{ item, upgradableChart } in [{
+              item: groupProps.item.items[0].raw as Release,
+              upgradableChart: upgradableLatestChart(groupProps.item.items[0].raw as Release),
+            }]" :key="item.name"
             v-bind="groupProps" :item="groupProps.item.items[0]" class="group-header">
             <template #[`item.data-table-group`]="{ value }">
               <VBtn size="small" variant="text"
@@ -298,21 +301,21 @@ const purge = (name: string) => Promise.all(
               </div>
             </template>
             <template #[`item.chart.metadata.version`]="{ value }">
-              <template v-if="upgradableLatestChart(item)">
-                <VBadge dot>
+              <template v-if="upgradableChart && upgradableChart.version != item.chart.metadata.version">
+                <VBadge dot color="red">
                   {{ value }}&nbsp;&nbsp;
                   <LinkedTooltip activator="parent"
-                    :text="`${upgradableLatestChart(item)!.version} is available`" />
+                    :text="`${upgradableChart!.version} is available`" />
                 </VBadge>
               </template>
               <template v-else>{{ value }}</template>
             </template>
             <template #[`item.chart.metadata.appVersion`]="{ value }">
-              <template v-if="upgradableLatestChart(item)">
-                <VBadge dot>
+              <template v-if="upgradableChart && upgradableChart.appVersion != item.chart.metadata.appVersion">
+                <VBadge dot color="red">
                   {{ value }}&nbsp;&nbsp;
                   <LinkedTooltip activator="parent"
-                    :text="`${upgradableLatestChart(item)!.appVersion} is available`" />
+                    :text="`${upgradableChart.appVersion} is available`" />
                 </VBadge>
               </template>
               <template v-else>{{ value }}</template>
@@ -323,9 +326,9 @@ const purge = (name: string) => Promise.all(
               <template v-if="item.info.status == Status.DEPLOYED">
                 <TippedBtn size="small" icon="mdi-delete" tooltip="Uninstall" variant="text"
                   @click="() => uninstall(item)" />
-                <TippedBtn v-if="upgradableLatestChart(item)"
+                <TippedBtn v-if="upgradableChart"
                   size="small" icon="mdi-update" variant="text"
-                  :tooltip="upgradeText(upgradableLatestChart(item)!)"/>
+                  :tooltip="upgradeText(upgradableChart)"/>
               </template>
               <template v-if="item.info.status == Status.UNINSTALLED">
                 <TippedBtn size="small" icon="mdi-reload" tooltip="Restore" variant="text"
