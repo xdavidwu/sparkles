@@ -339,6 +339,8 @@ func renderTemplate(this js.Value, args []js.Value) any {
 		values := map[string]interface{}{}
 		must(json.Unmarshal([]byte(valuesJSON.String()), &values))
 
+		must(chartutil.ProcessDependenciesWithMerge(&c, values))
+
 		opts := chartutil.ReleaseOptions{}
 		must(json.Unmarshal([]byte(optsJSON.String()), &opts))
 
