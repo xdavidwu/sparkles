@@ -9,6 +9,7 @@ import {
 import FixedFab from '@/components/FixedFab.vue';
 import HelmCreate from '@/components/HelmCreate.vue';
 import HelmListRow from '@/components/HelmListRow.vue';
+import LinkedDocument from '@/components/LinkedDocument.vue';
 import ProgressDialog from '@/components/ProgressDialog.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
 import { computed, ref, watch, toRaw } from 'vue';
@@ -276,9 +277,9 @@ const purge = (name: string) => Promise.all(
         <div class="mb-n6">
         <VTabs :items="inspectTabs">
           <template #[`item.notes`]>
-            <pre :style="`height: calc(100dvh - 48px - 140px - 48px)`"
+            <LinkedDocument :style="`height: calc(100dvh - 48px - 140px - 48px)`"
               class="text-pre-wrap pt-2 overflow-y-auto bg-black"
-              v-text="inspectedRelease.info.notes ?? '(none)'" />
+              :text="inspectedRelease.info.notes ?? '(none)'" />
           </template>
           <template #[`item.values`]>
             <YAMLEditor :style="`height: calc(100dvh - 48px - 140px - 48px)`"
