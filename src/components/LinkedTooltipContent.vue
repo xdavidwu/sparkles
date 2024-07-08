@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { linkRegex } from '@/utils/text';
 
 const props = defineProps<{
   text: string,
@@ -28,7 +29,6 @@ const tokens = computed(() => {
     });
   }
 
-  const linkRegex = new RegExp(/((http:|https:)[^\s]+[^\s.])/, 'gd');
   let currentIndex = 0;
   for (const match of props.text.matchAll(linkRegex)) {
     processText(props.text.substring(currentIndex, match.indices![0][0]));
