@@ -361,7 +361,7 @@ func renderTemplate(this js.Value, args []js.Value) any {
 			must(err)
 
 			// syscall/js.ValueOf
-			typed := map[string]interface{}{}
+			files := map[string]interface{}{}
 
 			for k, v := range res {
 				// helm.sh/helm/v3/pkg/engine.Engine.Render trims partials, but not empty files
@@ -369,11 +369,17 @@ func renderTemplate(this js.Value, args []js.Value) any {
 				if trimmed != "" {
 					// take this opportunity to save bits
 					// files are notes or yamls, which should be fine
-					typed[k] = trimmed
+					files[k] = trimmed
 				}
 			}
 
-			resolve.Invoke(typed)
+			bytes, err := json.Marshal(c)
+			must(err)
+
+			resolve.Invoke(map[string]interface{}{
+				"files": files,
+				"chart": string(bytes),
+			})
 		}()
 		return nil
 	})

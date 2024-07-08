@@ -42,7 +42,10 @@ import '@/vendor/wasm_exec';
  */
 const fieldManager = 'helm';
 
-declare function _helm_renderTemplate(charts: Array<string>, values: string, options: string, capabilities: string, api: AnyApi): Promise<{ [key: string]: string }>;
+declare function _helm_renderTemplate(
+  charts: Array<string>, values: string, releaseOpts: string,
+  capabilities: string, api: AnyApi,
+): Promise<{ chart: string, files: { [key: string]: string } }>;
 
 // helm.sh/v3/pkg/chartutils.ReleaseOptions
 interface ReleaseOptions {
@@ -110,7 +113,10 @@ const arrayBufferReplacer = (key: string, value: any): any => {
   return value;
 };
 
-const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseOptions) => {
+const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseOptions):
+  Promise<Omit<Awaited<ReturnType<typeof _helm_renderTemplate>>, 'chart'> & {
+    chart: SerializedChart,
+  }> => {
   const result = await _helm_renderTemplate(
     chart.map((c) => JSON.stringify(c, arrayBufferReplacer)),
     JSON.stringify(value),
@@ -118,11 +124,11 @@ const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseO
     JSON.stringify(capabilitiesFromDiscovery(await getVersionInfo(), await getGroups())),
     new AnyApi(await getConfig()),
   );
-  return result;
+  return {
+    chart: JSON.parse(result.chart),
+    files: result.files,
+  };
 };
-
-const toSerializedChart = (chart: Chart): SerializedChart =>
-  JSON.parse(JSON.stringify(chart, arrayBufferReplacer));
 
 const releaseSecretType = 'helm.sh/release.v1';
 
@@ -596,30 +602,31 @@ const fns = {
 
     progress('Rendering resource templates');
 
-    const results = await renderTemplate(chart, values, {
-      Name: name,
-      Namespace: namespace,
-      Revision: 1,
-      IsUpgrade: false,
-      IsInstall: true,
-    });
+    const { files, chart: processedChart } = await renderTemplate(
+      chart, values, {
+        Name: name,
+        Namespace: namespace,
+        Revision: 1,
+        IsUpgrade: false,
+        IsInstall: true,
+      });
 
     let notes = '';
 
     // helm seems to allow fooNOTES.txt?
-    Object.keys(results).filter((f) => f.endsWith('NOTES.txt')).forEach((f) => {
+    Object.keys(files).filter((f) => f.endsWith('NOTES.txt')).forEach((f) => {
       if (f == `${chart[0].metadata.name}/templates/NOTES.txt`) {
-        notes = results[f];
+        notes = files[f];
       }
       // XXX do something with subnotes? but that's not helm default
-      delete results[f];
+      delete files[f];
     });
 
-    const files = Object.entries(results).map(([k, v]) =>
+    const manifestsAndHooks = Object.entries(files).map(([k, v]) =>
       parseManifests(v).filter((r) => r).map((r) => ({ filename: k, resource: r })),
     ).reduce((a, v) => a.concat(v), []).sort((a, b) => installOrderCompare(a.resource, b.resource));
 
-    const hooks = files.filter((r) => r.resource.metadata!.annotations?.['helm.sh/hook'])
+    const hooks = manifestsAndHooks.filter((r) => r.resource.metadata!.annotations?.['helm.sh/hook'])
       .map((r): Hook => {
         const w = parseInt(r.resource.metadata!.annotations!['helm.sh/hook-weight']);
         return {
@@ -642,7 +649,7 @@ const fns = {
             .filter((h): h is DeletePolicy => Object.values(DeletePolicy).includes(h as DeletePolicy)),
         };
       });
-    const manifests = files.filter((r) => !(r.resource.metadata!.annotations?.['helm.sh/hook']));
+    const manifests = manifestsAndHooks.filter((r) => !(r.resource.metadata!.annotations?.['helm.sh/hook']));
 
     const manifest = manifests.map((f) =>
       // XXX cut from original doc?
@@ -688,7 +695,7 @@ const fns = {
         deleted: '',
         notes,
       },
-      chart: toSerializedChart(chart[0]),
+      chart: processedChart,
       config: values,
       manifest,
       hooks,
