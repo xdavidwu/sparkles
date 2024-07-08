@@ -60,10 +60,17 @@ const tokens = computed(() => {
       <template v-if="token.type == 'plain'">
         {{ token.value }}
       </template>
-      <a v-if="token.type == 'link'" :key="i" target="_blank" :href="token.value">
+      <a v-if="token.type == 'link'" :key="i" target="_blank"
+        class="text-break-all" :href="token.value">
         {{ token.value }}
       </a>
       <div v-if="token.type == 'sep'" :key="i" class="my-2" />
     </template>
   </component>
 </template>
+
+<style scoped>
+.text-break-all {
+  word-break: break-all;
+}
+</style>
