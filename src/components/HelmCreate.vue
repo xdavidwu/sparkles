@@ -99,11 +99,12 @@ const proceed = async (next: () => void) => {
       throw new PresentedError(`Invalid YAML input:\n${e}`);
     }
     break;
+  case Step.SET_NAME:
+    emit('apply', parsedChart.value!, parsedValues.value, name.value.trim());
+    return;
   }
   next();
 };
-
-const apply = () => emit('apply', parsedChart.value!, parsedValues.value, name.value.trim());
 </script>
 
 <template>
@@ -142,10 +143,8 @@ const apply = () => emit('apply', parsedChart.value!, parsedValues.value, name.v
         <VBtn v-if="step != 1" variant="text" @click="prev">Back</VBtn>
         <VSpacer />
         <VBtn variant="text" @click="emit('cancel')">Cancel</VBtn>
-        <VBtn v-if="step != steps.length" variant="text" color="primary"
-          :disabled="!stepCompleted" @click="() => proceed(next)">Continue</VBtn>
-        <VBtn v-else variant="text" color="primary" :disabled="!stepCompleted"
-          @click="apply">Apply</VBtn>
+        <VBtn variant="text" color="primary" :disabled="!stepCompleted"
+          @click="proceed(next)">Continue</VBtn>
       </div>
     </template>
   </VStepper>
