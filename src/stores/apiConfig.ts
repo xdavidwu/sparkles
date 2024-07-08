@@ -16,7 +16,7 @@ export enum AuthScheme {
   None = 'none',
 }
 
-const toastWarnings: Middleware['post'] = async ({ url, response }) => {
+const toastWarnings = (fullApiBasePath: string): Middleware['post'] => async ({ url, response }) => {
   if (response.headers.has('Warning')) {
     const v = response.headers.get('Warning')!;
     console.log(`Kubernetes API Warning: ${url}: ${v}`);
@@ -44,7 +44,7 @@ const toastWarnings: Middleware['post'] = async ({ url, response }) => {
       let i = 1;
       for (;; i++) {
         if (i >= textDateRest.length) {
-errorOut('Unclosed quoted-string');
+          errorOut('Unclosed quoted-string');
         }
         if (escaped) {
           msg += textDateRest[i];
@@ -71,9 +71,12 @@ errorOut('Unclosed quoted-string');
       }
     }
 
-    // TODO url is too long for a toast, how do we bring more context to user?
-    // e.g. friendly description of what this request is for
-    useErrorPresentation().pendingToast = `Kubernetes returned warning:\n${msgs.join('\n')}`;
+    const normalizedUrl = response.url.replace(
+      fullApiBasePath.endsWith('/')
+      ? fullApiBasePath.substring(0, fullApiBasePath.length - 1)
+      : fullApiBasePath, '');
+
+    useErrorPresentation().pendingToast = `Kubernetes returned warning at ${normalizedUrl}:\n${msgs.join('\n')}`;
   }
 };
 
@@ -157,7 +160,7 @@ export const useApiConfig = defineStore('api-config', () => {
 
     params.middleware = [
       { pre: setFieldManager },
-      { post: toastWarnings },
+      { post: toastWarnings(fullApiBasePath) },
     ];
     if (authScheme.value === AuthScheme.OIDC) {
       params.middleware.push({
