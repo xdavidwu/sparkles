@@ -21,7 +21,6 @@ import { useLoading } from '@/composables/loading';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
-import { useErrorPresentation } from '@/stores/errorPresentation';
 import { usePermissions } from '@/stores/permissions';
 import {
   CoreV1Api,
@@ -29,6 +28,7 @@ import {
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { truncateStart } from '@/utils/text';
 import { listAndUnwaitedWatch } from '@/utils/watch';
+import { notifyListingWatchErrors } from '@/utils/errors';
 
 interface ContainerSpec {
   pod: string,
@@ -130,7 +130,7 @@ const { load, loading } = useLoading(async () => {
 
   await listAndUnwaitedWatch(_pods, V1PodFromJSON,
     (opt) => api.listNamespacedPodRaw({ ...opt, namespace: selectedNamespace.value }, { signal: signal.value }),
-    (e) => useErrorPresentation().pendingError = e,
+    notifyListingWatchErrors,
   );
 });
 

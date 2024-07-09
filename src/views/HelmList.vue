@@ -18,12 +18,12 @@ import { storeToRefs } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useHelmRepository } from '@/stores/helmRepository';
 import { useNamespaces } from '@/stores/namespaces';
-import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
 import { useLoading } from '@/composables/loading';
 import { stringify } from '@/utils/yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@xdavidwu/kubernetes-client-typescript-fetch';
-import { listAndUnwaitedWatch } from '@/utils/watch'
+import { listAndUnwaitedWatch } from '@/utils/watch';
+import { notifyListingWatchErrors } from '@/utils/errors';
 import {
   type Chart, type Metadata, type Release,
   parseSecret, secretsLabelSelector, secretName,
@@ -130,7 +130,7 @@ const { loading, load } = useLoading(async () => {
       { ...opt, namespace: selectedNamespace.value, labelSelector: secretsLabelSelector },
       { signal: signal.value },
     ),
-    (e) => useErrorPresentation().pendingError = e,
+    notifyListingWatchErrors,
   );
 });
 

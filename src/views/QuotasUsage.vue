@@ -8,7 +8,6 @@ import { useLoading } from '@/composables/loading';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
-import { useErrorPresentation } from '@/stores/errorPresentation';
 import {
   CoreV1Api,
   type V1ResourceQuota, V1ResourceQuotaFromJSON,
@@ -17,6 +16,7 @@ import {
 import { V1PodStatusPhase } from '@/utils/api';
 import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndUnwaitedWatch } from '@/utils/watch';
+import { notifyListingWatchErrors } from '@/utils/errors';
 import { real } from '@ragnarpa/quantity';
 
 const namespacesStore = useNamespaces();
@@ -83,7 +83,7 @@ const { load, loading } = useLoading(async () => {
   await Promise.all([
     listAndUnwaitedWatch(quotas, V1ResourceQuotaFromJSON,
       (opt) => api.listNamespacedResourceQuotaRaw({ ...opt, namespace: selectedNamespace.value }, { signal: signal.value }),
-      (e) => useErrorPresentation().pendingError = e,
+      notifyListingWatchErrors,
     ),
     listAndUnwaitedWatch(pods, V1PodFromJSON,
       (opt) => api.listNamespacedPodRaw({
@@ -91,7 +91,7 @@ const { load, loading } = useLoading(async () => {
         namespace: selectedNamespace.value,
         fieldSelector: `status.phase!=${V1PodStatusPhase.FAILED},status.phase!=${V1PodStatusPhase.SUCCEEDED}`,
       }, { signal: signal.value }),
-      (e) => useErrorPresentation().pendingError = e,
+      notifyListingWatchErrors,
     ),
   ]);
 });

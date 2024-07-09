@@ -30,7 +30,6 @@ import { useNamespaces } from '@/stores/namespaces';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
-import { useErrorPresentation } from '@/stores/errorPresentation';
 import type { V1ObjectMeta } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import {
   AnyApi,
@@ -44,6 +43,7 @@ import { truncate, truncateStart } from '@/utils/text';
 import { humanDuration } from '@/utils/duration';
 import { nonNullableRef } from '@/utils/reactivity';
 import { PresentedError } from '@/utils/PresentedError';
+import { notifyListingWatchErrors } from '@/utils/errors';
 import type { JSONSchema4 } from 'json-schema';
 import { stringify } from '@/utils/yaml';
 import { parse } from 'yaml';
@@ -126,7 +126,7 @@ const { loading, load } = useLoading(async () => {
     await listAndUnwaitedWatchTable(
       objects,
       (opt) => anyApi[`list${listType}CustomObjectAsTableRaw`]({ ...opt, ...options }, { signal: signal.value }),
-      (e) => useErrorPresentation().pendingError = e,
+      notifyListingWatchErrors,
     );
   } else {
     objects.value = await anyApi[`list${listType}CustomObjectAsTable`](options);

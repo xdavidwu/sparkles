@@ -36,7 +36,7 @@ try {
     _nodes,
     V1NodeFromJSON,
     (opt) => coreApi.listNodeRaw(opt, { signal: abort.signal }),
-    (e) => useErrorPresentation().pendingError = e,
+    (e) => useErrorPresentation().pendingError = e, // XXX not that fatal
   );
   onUnmounted(() => abort.abort());
   watch(_nodes, () => {
