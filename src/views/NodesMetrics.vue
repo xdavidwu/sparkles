@@ -89,7 +89,7 @@ const chartData = computed(() => ({
     ...datasetMetadata.value[n],
     data: samples.value.map((s, i) => s[n] !== undefined ? {
       x: (latestSample - samples.value.length + i) * 1000,
-      y: 0, // XXX: hack, need support for type param of component in template
+      y: 0, // XXX: hack, vue-chartjs assumes Array<number | Point | null>
       ...s[n],
     } : undefined).filter((s) => s !== undefined),
   })),

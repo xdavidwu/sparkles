@@ -18,7 +18,6 @@ import {
 } from '@/utils/api';
 import { PresentedError } from '@/utils/PresentedError';
 import { parse, parseAllDocuments } from 'yaml';
-import { stringify } from '@/utils/yaml';
 import {
   secretName,
   type Chart, type Hook, type Release, type SerializedChart,
@@ -623,7 +622,11 @@ const fns = {
     });
 
     const manifestsAndHooks = Object.entries(files).map(([k, v]) =>
-      parseManifests(v).filter((r) => r).map((r) => ({ filename: k, resource: r })),
+      parseAllDocuments(v).map((doc) => ({
+        filename: k,
+        resource: doc.toJS() as KubernetesObject,
+        yaml: v.substring(doc.contents?.range[0] ?? 0, doc.contents?.range[1] ?? 0),
+      })).filter((r) => r.resource),
     ).reduce((a, v) => a.concat(v), []).sort((a, b) => installOrderCompare(a.resource, b.resource));
 
     const hooks = manifestsAndHooks.filter((r) => r.resource.metadata!.annotations?.['helm.sh/hook'])
@@ -633,8 +636,7 @@ const fns = {
           name: r.resource.metadata!.name!,
           kind: r.resource.kind!,
           path: r.filename,
-          // XXX cut from original doc?
-          manifest: stringify(r.resource),
+          manifest: r.yaml,
           events: r.resource.metadata!.annotations!['helm.sh/hook'].split(',')
             .map((s) => s.trim().toLowerCase())
             .filter((h): h is Event => Object.values(Event).includes(h as Event)),
@@ -651,9 +653,7 @@ const fns = {
       });
     const manifests = manifestsAndHooks.filter((r) => !(r.resource.metadata!.annotations?.['helm.sh/hook']));
 
-    const manifest = manifests.map((f) =>
-      // XXX cut from original doc?
-      `---\n# Source: ${f.filename}\n${stringify(f.resource)}\n`).join('');
+    const manifest = manifests.map((f) => `---\n# Source: ${f.filename}\n${f.yaml}\n`).join('');
 
     const resources = manifests.map((f) => f.resource);
 
