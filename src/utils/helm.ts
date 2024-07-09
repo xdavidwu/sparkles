@@ -194,6 +194,7 @@ export interface IndexFile {
 // helm.sh/helm/v3/pkg/storage/driver.Secrets.List
 export const secretsLabelSelector = 'owner=helm';
 export const releaseSecretType = 'helm.sh/release.v1';
+export const secretsFieldSelector = `type=${releaseSecretType}`;
 export const parseSecret = async (s: V1Secret): Promise<Release> => {
   const gzipped = (await fetch(
     `data:application/octet-stream;base64,${atob(s.data!.release!)}`,

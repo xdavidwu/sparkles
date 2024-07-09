@@ -27,7 +27,7 @@ import { listAndUnwaitedWatch } from '@/utils/watch';
 import { notifyListingWatchErrors } from '@/utils/errors';
 import {
   type Chart, type Metadata, type Release,
-  parseSecret, secretsLabelSelector, secretName,
+  parseSecret, secretsFieldSelector, secretsLabelSelector, secretName,
 } from '@/utils/helm';
 import type { InboundMessage } from '@/utils/helm.webworker';
 import {
@@ -135,7 +135,12 @@ const { loading, load } = useLoading(async () => {
   abortRequests();
   await listAndUnwaitedWatch(secrets, V1SecretFromJSON,
     (opt) => api.listNamespacedSecretRaw(
-      { ...opt, namespace: selectedNamespace.value, labelSelector: secretsLabelSelector },
+      {
+        ...opt,
+        namespace: selectedNamespace.value,
+        fieldSelector: secretsFieldSelector,
+        labelSelector: secretsLabelSelector,
+      },
       { signal: signal.value },
     ),
     notifyListingWatchErrors,
