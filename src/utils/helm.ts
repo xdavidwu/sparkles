@@ -312,8 +312,13 @@ const parseJSONBuffer = (b: ArrayBuffer) => JSON.parse(utf8Decoder.decode(b));
 
 export const extractValuesSchema = (chart: Array<Chart>): JSONSchema4 => {
   const schemas: Array<JSONSchema4> = [];
+  let title;
   if (chart[0].schema) {
-    schemas.push(parseJSONBuffer(chart[0].schema));
+    const main = parseJSONBuffer(chart[0].schema);
+    schemas.push(main);
+    if (main.title) {
+      title = main.title;
+    }
   }
   const subcharts = chart.slice(1);
   subcharts.forEach((c) => {
@@ -327,11 +332,16 @@ export const extractValuesSchema = (chart: Array<Chart>): JSONSchema4 => {
       })
     }
   });
+
+  if (!title) {
+    title = `JSON Schema of ${chart[0].metadata.name} chart`;
+  }
+
   if (schemas.length == 0) {
     return {};
   } else if (schemas.length == 1) {
-    return schemas[0];
+    return { ...schemas[0], title };
   } else {
-    return { allOf: schemas };
+    return { title, allOf: schemas };
   }
 };
