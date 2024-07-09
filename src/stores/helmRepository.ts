@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
-import { useErrorPresentation } from '@/stores/errorPresentation';
 import { PresentedError } from '@/utils/PresentedError';
 import { type ChartVersion, type IndexFile } from '@/utils/helm';
 import { parse } from 'yaml';
@@ -40,7 +39,7 @@ export const useHelmRepository = defineStore('helmRepository', () => {
     charts.value = c;
   };
 
-  const loadPromise = loadIndex().catch((e) => useErrorPresentation().pendingError = e);
+  const loadPromise = loadIndex();
 
   return { ensureIndex: loadPromise, charts };
 });

@@ -36,7 +36,10 @@ try {
     _nodes,
     V1NodeFromJSON,
     (opt) => coreApi.listNodeRaw(opt, { signal: abort.signal }),
-    (e) => useErrorPresentation().pendingError = e, // XXX not that fatal
+    (e) => {
+      console.log(e);
+      useErrorPresentation().pendingToast = `Watching for nodes failed,\npercentage graphs on new nodes will not be available.`;
+    },
   );
   onUnmounted(() => abort.abort());
   watch(_nodes, () => {
@@ -160,13 +163,17 @@ const { pause } = useIntervalFn(() => {
       }
 
       const cpu = real(i.usage.cpu)!, mem = real(i.usage.memory)!;
-      const metrics = capacityAvailable ? {
-        cpu,
-        mem,
-        cpuPercentage: cpu / nodes.value[i.metadata.name].cpu! * 100,
-        memPercentage: mem / nodes.value[i.metadata.name].mem! * 100,
-      } : { cpu, mem };
+      const metrics: {
+        cpu: number, mem: number,
+        cpuPercentage?: number, memPercentage?: number,
+      } = { cpu, mem };
       nodes.value[i.metadata.name] ??= {};
+      if (nodes.value[i.metadata.name].cpu) {
+        metrics.cpuPercentage = metrics.cpu / nodes.value[i.metadata.name].cpu! * 100;
+      }
+      if (nodes.value[i.metadata.name].mem) {
+        metrics.memPercentage = metrics.mem / nodes.value[i.metadata.name].mem! * 100;
+      }
       samples.value[index][i.metadata.name] = metrics;
 
       const d = parseDuration(i.window, 's')!;

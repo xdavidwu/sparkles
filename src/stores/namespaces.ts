@@ -33,7 +33,10 @@ export const useNamespaces = defineStore('namespace', () => {
       _namespaces,
       V1NamespaceFromJSON,
       (opt) => api.listNamespaceRaw(opt),
-      (e) => useErrorPresentation().pendingError = e,
+      (e) => {
+        console.log(e);
+        useErrorPresentation().pendingToast = 'Watching for namespaces changes failed,\nnamespace listing will not be updated until a full page reload.';
+      },
     )
     loading.value = false;
   })().catch((e) => useErrorPresentation().pendingError = e);
