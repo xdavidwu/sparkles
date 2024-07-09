@@ -157,7 +157,7 @@ const proceed = async (next: () => void) => {
 }
 
 /* YAMLEditor popups */
-:deep(.v-tabs-window) {
+:deep(.v-tabs-window), :deep(.v-window) {
   overflow: visible !important;
 }
 </style>
