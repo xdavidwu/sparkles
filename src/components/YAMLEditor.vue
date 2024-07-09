@@ -44,6 +44,8 @@ const emit = defineEmits<{
 
 const diagCount = ref(0);
 
+const linterConfig = { delay: 350 };
+
 // yaml.parse has more insight on errors,
 // but lezer can catch multiple errors via recovery, and is already parsed
 // yamlSchemaLinter does yaml.parse, but drops errors, TODO do it there?
@@ -60,7 +62,7 @@ const lezerParserLinter = linter((view) => {
     }
   });
   return res;
-});
+}, linterConfig);
 
 const codemirrorReady = ({ view }: { view: EditorView }) => {
   watch(props, () => {
@@ -162,16 +164,13 @@ const extensions = computed(() => {
 
   if (!props.disabled) {
     e.push(autocompletion({
-      // TODO: no bring-your-own-tooltip,
-      // need to align it with LinkedTooltipContent as close as possible
-      // XXX: default stying feels reversed on selection
       tooltipClass: () => 'text-caption elevation-1 rounded',
     }));
     e.push(lezerParserLinter, lintGutter());
     if (props.schema) {
       e.push(
         yamlLanguage.data.of({ autocomplete: yamlCompletion() }),
-        linter(yamlSchemaLinter()), // TODO: how do we style it?
+        linter(yamlSchemaLinter(), linterConfig),
       );
     }
   }
@@ -189,6 +188,20 @@ const extensions = computed(() => {
 <style scoped>
 :deep(.cm-tooltip) {
   z-index: 10000 !important;
+
+  /* a la LinkedTooltipContent */
+  background-color: #004d40; /* bg-teal-darken-4 */
+  box-shadow: 0px 2px 1px -1px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 1px 1px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 1px 3px 0px var(--v-shadow-key-ambient-opacity, rgba(0, 0, 0, 0.12)) !important; /* elevation-1 */
+  border-radius: 4px; /* rounded */
+}
+
+:deep(.cm-diagnosticText) {
+  font-size: 0.875rem;
+}
+
+:deep(.cm-tooltip-autocomplete > ul > li[aria-selected]) {
+  background-color: #64ffda; /* bg-teal-accent-2 */
+  color: #000;
 }
 
 /* shrink them a bit */
