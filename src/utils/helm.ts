@@ -195,7 +195,6 @@ export interface IndexFile {
 export const secretsLabelSelector = 'owner=helm';
 export const releaseSecretType = 'helm.sh/release.v1';
 export const parseSecret = async (s: V1Secret): Promise<Release> => {
-  // TODO handle malformed secrets
   const gzipped = (await fetch(
     `data:application/octet-stream;base64,${atob(s.data!.release!)}`,
   )).body!;

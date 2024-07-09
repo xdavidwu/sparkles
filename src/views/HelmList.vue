@@ -16,6 +16,7 @@ import { computed, ref, watch, toRaw } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
+import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useHelmRepository } from '@/stores/helmRepository';
 import { useNamespaces } from '@/stores/namespaces';
 import { useAbortController } from '@/composables/abortController';
@@ -63,8 +64,15 @@ try {
 }
 
 const releases = computedAsync(async () =>
-  // avoid multiple layer of proxy via toRaw, for easier cloning
-  (await Promise.all(secrets.value.map((s) => parseSecret(toRaw(s))))).sort((a, b) => {
+  (await Promise.all(secrets.value.map(async (s) => {
+    try {
+      // avoid multiple layer of proxy via toRaw, for easier cloning
+      return await parseSecret(toRaw(s));
+    } catch (e) {
+      console.log(e);
+      useErrorPresentation().pendingToast = `Failed to parse Helm release from secret ${s.metadata!.namespace}/${s.metadata!.name}`;
+    }
+  }))).filter((v) => v != undefined).sort((a, b) => {
     if (a.name !== b.name) {
       return a.name.localeCompare(b.name);
     }
