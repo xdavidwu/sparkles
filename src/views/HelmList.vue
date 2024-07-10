@@ -33,6 +33,7 @@ import type { InboundMessage } from '@/utils/helm.webworker';
 import {
   handleDataRequestMessages,
   handleErrorMessages,
+  handleToastMessages,
   handleProgressMessages,
 } from '@/utils/communication';
 import HelmWorker from '@/utils/helm.webworker?worker';
@@ -166,6 +167,7 @@ const prepareWorker = () => {
   const handlers = [
     handleDataRequestMessages(worker),
     handleErrorMessages,
+    handleToastMessages,
     handleProgressMessages(progressMessage, progressCompleted, installedSecret),
   ];
   worker.onmessage = async (e) => {

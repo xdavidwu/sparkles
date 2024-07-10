@@ -3,7 +3,8 @@ import {
   type ConfigurationParameters, type VersionInfo,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import type { V2APIGroupDiscovery } from '@/utils/discoveryV2';
-import { setFieldManager } from '@/utils/api';
+import { extractWarnings, setFieldManager } from '@/utils/api';
+import type { ToastMessage } from '@/utils/fnCall.webworker';
 
 interface TokenResponse {
   type: 'token';
@@ -73,9 +74,22 @@ export const getConfig = async () => {
         };
         return context;
       },
+    }, {
+      post: async ({ response }) => {
+        const warnings = extractWarnings(response);
+        if (!warnings.length) {
+          return;
+        }
+
+        // breaks our organization a little /shrug
+        const msg: ToastMessage = {
+          type: 'toast',
+          message: `Kubernetes returned warning at ${response.url.replace(params.basePath!, '')}:\n${warnings.join('\n')}`,
+        };
+        postMessage(msg);
+      },
     });
   }
-  // TODO handle api warnings
 
   return new Configuration(params);
 };

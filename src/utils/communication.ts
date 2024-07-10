@@ -5,6 +5,7 @@ import type {
 } from '@/utils/requestData.webworker';
 import type {
   ErrorMessage,
+  ToastMessage,
   ProgressMessage,
   CompletedMessage,
 } from '@/utils/fnCall.webworker';
@@ -73,6 +74,15 @@ export const handleErrorMessages = (e: MessageEvent): boolean => {
       break;
     }
     useErrorPresentation().pendingError = e;
+    return true;
+  }
+  return false;
+};
+
+export const handleToastMessages = (e: MessageEvent): boolean => {
+  const data: ToastMessage = e.data;
+  if (data.type == 'toast') {
+    useErrorPresentation().pendingToast = data.message;
     return true;
   }
   return false;

@@ -16,7 +16,12 @@ export interface ProgressMessage {
   message: string;
 }
 
-export type FnCallOutboundMessage = ProgressMessage | ErrorMessage | CompletedMessage;
+export interface ToastMessage {
+  type: 'toast';
+  message: string;
+}
+
+export type FnCallOutboundMessage = ProgressMessage | ErrorMessage | CompletedMessage | ToastMessage;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFunc = (...args: any) => any;
