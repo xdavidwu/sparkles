@@ -389,7 +389,7 @@ watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true })
             <template #[`item.${CREATION_TIMESTAMP_COLUMN}`]="{ value }">
               <span>
                 {{ humanDuration((new Date()).valueOf() - (new Date(value)).valueOf()) }}
-                <LinkedTooltip :text="(new Date(value)).toLocaleString()" activator="parent" />
+                <LinkedTooltip :text="`Since ${(new Date(value)).toLocaleString()}`" activator="parent" />
               </span>
             </template>
           </VDataTableRow>
