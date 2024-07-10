@@ -1,84 +1,20 @@
 import { defineStore } from 'pinia';
 import {
   Configuration,
-  type ConfigurationParameters, type HTTPHeaders, type Middleware,
+  type ConfigurationParameters, type HTTPHeaders,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { useLocalStorage } from '@vueuse/core';
 import { computed } from 'vue';
 import { UserManager, WebStorageStateStore } from 'oidc-client-ts';
 import router from '@/router';
 import { useErrorPresentation } from '@/stores/errorPresentation';
-import { setFieldManager } from '@/utils/api';
+import { extractWarnings, setFieldManager } from '@/utils/api';
 
 export enum AuthScheme {
   OIDC = 'oidc',
   AccessToken = 'aceess_token',
   None = 'none',
 }
-
-const toastWarnings = (fullApiBasePath: string): Middleware['post'] => async ({ url, response }) => {
-  if (response.headers.has('Warning')) {
-    const v = response.headers.get('Warning')!;
-    console.log(`Kubernetes API Warning: ${url}: ${v}`);
-
-    // warn-code SP warn-agent SP warn-text [SP warn-date], ...
-
-    // k8s.io/apiserver/pkg/endpoints.filters/recorder.AddWaring
-    // warn-code is always 299
-    // warn-agent is settable, but no one use it yet, thus always -
-    // warn-date is not used
-    let rest = v.trim();
-    const errorOut = (msg: string) => {
-      throw new Error(`Invalid warning header: ${msg}: ${v}`);
-    }
-    const msgs = [];
-    while (rest.length) {
-      const agentTextDateRest = rest.substring(4);
-      const textDateRest = agentTextDateRest.substring(agentTextDateRest.indexOf(' ') + 1);
-      if (textDateRest[0] != '"') {
-        errorOut('Expected quoted-string');
-      }
-
-      let msg = '';
-      let escaped = false;
-      let i = 1;
-      for (;; i++) {
-        if (i >= textDateRest.length) {
-          errorOut('Unclosed quoted-string');
-        }
-        if (escaped) {
-          msg += textDateRest[i];
-          escaped = false;
-        } else if (textDateRest[i] == '"') {
-          break
-        } else {
-          escaped = textDateRest[i] == '\\';
-          if (!escaped) {
-            msg += textDateRest[i];
-          }
-        }
-      }
-      msgs.push(msg);
-      i++;
-      if (i >= textDateRest.length) {
-        break;
-      }
-
-      if (textDateRest[i] == ',') {
-        rest = textDateRest.substring(i + 1).trimStart();
-      } else {
-        errorOut('warn-date is not supported' + textDateRest[i]);
-      }
-    }
-
-    const normalizedUrl = response.url.replace(
-      fullApiBasePath.endsWith('/')
-      ? fullApiBasePath.substring(0, fullApiBasePath.length - 1)
-      : fullApiBasePath, '');
-
-    useErrorPresentation().pendingToast = `Kubernetes returned warning at ${normalizedUrl}:\n${msgs.join('\n')}`;
-  }
-};
 
 export const useApiConfig = defineStore('api-config', () => {
   const configurable = import.meta.env.VITE_RUNTIME_AUTH_CONFIG === 'true';
@@ -160,7 +96,21 @@ export const useApiConfig = defineStore('api-config', () => {
 
     params.middleware = [
       { pre: setFieldManager },
-      { post: toastWarnings(fullApiBasePath) },
+      {
+        post: async ({ response }) => {
+          const warnings = extractWarnings(response);
+          if (!warnings.length) {
+            return;
+          }
+
+          const normalizedUrl = response.url.replace(
+            fullApiBasePath.endsWith('/')
+            ? fullApiBasePath.substring(0, fullApiBasePath.length - 1)
+            : fullApiBasePath, '');
+
+          useErrorPresentation().pendingToast = `Kubernetes returned warning at ${normalizedUrl}:\n${warnings.join('\n')}`;
+        },
+      },
     ];
     if (authScheme.value === AuthScheme.OIDC) {
       params.middleware.push({
