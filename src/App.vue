@@ -39,7 +39,7 @@ const { namespaces, selectedNamespace, loading: namespacesLoading } = storeToRef
 const { pendingError, pendingToast } = storeToRefs(useErrorPresentation());
 const configStore = useApiConfig();
 const { authScheme } = storeToRefs(configStore);
-const { fullApiBasePath } = configStore;
+const { normalizePath } = configStore;
 
 const drawer = ref<boolean | undefined>();
 const { expandAppBar, appBarHeightPX, appTabsUsed } = renderAppTabs();
@@ -47,10 +47,8 @@ const showsDialog = ref(false);
 const showsSnackbar = ref(false);
 const snackbarMessage = ref('');
 const failedResponse = ref<Response | undefined>();
-const failedResponseUrl = computed(() => failedResponse.value ?
-  failedResponse.value.url.replace(fullApiBasePath.endsWith('/') ?
-    fullApiBasePath.substring(0, fullApiBasePath.length - 1)
-    : fullApiBasePath, '') : '');
+const failedResponseUrl = computed(() =>
+  failedResponse.value ? normalizePath(failedResponse.value.url) : '');
 const failedMessage = ref('');
 const loadError = ref(false);
 const router = useRouter();

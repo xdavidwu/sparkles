@@ -18,7 +18,8 @@ export enum AuthScheme {
 
 export const useApiConfig = defineStore('api-config', () => {
   const configurable = import.meta.env.VITE_RUNTIME_AUTH_CONFIG === 'true';
-  const fullApiBasePath = (new URL(import.meta.env.VITE_KUBERNETES_API, document.location.origin)).href;
+  const fullPath = (new URL(import.meta.env.VITE_KUBERNETES_API, document.location.origin)).href;
+  const basePath = fullPath.endsWith('/') ? fullPath.substring(0, fullPath.length - 1) : fullPath;
   const userManager = new UserManager({
     authority: import.meta.env.VITE_OIDC_PROVIDER,
     client_id: import.meta.env.VITE_OIDC_CLIENT_ID,
@@ -39,6 +40,8 @@ export const useApiConfig = defineStore('api-config', () => {
   // headers with same name but different values, and kubernetes does not support
   // comma-seperated list yet (82468)
   const impersonation = maybeUseLocalStorage('impersonation', { asUser: '', asGroup: '' });
+
+  const normalizePath = (path: string) => path.replace(basePath, '');
 
   const getIdToken = async () => {
     let user = await userManager.getUser();
@@ -86,10 +89,7 @@ export const useApiConfig = defineStore('api-config', () => {
       }
     }
 
-    return {
-      basePath: import.meta.env.VITE_KUBERNETES_API,
-      headers,
-    };
+    return { basePath, headers };
   };
   const getConfig = async () => {
     const params = await getCloneableConfigParams();
@@ -103,12 +103,7 @@ export const useApiConfig = defineStore('api-config', () => {
             return;
           }
 
-          const normalizedUrl = response.url.replace(
-            fullApiBasePath.endsWith('/')
-            ? fullApiBasePath.substring(0, fullApiBasePath.length - 1)
-            : fullApiBasePath, '');
-
-          useErrorPresentation().pendingToast = `Kubernetes returned warning at ${normalizedUrl}:\n${warnings.join('\n')}`;
+          useErrorPresentation().pendingToast = `Kubernetes returned warning at ${normalizePath(response.url)}:\n${warnings.join('\n')}`;
         },
       },
     ];
@@ -130,7 +125,6 @@ export const useApiConfig = defineStore('api-config', () => {
   return {
     accessToken,
     configurable,
-    fullApiBasePath,
     impersonation,
     userManager,
     authScheme,
@@ -138,5 +132,6 @@ export const useApiConfig = defineStore('api-config', () => {
     getIdToken,
     getCloneableConfigParams,
     getConfig,
+    normalizePath,
   };
 });
