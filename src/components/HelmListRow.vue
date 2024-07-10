@@ -34,8 +34,9 @@ const upgrade = computed(() =>
   <VDataTableRow :item="item" :class="{ 'group-header': !history, 'darken': history }">
     <template #[`item.data-table-group`]="{ value }">
       <template v-if="!history">
-        <VBtn size="small" variant="text" :icon="expanded ? '$expand' : '$next'"
-          :disabled="!expandable" @click="emit('toggleExpand')" />
+        <TippedBtn size="small" variant="text" :icon="expanded ? '$expand' : '$next'"
+          :disabled="!expandable" :tooltip="expanded ? 'Hide history' : 'Show history'"
+          @click="emit('toggleExpand')" />
         {{ value }}
       </template>
       <VBtn v-else size="small" variant="text" disabled icon="mdi-circle-small" />
