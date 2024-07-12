@@ -7,7 +7,7 @@ Client-side only, with WebAssembly for Helm support
 ## Requirements
 
 - NodeJS
-- Go 1.21
+- Go 1.22
 - Kubernetes cluster
   - With feature gates and extension APIs in [KUBERNETES\_FEATURES.md](KUBERNETES_FEATURES.md)
 
