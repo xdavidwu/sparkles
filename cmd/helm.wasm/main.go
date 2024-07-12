@@ -354,6 +354,13 @@ func renderTemplate(this js.Value, args []js.Value) any {
 		v, err := chartutil.ToRenderValues(&c, values, opts, &data.Capabilities)
 		must(err)
 
+		crds := c.CRDObjects()
+		crdBytes, err := json.Marshal(crds)
+		must(err)
+
+		cbytes, err := json.Marshal(c)
+		must(err)
+
 		go func() {
 			defer panicToPromiseReject("cannot render template", reject)
 
@@ -373,12 +380,10 @@ func renderTemplate(this js.Value, args []js.Value) any {
 				}
 			}
 
-			bytes, err := json.Marshal(c)
-			must(err)
-
 			resolve.Invoke(map[string]interface{}{
 				"files": files,
-				"chart": string(bytes),
+				"chart": string(cbytes),
+				"crds":  string(crdBytes),
 			})
 		}()
 		return nil

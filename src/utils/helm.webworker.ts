@@ -1,26 +1,27 @@
 import {
   handleFnCall, progress,
-  type FnCallInboundMessage, type FnCallOutboundMessage,
+  type FnCallInboundMessage, type FnCallOutboundMessage, type ToastMessage,
 } from '@/utils/fnCall.webworker';
 import {
   getConfig, getGroups, getVersionInfo, handleDataResponse,
   type RequestDataInboundMessage, type RequestDataOutboundMessage,
 } from '@/utils/requestData.webworker';
 import {
-  BatchV1Api, CoreV1Api,
-  V1JobFromJSON, V1PodFromJSON,
-  type V1Secret, type VersionInfo,
+  BatchV1Api, CoreV1Api, ApiextensionsV1Api,
+  V1JobFromJSON, V1CustomResourceDefinitionFromJSON, V1PodFromJSON,
+  type V1Secret, type V1CustomResourceDefinition, type VersionInfo,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { AnyApi } from '@/utils/AnyApi';
 import {
-  errorIsResourceNotFound, errorIsAborted, rawErrorIsAborted,
-  V1ConditionStatus, V1JobConditionType, V1PodStatusPhase, V1WatchEventType,
+  errorIsResourceNotFound, errorIsAborted, errorIsAlreadyExists, rawErrorIsAborted,
+  V1ConditionStatus, V1CustomResourceDefinitionConditionType, V1JobConditionType,
+  V1PodStatusPhase, V1WatchEventType,
 } from '@/utils/api';
 import { PresentedError } from '@/utils/PresentedError';
 import { parse, parseAllDocuments } from 'yaml';
 import {
   secretName,
-  type Chart, type Hook, type Release, type SerializedChart,
+  type Chart, type File, type Hook, type Release, type SerializedChart, type SerializedFile,
   DeletePolicy, Event, Phase, Status,
 } from '@/utils/helm';
 import { type V2APIGroupDiscovery, resolveObject } from '@/utils/discoveryV2';
@@ -44,15 +45,15 @@ const fieldManager = 'helm';
 declare function _helm_renderTemplate(
   charts: Array<string>, values: string, releaseOpts: string,
   capabilities: string, api: AnyApi,
-): Promise<{ chart: string, files: { [key: string]: string } }>;
+): Promise<{ chart: string, files: { [key: string]: string }, crds: string }>;
 
 // helm.sh/v3/pkg/chartutils.ReleaseOptions
 interface ReleaseOptions {
-  Name: string,
-  Namespace: string,
-  Revision: number,
-  IsUpgrade: boolean,
-  IsInstall: boolean,
+  Name: string;
+  Namespace: string;
+  Revision: number;
+  IsUpgrade: boolean;
+  IsInstall: boolean;
 }
 
 // helm.sh/v3/pkg/chartutils.ReleaseOptions
@@ -60,12 +61,23 @@ interface ReleaseOptions {
 // Groups is our own raw data
 interface Capabilities {
   KubeVersion: {
-    Version: string,
-    Major: string,
-    Minor: string,
-  },
-  APIVersions: Array<string>,
-  Groups: Array<V2APIGroupDiscovery>,
+    Version: string;
+    Major: string;
+    Minor: string;
+  };
+  APIVersions: Array<string>;
+  Groups: Array<V2APIGroupDiscovery>;
+}
+
+// helm.sh/v3/pkg/chart.CRD
+interface CRD {
+  Name: string;
+  Filename: string;
+  File: File;
+}
+
+interface SerializedCRD extends Omit<CRD, 'File'> {
+  File: SerializedFile;
 }
 
 let goInitialized = false;
@@ -113,8 +125,9 @@ const arrayBufferReplacer = (key: string, value: any): any => {
 };
 
 const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseOptions):
-  Promise<Omit<Awaited<ReturnType<typeof _helm_renderTemplate>>, 'chart'> & {
+  Promise<Omit<Awaited<ReturnType<typeof _helm_renderTemplate>>, 'chart' | 'crds'> & {
     chart: SerializedChart,
+    crds: Array<CRD>,
   }> => {
   const result = await _helm_renderTemplate(
     chart.map((c) => JSON.stringify(c, arrayBufferReplacer)),
@@ -126,6 +139,15 @@ const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseO
   return {
     chart: JSON.parse(result.chart),
     files: result.files,
+    crds: await Promise.all(
+      (JSON.parse(result.crds) as Array<SerializedCRD>).map(async (c) => ({
+        ...c,
+        File: {
+          name: c.File.name,
+          data: await (await fetch(`data:application/octet-stream;base64,${c.File.data}`)).arrayBuffer(),
+        },
+      })),
+    ),
   };
 };
 
@@ -275,6 +297,7 @@ const setupClients = async () => {
   return {
     api: new CoreV1Api(config),
     batchApi: new BatchV1Api(config),
+    extensionsApi: new ApiextensionsV1Api(config),
     anyApi: new AnyApi(config),
   };
 };
@@ -297,7 +320,7 @@ const createRelease = async (api: CoreV1Api, release: Release) => {
 };
 
 const parseManifests = (manifest: string) =>
-  parseAllDocuments(manifest).map((d) => d.toJS() as KubernetesObject);
+  parseAllDocuments(manifest).map((d): KubernetesObject => d.toJS());
 
 const addManagedMetadata = (resource: KubernetesObject, release: Release): KubernetesObject => ({
   ...resource,
@@ -595,13 +618,11 @@ const fns = {
   install: async (chart: Array<Chart>, values: object, name: string, namespace: string) => {
     await setupGo();
 
-    const { api, batchApi, anyApi } = await setupClients();
-
-    // TODO support crds
+    const { api, batchApi, extensionsApi, anyApi } = await setupClients();
 
     progress('Rendering resource templates');
 
-    const { files, chart: processedChart } = await renderTemplate(
+    const { files, chart: processedChart, crds } = await renderTemplate(
       chart, values, {
         Name: name,
         Namespace: namespace,
@@ -656,6 +677,64 @@ const fns = {
     const manifest = manifests.map((f) => `---\n# Source: ${f.filename}\n${f.yaml}\n`).join('');
 
     const resources = manifests.map((f) => f.resource);
+
+    // before discovery via getGroups
+    progress('Installing CRDs');
+
+    const decoder = new TextDecoder();
+    const defs = crds.reduce((a, v) => a.concat(
+      parseAllDocuments(decoder.decode(v.File.data))
+        .map((d): V1CustomResourceDefinition => d.toJS()).filter((r) => r),
+    ), [] as Array<V1CustomResourceDefinition>);
+
+    defs.forEach((d) => {
+      if (d.apiVersion != 'apiextensions.k8s.io/v1' || d.kind != 'CustomResourceDefinition') {
+        throw new Error(`Unsupported object on crd: ${d.apiVersion}.${d.kind} ${d.metadata?.name}`);
+      }
+    });
+
+    await Promise.all(defs.map(async (d) => {
+      try {
+        await extensionsApi.createCustomResourceDefinition({
+          body: d,
+          fieldManager,
+        });
+      } catch (e) {
+        if (!await errorIsAlreadyExists(e)) {
+          throw e;
+        }
+        // helm does not wait in this case, but probably should
+      }
+      await watchUntil(
+        (opt) => extensionsApi.listCustomResourceDefinitionRaw({
+          fieldSelector: `metadata.name=${d.metadata!.name}`,
+          ...opt,
+        }),
+        V1CustomResourceDefinitionFromJSON,
+        (ev) => {
+          if (ev.type == V1WatchEventType.ADDED || ev.type == V1WatchEventType.MODIFIED) {
+            if (ev.object.status?.conditions?.some((c) =>
+                c.type == V1CustomResourceDefinitionConditionType.ESTABLISHED && c.status == V1ConditionStatus.TRUE)) {
+              return true;
+            }
+            if (ev.object.status?.conditions?.some((c) =>
+                c.type == V1CustomResourceDefinitionConditionType.NAMES_ACCEPTED && c.status == V1ConditionStatus.FALSE)) {
+              // a conflict, server already accepts it but with other defs
+              const msg: ToastMessage = {
+                type: 'toast',
+                message: `CRD ${d.metadata!.name} result in a name conflict with existing definition\nThe release may not work as intended`,
+              };
+              postMessage(msg);
+              return true;
+            }
+            return false;
+          } else if (ev.type == V1WatchEventType.DELETED) {
+            throw new Error(`CRD ${d.metadata!.name} deleted while waiting`);
+          }
+          return false;
+        },
+      );
+    }));
 
     progress('Checking resource conflicts');
 

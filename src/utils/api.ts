@@ -79,6 +79,16 @@ export enum V1JobConditionType {
   SUCCESS_CRITERIA_MET = 'SuccessCriteriaMet',
 }
 
+// apiextensions/v1
+
+export enum V1CustomResourceDefinitionConditionType {
+  ESTABLISHED = 'Established',
+  NAMES_ACCEPTED = 'NamesAccepted',
+  NON_STRUCTURAL_SCHEMA = 'NonStructuralSchema',
+  TERMINATING = 'Terminating',
+  KUBERNETES_API_APPROVAL_POLICY_CONFORMANT = 'KubernetesAPIApprovalPolicyConformant',
+}
+
 export type ChainableInitOverrideFunction = (...p: Parameters<InitOverrideFunction>) =>
   (Promise<Awaited<ReturnType<InitOverrideFunction>> & HTTPRequestInit & { headers: HTTPHeaders }>);
 
@@ -151,7 +161,17 @@ export const errorIsResourceNotFound = async (err: unknown) => {
     }
   }
   return false;
-}
+};
+
+export const errorIsAlreadyExists = async (err: unknown) => {
+  if (err instanceof ResponseError && err.response.status === 409) {
+    const status = V1StatusFromJSON(await err.response.json());
+    if (status.status === V1StatusStatus.FAILURE && status.reason === V1StatusReason.ALREADY_EXISTS) {
+      return true;
+    }
+  }
+  return false;
+};
 
 export const errorIsTypeUnsupported = async (err: unknown) => {
   if (err instanceof ResponseError && err.response.status === 404) {
@@ -162,7 +182,7 @@ export const errorIsTypeUnsupported = async (err: unknown) => {
     }
   }
   return false;
-}
+};
 
 export const rawErrorIsAborted = (err: unknown) =>
   err instanceof DOMException && err.name === 'AbortError';
