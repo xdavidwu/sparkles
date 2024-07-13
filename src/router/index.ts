@@ -1,3 +1,4 @@
+import type { Ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { createRouter, createWebHistory } from 'vue-router';
 import { computedAsync } from '@vueuse/core';
@@ -9,6 +10,15 @@ import { usePermissions } from '@/stores/permissions';
 declare global {
   interface Window {
     __base_url: string;
+  }
+}
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    hidden?: boolean,
+    namespaced?: boolean,
+    name: string,
+    unsupported?: Ref<string | undefined>,
   }
 }
 
