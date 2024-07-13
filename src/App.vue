@@ -29,6 +29,7 @@ import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
 import { renderAppTabs } from '@/composables/appTabs';
 import { useRouter } from 'vue-router';
+import { Category } from '@/router';
 import { useTitle } from '@vueuse/core';
 import { stringify } from '@/utils/yaml';
 import { parse } from 'yaml';
@@ -53,18 +54,18 @@ const failedMessage = ref('');
 const loadError = ref(false);
 const router = useRouter();
 const route = router.currentRoute;
-const routes = computed(() => router.getRoutes().filter(r => !r.meta.hidden).map(r => {
-  return {
+const routes = computed(() => {
+  const all = router.getRoutes().map((r) => ({
     ...r,
     unsupportedReason: r.meta.unsupported?.value,
-  }
-}));
-const namespacedRoutes = computed(() => routes.value.filter(r => r.meta.namespaced));
-const globalRoutes = computed(() => routes.value.filter(r => !r.meta.namespaced));
+  }));
+  return Object.fromEntries(Object.values(Category).map((k) => [k, all.filter((r) => r.meta.category == k)]));
+});
 const title = computed(() => `${route.value.meta.name} - ${brand}`);
 useTitle(title);
 const isOIDC = computed(() => authScheme.value === AuthScheme.OIDC);
 const logoutHref = router.resolve('/oidc/logout').href;
+const visibleCategories = Object.values(Category).filter((c) => c != Category.HIDDEN);
 
 const reload = () => window.location.reload();
 
@@ -136,19 +137,16 @@ watch(pendingToast, (toast) => {
         class="position-absolute flex-0-1 d-flex flex-column justify-end" />
     </VAppBar>
     <VNavigationDrawer v-model="drawer">
-      <VList>
-        <VAutocomplete label="Namespace" variant="solo" :items="namespaces"
-          v-model="selectedNamespace" hide-details :loading="namespacesLoading"
-          auto-select-first />
-        <VListItem v-for="route in namespacedRoutes"
-          :disabled="!!route.unsupportedReason"
-          :subtitle="route.unsupportedReason" :title="route.meta.name"
-          :key="route.meta.name as string" :to="route" />
-      </VList>
-      <VDivider />
-      <VList>
-        <VListSubheader>Global</VListSubheader>
-        <VListItem v-for="route in globalRoutes"
+      <VList v-for="category in visibleCategories" :key="category">
+        <VAutocomplete v-if="category == Category.NAMESPACED"
+          label="Namespace" variant="solo" v-model="selectedNamespace"
+          :items="namespaces" :loading="namespacesLoading"
+          hide-details auto-select-first />
+        <template v-else>
+          <VDivider />
+          <VListSubheader>{{ category }}</VListSubheader>
+        </template>
+        <VListItem v-for="route in routes[category]"
           :disabled="!!route.unsupportedReason"
           :subtitle="route.unsupportedReason" :title="route.meta.name"
           :key="route.meta.name as string" :to="route" />

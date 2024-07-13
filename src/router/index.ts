@@ -13,10 +13,17 @@ declare global {
   }
 }
 
+export const Category = {
+  NAMESPACED: 'Namespaced',
+  CLUSTER: 'Cluster',
+  // XXX this (not a const expression) make it hard to use as ts enum
+  APP: import.meta.env.VITE_APP_BRANDING ?? 'Sparkles',
+  HIDDEN: 'Hidden',
+};
+
 declare module 'vue-router' {
   interface RouteMeta {
-    hidden?: boolean,
-    namespaced?: boolean,
+    category: (typeof Category)[keyof typeof Category],
     name: string,
     unsupported?: Ref<string | undefined>,
   }
@@ -44,32 +51,32 @@ const router = createRouter({
       path: '/pods',
       name: 'pods',
       component: () => import('@/views/PodsList.vue'),
-      meta: { name: 'Pods', namespaced: true, unsupported: checkNamespacedResourcePermission('', 'pods') },
+      meta: { name: 'Pods', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'pods') },
     },
     {
       path: '/quotas',
       name: 'quotas',
       component: () => import('@/views/QuotasUsage.vue'),
-      meta: { name: 'Quotas', namespaced: true, unsupported: checkNamespacedResourcePermission('', 'resourcequotas') },
+      meta: { name: 'Quotas', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'resourcequotas') },
     },
     {
       path: '/helm',
       name: 'helm',
       component: () => import('@/views/HelmList.vue'),
-      meta: { name: 'Helm', namespaced: true, unsupported: checkNamespacedResourcePermission('', 'secrets') }
+      meta: { name: 'Helm', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'secrets') }
     },
     {
       path: '/explore',
       name: 'explore',
       component: () => import('@/views/ResourceExplorer.vue'),
-      meta: { name: 'Resource Explorer', namespaced: true },
+      meta: { name: 'Resource Explorer', category: Category.NAMESPACED },
     },
-    // global
+    // cluster
     {
       path: '/metrics',
       name: 'metrics',
       component: () => import('@/views/NodesMetrics.vue'),
-      meta: { name: 'Nodes Metrics', unsupported: computedAsync(async () => {
+      meta: { name: 'Nodes Metrics', category: Category.CLUSTER, unsupported: computedAsync(async () => {
         const groups = await useApisDiscovery().getGroups();
         if (!groups.some((g) => g.metadata?.name === 'metrics.k8s.io')) {
           return 'Not supported by cluster';
@@ -77,31 +84,32 @@ const router = createRouter({
         return undefined;
       }, undefined, { lazy: true }) },
     },
+    // app
     {
       path: '/about',
       name: 'about',
       component: () => import('@/views/DebugInfo.vue'),
-      meta: { name: 'About' },
+      meta: { name: 'About', category: Category.APP },
     },
     // hidden
     {
       path: '/',
       name: 'home',
       component: HomeView,
-      meta: { name: 'Home', hidden: true },
+      meta: { name: 'Home', category: Category.HIDDEN },
     },
     // handled @ @/OIDCApp.vue, should not be rendered by router
     {
       path: '/oidc/callback',
       name: 'oidc_callback',
       component: () => { throw new Error('unexpected OIDC route visit, misconfiguration?'); },
-      meta: { name: 'OIDC Callback', hidden: true },
+      meta: { name: 'OIDC Callback', category: Category.HIDDEN },
     },
     {
       path: '/oidc/logout',
       name: 'oidc_logout',
       component: () => { throw new Error('unexpected OIDC route visit, misconfiguration?'); },
-      meta: { name: 'OIDC Logout', hidden: true },
+      meta: { name: 'OIDC Logout', category: Category.HIDDEN },
     },
   ]
 });
