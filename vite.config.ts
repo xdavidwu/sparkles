@@ -2,6 +2,7 @@ import { fileURLToPath, URL } from 'node:url';
 import { execSync } from 'node:child_process';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import { Mode, plugin as markdown } from 'vite-plugin-markdown';
 
 const KUBECTL_PROXY = 'http://127.0.0.1:8001';
 
@@ -15,6 +16,7 @@ const modulesWithVersions = new Map();
 export default defineConfig({
   plugins: [
     vue(),
+    markdown({ mode: [Mode.TOC, Mode.VUE], }),
     {
       name: 'app-version',
       handleHotUpdate: ({ server }) => {

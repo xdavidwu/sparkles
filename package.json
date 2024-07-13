@@ -60,6 +60,7 @@
     "eslint-plugin-vue": "^9.3.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.4",
+    "vite-plugin-markdown": "^2.2.0",
     "vue-tsc": "^2.0.2"
   }
 }

@@ -34,7 +34,7 @@ export const useApiConfig = defineStore('api-config', () => {
       get: () => initial,
       set: () => {throw new Error(`unexpected setting of ${key}`)},
     });
-  const authScheme = maybeUseLocalStorage<AuthScheme>('auth-scheme', import.meta.env.VITE_AUTH_METHOD);
+  const authScheme = maybeUseLocalStorage<AuthScheme>('auth-scheme', import.meta.env.VITE_AUTH_METHOD as AuthScheme);
   const accessToken = maybeUseLocalStorage('access-token', '');
   // XXX: fetch and openapi-generator/typescript-fetch does not seems to support
   // headers with same name but different values, and kubernetes does not support

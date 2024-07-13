@@ -91,6 +91,12 @@ const router = createRouter({
       component: () => import('@/views/DebugInfo.vue'),
       meta: { name: 'About', category: Category.APP },
     },
+    {
+      path: '/docs',
+      name: 'docs',
+      component: () => import('@/views/DocsView.vue'),
+      meta: { name: 'Documentation', category: Category.APP },
+    },
     // hidden
     {
       path: '/',
