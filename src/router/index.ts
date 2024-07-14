@@ -3,6 +3,7 @@ import { storeToRefs } from 'pinia';
 import { createRouter, createWebHistory } from 'vue-router';
 import { computedAsync } from '@vueuse/core';
 import HomeView from '@/views/HomeView.vue';
+import NotFound from '@/views/NotFound.vue';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useNamespaces } from '@/stores/namespaces';
 import { usePermissions } from '@/stores/permissions';
@@ -103,6 +104,11 @@ const router = createRouter({
       name: 'home',
       component: HomeView,
       meta: { name: 'Home', category: Category.HIDDEN },
+    },
+    {
+      path: '/:_(.*)',
+      component: NotFound,
+      meta: { name: 'Not Found', category: Category.HIDDEN },
     },
     // handled @ @/OIDCApp.vue, should not be rendered by router
     {
