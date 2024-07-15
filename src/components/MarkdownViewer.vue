@@ -12,8 +12,6 @@ const props = defineProps<{
   markdown: string;
 }>();
 
-// TODO fix links (trim relative ones?)
-
 const renderer = markdownit('commonmark', {
   html: true, // at least bitnami charts uses comments
   highlight: (code, lang) => {
@@ -48,12 +46,18 @@ const rendered = computed(() => DOMPurify.sanitize(renderer.render(props.markdow
 onMounted(() => {
   StyleModule.mount(document, oneDarkHighlightStyle.module!);
   watch(rendered, () => {
-    div.value?.querySelectorAll('a[href^="#"]')?.forEach((a) => {
+    // anchors
+    div.value?.querySelectorAll('a[href^="#"]').forEach((a) => {
       a.addEventListener('click', (e) => {
         const id = a.getAttribute('href')!;
         div.value!.querySelector(id)?.scrollIntoView();
         e.preventDefault();
       });
+    });
+    // not anchors and likely not absolute
+    div.value?.querySelectorAll('a:not([href^="#"]):not([href*="//"])').forEach((a) => {
+      a.removeAttribute('href');
+      a.setAttribute('class', 'text-white');
     });
   }, { immediate: true });
 })
