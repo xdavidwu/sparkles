@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import markdownit from 'markdown-it';
+import anchor from 'markdown-it-anchor';
 import DOMPurify from 'dompurify';
 import { oneDarkHighlightStyle } from '@codemirror/theme-one-dark';
 import { parser as yamlParser } from '@lezer/yaml';
@@ -11,7 +12,7 @@ const props = defineProps<{
   markdown: string;
 }>();
 
-// TODO fix links (trim relative ones?), make anchor works
+// TODO fix links (trim relative ones?)
 
 const renderer = markdownit('commonmark', {
   html: true, // at least bitnami charts uses comments
@@ -39,17 +40,27 @@ const renderer = markdownit('commonmark', {
     }
     return '';
   },
-}).enable(['table']);
+}).enable(['table']).use(anchor);
 
+const div = ref<HTMLDivElement>();
 const rendered = computed(() => DOMPurify.sanitize(renderer.render(props.markdown)));
 
 onMounted(() => {
   StyleModule.mount(document, oneDarkHighlightStyle.module!);
+  watch(rendered, () => {
+    div.value?.querySelectorAll('a[href^="#"]')?.forEach((a) => {
+      a.addEventListener('click', (e) => {
+        const id = a.getAttribute('href')!;
+        div.value!.querySelector(id)?.scrollIntoView();
+        e.preventDefault();
+      });
+    });
+  }, { immediate: true });
 })
 </script>
 
 <template>
-  <div class="overflow-y-auto" v-html="rendered" />
+  <div ref="div" class="overflow-y-auto" v-html="rendered" />
 </template>
 
 <style scoped>
