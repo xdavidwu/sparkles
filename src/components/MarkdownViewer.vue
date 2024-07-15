@@ -45,6 +45,7 @@ const rendered = computed(() => DOMPurify.sanitize(renderer.render(props.markdow
 
 onMounted(() => {
   StyleModule.mount(document, oneDarkHighlightStyle.module!);
+
   watch(rendered, () => {
     // anchors
     div.value?.querySelectorAll('a[href^="#"]').forEach((a) => {
@@ -54,6 +55,12 @@ onMounted(() => {
         e.preventDefault();
       });
     });
+
+    // likely absolute
+    div.value?.querySelectorAll('a[href*="//"]').forEach((a) => {
+      a.setAttribute('target', '_blank');
+    });
+
     // not anchors and likely not absolute
     div.value?.querySelectorAll('a:not([href^="#"]):not([href*="//"])').forEach((a) => {
       a.removeAttribute('href');
