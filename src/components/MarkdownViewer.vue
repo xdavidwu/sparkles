@@ -1,20 +1,51 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import markdownit from 'markdown-it';
 import DOMPurify from 'dompurify';
+import { oneDarkHighlightStyle } from '@codemirror/theme-one-dark';
+import { parser as yamlParser } from '@lezer/yaml';
+import { highlightCode } from '@lezer/highlight';
+import { StyleModule } from 'style-mod';
 
 const props = defineProps<{
   markdown: string;
 }>();
 
 // TODO fix links (trim relative ones?), make anchor works
-// TODO port highlighting from lezer somehow
 
 const renderer = markdownit('commonmark', {
   html: true, // at least bitnami charts uses comments
+  highlight: (code, lang) => {
+    try {
+      // maybe this is enough, we will see
+      if (lang == 'yaml') {
+        const tree = yamlParser.parse(code);
+        let res = '';
+        highlightCode(
+          code, tree, oneDarkHighlightStyle,
+          (c, classes) => {
+            const s = document.createElement('span');
+            s.innerText = c;
+            s.setAttribute('class', classes);
+            res += s.outerHTML;
+          },
+          () => res += '\n',
+        );
+        return res;
+      }
+    } catch (e) {
+      console.log('lezer failed', e);
+      return '';
+    }
+    return '';
+  },
 }).enable(['table']);
 
 const rendered = computed(() => DOMPurify.sanitize(renderer.render(props.markdown)));
+
+onMounted(() => {
+  StyleModule.mount(document, oneDarkHighlightStyle.module!);
+})
 </script>
 
 <template>
@@ -40,6 +71,8 @@ const rendered = computed(() => DOMPurify.sanitize(renderer.render(props.markdow
 :deep(pre > code) {
   padding: 4px;
   display: block;
+  background: #282c34;
+  color: #abb2bf;
 }
 
 :deep(table) {
