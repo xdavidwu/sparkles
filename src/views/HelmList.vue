@@ -10,6 +10,7 @@ import FixedFab from '@/components/FixedFab.vue';
 import HelmCreate from '@/components/HelmCreate.vue';
 import HelmListRow from '@/components/HelmListRow.vue';
 import LinkedDocument from '@/components/LinkedDocument.vue';
+import MarkdownViewer from '@/components/MarkdownViewer.vue';
 import ProgressDialog from '@/components/ProgressDialog.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
 import { computed, ref, watch, toRaw } from 'vue';
@@ -54,6 +55,8 @@ const progressMessage = ref('');
 const progressCompleted = ref(true);
 const installedSecret = ref<string | undefined>();
 const inspectedRelease = ref<Release | undefined>();
+const inspectedReadme = computed(() =>
+  atob(inspectedRelease.value?.chart.files.find((f) => f.name == 'README.md')?.data ?? ''));
 const inspect = ref(false);
 
 const { charts } = storeToRefs(useHelmRepository());
@@ -127,6 +130,7 @@ const columns = [
 const inspectTabs = [
   { text: 'Notes', value: 'notes' },
   { text: 'Values', value: 'values' },
+  { text: 'README', value: 'readme' },
   { text: 'Default values', value: 'defaults' },
 ];
 
@@ -295,6 +299,10 @@ const purge = (name: string) => Promise.all(
             <LinkedDocument :style="`height: calc(100dvh - 48px - 140px - 48px)`"
               class="text-pre-wrap pt-2 overflow-y-auto bg-black"
               :text="inspectedRelease.info.notes ?? '(none)'" />
+          </template>
+          <template #[`item.readme`]>
+            <MarkdownViewer :style="`height: calc(100dvh - 48px - 140px - 48px)`"
+              :markdown="inspectedReadme" />
           </template>
           <template #[`item.values`]>
             <YAMLEditor :style="`height: calc(100dvh - 48px - 140px - 48px)`"

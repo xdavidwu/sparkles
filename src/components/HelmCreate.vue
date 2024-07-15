@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { VBtn, VSpacer, VStepper, VTabs, VTextField } from 'vuetify/components';
-import LoadingSuspense from '@/components/LoadingSuspense.vue';
 import HelmRepository from '@/components/HelmRepository.vue';
+import LoadingSuspense from '@/components/LoadingSuspense.vue';
+import MarkdownViewer from '@/components/MarkdownViewer.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
 import {
   type Chart, type ChartVersion,
@@ -32,6 +33,7 @@ const parsedChart = ref<Array<Chart> | undefined>();
 const step = ref<Step>(Step.SELECT_CHART);
 const values = ref('');
 const defaults = ref('');
+const readme = ref('');
 const schema = ref({});
 const diagnosticCount = ref(0);
 const parsedValues = ref({});
@@ -77,6 +79,7 @@ const steps = [
 
 const valuesTabs = [
   { text: 'Values', value: 'values' },
+  { text: 'README', value: 'readme' },
   { text: 'Defaults', value: 'defaults' },
 ];
 
@@ -89,6 +92,7 @@ const proceed = async (next: () => void) => {
       const files = await parseTarball(response.body!);
       parsedChart.value = await loadChartsFromFiles(files);
       defaults.value = files['values.yaml'] ? await files['values.yaml'].text() : '';
+      readme.value = files['README.md'] ? await files['README.md'].text() : '';
       schema.value = extractValuesSchema(parsedChart.value);
     }
     break;
@@ -121,6 +125,10 @@ const proceed = async (next: () => void) => {
           <YAMLEditor v-model="values" :schema="schema"
             :style="`height: calc(100dvh - 48px - 128px - 48px)`"
             v-model:diagnosticCount="diagnosticCount" />
+        </template>
+        <template #[`item.readme`]>
+          <MarkdownViewer :markdown="readme"
+            :style="`height: calc(100dvh - 48px - 128px - 48px)`" />
         </template>
         <template #[`item.defaults`]>
           <YAMLEditor :model-value="defaults" :key="defaults"
