@@ -18,7 +18,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'view'): void;
   (e: 'uninstall'): void;
-  (e: 'upgrade'): void;
+  (e: 'upgrade', intent: 'values' | 'upgrade'): void;
   (e: 'rollback'): void;
   (e: 'purge'): void;
   (e: 'toggleExpand'): void;
@@ -77,10 +77,14 @@ const upgrade = computed(() =>
         @click="emit('view')" />
       <template v-if="!history">
         <template v-if="release.info.status == Status.DEPLOYED">
+          <TippedBtn v-if="upgrade" size="small" icon="mdi-update" variant="text"
+            :tooltip="`Upgrade to chart version ${upgrade.version}, app version ${upgrade.appVersion}`"
+            @click="emit('upgrade', 'upgrade')" />
+          <TippedBtn v-else-if="latestChart && latestChart.version == release.chart.metadata.version"
+            size="small" icon="$edit" variant="text" tooltip="Edit values"
+            @click="emit('upgrade', 'values')" />
           <TippedBtn size="small" icon="mdi-delete" tooltip="Uninstall" variant="text"
             @click="emit('uninstall')" />
-          <TippedBtn v-if="upgrade" size="small" icon="mdi-update" variant="text"
-            :tooltip="`Upgrade to chart version ${upgrade.version}, app version ${upgrade.appVersion}`" />
         </template>
         <template v-if="release.info.status == Status.UNINSTALLED">
           <TippedBtn size="small" icon="mdi-reload" tooltip="Restore" variant="text"
