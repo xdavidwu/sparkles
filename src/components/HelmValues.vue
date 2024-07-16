@@ -67,3 +67,10 @@ const tabs = props.prependTabs ? props.prependTabs.concat(builtinTabs) : builtin
     </template>
   </VTabs>
 </template>
+
+<style scoped>
+/* YAMLEditor popups */
+.v-tabs-window {
+  overflow: visible !important;
+}
+</style>

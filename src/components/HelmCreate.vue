@@ -143,8 +143,8 @@ const proceed = async (next: () => void) => {
   margin-bottom: 8px;
 }
 
-/* YAMLEditor popups */
-:deep(.v-tabs-window), :deep(.v-window) {
+/* HelmValues YAMLEditor popups */
+:deep(.v-window) {
   overflow: visible !important;
 }
 </style>
