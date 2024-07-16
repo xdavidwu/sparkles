@@ -48,8 +48,6 @@ const progressMessage = ref('');
 const progressCompleted = ref(true);
 const installedSecret = ref<string | undefined>();
 const inspectedRelease = ref<Release | undefined>();
-const inspectedReadme = computed(() =>
-  atob(inspectedRelease.value?.chart.files.find((f) => f.name == 'README.md')?.data ?? ''));
 const inspect = ref(false);
 
 const { charts } = storeToRefs(useHelmRepository());
@@ -282,8 +280,7 @@ const purge = (name: string) => Promise.all(
         <div class="mb-n6">
           <HelmValues height="calc(100dvh - 48px - 140px)"
             :model-value="stringify(inspectedRelease.config ?? {})"
-            :readme="inspectedReadme"
-            :defaults="stringify(inspectedRelease.chart.values)"
+            :chart="inspectedRelease.chart"
             :prepend-tabs="[{ text: 'Notes', value: 'notes' }]" disabled>
             <template #notes="{ style }">
               <LinkedDocument :style="style"

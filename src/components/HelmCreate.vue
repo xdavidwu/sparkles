@@ -32,7 +32,6 @@ const parsedChart = ref<Array<Chart> | undefined>();
 const step = ref<Step>(Step.SELECT_CHART);
 const values = ref('');
 const defaults = ref('');
-const readme = ref('');
 const schema = ref({});
 const diagnosticCount = ref(0);
 const parsedValues = ref({});
@@ -85,7 +84,6 @@ const proceed = async (next: () => void) => {
       const files = await parseTarball(response.body!);
       parsedChart.value = await loadChartsFromFiles(files);
       defaults.value = files['values.yaml'] ? await files['values.yaml'].text() : '';
-      readme.value = files['README.md'] ? await files['README.md'].text() : '';
       schema.value = extractValuesSchema(parsedChart.value);
     }
     break;
@@ -113,9 +111,10 @@ const proceed = async (next: () => void) => {
       </LoadingSuspense>
     </template>
     <template #[`item.${Step.SET_VALUES}`]>
-      <HelmValues height="calc(100dvh - 48px - 128px)" v-model="values"
+      <HelmValues v-if="parsedChart" v-model="values"
+        height="calc(100dvh - 48px - 128px)"
         :schema="schema" v-model:diagnosticCount="diagnosticCount"
-        :readme="readme" :defaults="defaults" />
+        :chart="parsedChart" :defaults="defaults" />
     </template>
     <template #[`item.${Step.SET_NAME}`]>
       <VTextField label="Release name" v-model="name" :error-messages="nameError" />

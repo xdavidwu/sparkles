@@ -1,20 +1,35 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { VTabs } from 'vuetify/components';
 import MarkdownViewer from '@/components/MarkdownViewer.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
+import { stringify } from '@/utils/yaml';
+import type { Chart, SerializedChart } from '@/utils/helm';
 import type { JSONSchema4 } from 'json-schema';
 
 const props = defineProps<{
   height: string;
   schema?: JSONSchema4;
-  readme: string;
-  defaults: string;
+  chart: Array<Chart> | SerializedChart;
+  defaults?: string;
   disabled?: boolean;
   prependTabs?: Array<{ text: string, value: string }>,
 }>();
 
 const values = defineModel<string>();
 const diagnosticCount = defineModel<number>('diagnosticCount');
+
+const textDecoder = new TextDecoder();
+const readme = computed(() => {
+  if (props.chart instanceof Array) {
+    return textDecoder.decode(props.chart[0].files.find((f) => f.name == 'README.md')?.data);
+  } else {
+    return atob(props.chart.files.find((f) => f.name == 'README.md')?.data ?? '');
+  }
+});
+const defaults = computed(() =>
+  props.defaults ? props.defaults :
+    stringify(props.chart instanceof Array ? props.chart[0].values : props.chart.values));
 
 const builtinTabs = [
   { text: 'Values', value: 'values' },
