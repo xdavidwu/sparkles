@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { VBtn, VSpacer, VStepper, VTabs, VTextField } from 'vuetify/components';
+import { VBtn, VSpacer, VStepper, VTextField } from 'vuetify/components';
 import HelmRepository from '@/components/HelmRepository.vue';
+import HelmValues from '@/components/HelmValues.vue';
 import LoadingSuspense from '@/components/LoadingSuspense.vue';
-import MarkdownViewer from '@/components/MarkdownViewer.vue';
-import YAMLEditor from '@/components/YAMLEditor.vue';
 import {
   type Chart, type ChartVersion,
   extractValuesSchema, parseTarball, loadChartsFromFiles,
@@ -77,12 +76,6 @@ const steps = [
   { title: 'Name your release', value: Step.SET_NAME },
 ];
 
-const valuesTabs = [
-  { text: 'Values', value: 'values' },
-  { text: 'README', value: 'readme' },
-  { text: 'Defaults', value: 'defaults' },
-];
-
 const proceed = async (next: () => void) => {
   switch (step.value) {
   case Step.SELECT_CHART:
@@ -120,22 +113,9 @@ const proceed = async (next: () => void) => {
       </LoadingSuspense>
     </template>
     <template #[`item.${Step.SET_VALUES}`]>
-      <VTabs :items="valuesTabs">
-        <template #[`item.values`]>
-          <YAMLEditor v-model="values" :schema="schema"
-            :style="`height: calc(100dvh - 48px - 128px - 48px)`"
-            v-model:diagnosticCount="diagnosticCount" />
-        </template>
-        <template #[`item.readme`]>
-          <MarkdownViewer :markdown="readme"
-            :style="`height: calc(100dvh - 48px - 128px - 48px)`" />
-        </template>
-        <template #[`item.defaults`]>
-          <YAMLEditor :model-value="defaults" :key="defaults"
-            :style="`height: calc(100dvh - 48px - 128px - 48px)`" disabled />
-        </template>
-        <!-- TODO schema-based form editor? -->
-      </VTabs>
+      <HelmValues height="calc(100dvh - 48px - 128px)" v-model="values"
+        :schema="schema" v-model:diagnosticCount="diagnosticCount"
+        :readme="readme" :defaults="defaults" />
     </template>
     <template #[`item.${Step.SET_NAME}`]>
       <VTextField label="Release name" v-model="name" :error-messages="nameError" />

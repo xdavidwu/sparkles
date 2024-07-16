@@ -1,18 +1,11 @@
 <script lang="ts" setup>
-import {
-  VBtn,
-  VCard,
-  VDataTable,
-  VDialog,
-  VTabs,
-} from 'vuetify/components';
+import { VBtn, VCard, VDataTable, VDialog } from 'vuetify/components';
 import FixedFab from '@/components/FixedFab.vue';
 import HelmCreate from '@/components/HelmCreate.vue';
 import HelmListRow from '@/components/HelmListRow.vue';
+import HelmValues from '@/components/HelmValues.vue';
 import LinkedDocument from '@/components/LinkedDocument.vue';
-import MarkdownViewer from '@/components/MarkdownViewer.vue';
 import ProgressDialog from '@/components/ProgressDialog.vue';
-import YAMLEditor from '@/components/YAMLEditor.vue';
 import { computed, ref, watch, toRaw } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
@@ -125,13 +118,6 @@ const columns = [
       class: 'ps-1',
     },
   },
-];
-
-const inspectTabs = [
-  { text: 'Notes', value: 'notes' },
-  { text: 'Values', value: 'values' },
-  { text: 'README', value: 'readme' },
-  { text: 'Default values', value: 'defaults' },
 ];
 
 const { abort: abortRequests, signal } = useAbortController();
@@ -294,25 +280,17 @@ const purge = (name: string) => Promise.all(
       :title="`Details for release ${inspectedRelease.name}, revision ${inspectedRelease.version}`">
       <template #text>
         <div class="mb-n6">
-        <VTabs :items="inspectTabs">
-          <template #[`item.notes`]>
-            <LinkedDocument :style="`height: calc(100dvh - 48px - 140px - 48px)`"
-              class="text-pre-wrap pt-2 overflow-y-auto bg-black"
-              :text="inspectedRelease.info.notes ?? '(none)'" />
-          </template>
-          <template #[`item.readme`]>
-            <MarkdownViewer :style="`height: calc(100dvh - 48px - 140px - 48px)`"
-              :markdown="inspectedReadme" />
-          </template>
-          <template #[`item.values`]>
-            <YAMLEditor :style="`height: calc(100dvh - 48px - 140px - 48px)`"
-              :model-value="stringify(inspectedRelease.config ?? {})" disabled />
-          </template>
-          <template #[`item.defaults`]>
-            <YAMLEditor :style="`height: calc(100dvh - 48px - 140px - 48px)`"
-              :model-value="stringify(inspectedRelease.chart.values)" disabled />
-          </template>
-        </VTabs>
+          <HelmValues height="calc(100dvh - 48px - 140px)"
+            :model-value="stringify(inspectedRelease.config ?? {})"
+            :readme="inspectedReadme"
+            :defaults="stringify(inspectedRelease.chart.values)"
+            :prepend-tabs="[{ text: 'Notes', value: 'notes' }]" disabled>
+            <template #notes="{ style }">
+              <LinkedDocument :style="style"
+                class="text-pre-wrap pt-2 overflow-y-auto bg-black"
+                :text="inspectedRelease.info.notes ?? '(none)'" />
+            </template>
+          </HelmValues>
         </div>
       </template>
       <template #actions>
