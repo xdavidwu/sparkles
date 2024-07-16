@@ -3,8 +3,10 @@ import { VBtn, VCard, VDataTable, VDialog } from 'vuetify/components';
 import FixedFab from '@/components/FixedFab.vue';
 import HelmCreate from '@/components/HelmCreate.vue';
 import HelmListRow from '@/components/HelmListRow.vue';
+import HelmUpgrade from '@/components/HelmUpgrade.vue';
 import HelmValues from '@/components/HelmValues.vue';
 import LinkedDocument from '@/components/LinkedDocument.vue';
+import LoadingSuspense from '@/components/LoadingSuspense.vue';
 import ProgressDialog from '@/components/ProgressDialog.vue';
 import { computed, ref, watch, toRaw } from 'vue';
 import { computedAsync } from '@vueuse/core';
@@ -42,13 +44,16 @@ const api = new CoreV1Api(config);
 const secrets = ref<Array<V1Secret>>([]);
 
 const creating = ref(false);
+const upgrading = ref(false);
+const inspecting = ref(false);
 
 const operation = ref('');
 const progressMessage = ref('');
 const progressCompleted = ref(true);
 const installedSecret = ref<string | undefined>();
 const inspectedRelease = ref<Release | undefined>();
-const inspect = ref(false);
+const upgradeIntent = ref<'values' | 'upgrade'>('values');
+const upgradingRelease = ref<Release | undefined>();
 
 const { charts } = storeToRefs(useHelmRepository());
 try {
@@ -181,7 +186,7 @@ watch(progressCompleted, () => {
 
 const view = (target: Release) => {
   inspectedRelease.value = target;
-  inspect.value = true;
+  inspecting.value = true;
 };
 
 const uninstall = (target: Release) => {
@@ -243,6 +248,12 @@ const purge = (name: string) => Promise.all(
     }),
   ),
 );
+
+const prepareUpgrade = async (intent: 'values' | 'upgrade', target: Release) => {
+  upgradeIntent.value = intent;
+  upgradingRelease.value = target;
+  upgrading.value = true;
+};
 </script>
 
 <template>
@@ -259,7 +270,8 @@ const purge = (name: string) => Promise.all(
         @view="view(groupProps.item.items[0].raw as Release)"
         @uninstall="uninstall(groupProps.item.items[0].raw as Release)"
         @rollback="rollback(groupProps.item.items[0].raw as Release)"
-        @purge="purge((groupProps.item.items[0].raw as Release).name)" />
+        @purge="purge((groupProps.item.items[0].raw as Release).name)"
+        @upgrade="(t) => prepareUpgrade(t, groupProps.item.items[0].raw as Release)"/>
     </template>
     <template #item="{ props }">
       <!-- XXX: VDataTableRows internally use this .props, but type is lost -->
@@ -268,17 +280,17 @@ const purge = (name: string) => Promise.all(
         @rollback="rollback(props.item.raw as Release)" />
     </template>
   </VDataTable>
-  <FixedFab icon="$plus" @click="() => creating = true" />
+  <FixedFab icon="$plus" @click="creating = true" />
   <VDialog v-model="creating">
     <HelmCreate :used-names="names" @apply="install" @cancel="creating = false" />
   </VDialog>
   <ProgressDialog :model-value="!progressCompleted" :title="operation" :text="progressMessage" />
-  <VDialog v-model="inspect">
+  <VDialog v-model="inspecting">
     <VCard v-if="inspectedRelease"
       :title="`Details for release ${inspectedRelease.name}, revision ${inspectedRelease.version}`">
       <template #text>
         <div class="mb-n6">
-          <HelmValues height="calc(100dvh - 48px - 140px)"
+          <HelmValues height="calc(100dvh - 48px - 116px)"
             :model-value="stringify(inspectedRelease.config ?? {})"
             :chart="inspectedRelease.chart"
             :prepend-tabs="[{ text: 'Notes', value: 'notes' }]" disabled>
@@ -291,8 +303,16 @@ const purge = (name: string) => Promise.all(
         </div>
       </template>
       <template #actions>
-        <VBtn color="primary" @click="inspect = false">Close</VBtn>
+        <VBtn color="primary" @click="inspecting = false">Close</VBtn>
       </template>
     </VCard>
+  </VDialog>
+  <VDialog v-model="upgrading">
+    <LoadingSuspense v-if="upgradingRelease" :key="upgradingRelease.name"
+      class="v-card--variant-elevated" style="min-height: calc(100dvh - 48px)">
+      <HelmUpgrade :from="upgradingRelease" :to="latestChart(upgradingRelease)!"
+        :title="`${upgradeIntent == 'values' ? 'Editing' : 'Upgrading'} release ${upgradingRelease.name}`"
+        @cancel="upgrading = false" />
+    </LoadingSuspense>
   </VDialog>
 </template>
