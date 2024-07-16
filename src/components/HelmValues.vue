@@ -30,6 +30,11 @@ const readme = computed(() => {
 const defaults = computed(() =>
   props.defaults ? props.defaults :
     stringify(props.chart instanceof Array ? props.chart[0].values : props.chart.values));
+const schema = computed(() =>
+  props.schema ? props.schema :
+  JSON.parse(props.chart instanceof Array ?
+    textDecoder.decode(props.chart[0].schema) :
+    atob(props.chart.schema ?? '')));
 
 const builtinTabs = [
   { text: 'Values', value: 'values' },
