@@ -817,7 +817,167 @@ const fns = {
     await updateRelease(api, release);
 
     return secretName(release);
-  }
+  },
+  upgrade: async (chart: Array<Chart>, values: object, oldRelease: Release, history: Array<Release>) => {
+    await setupGo();
+
+    const { api, batchApi, anyApi } = await setupClients();
+
+    const latestVersion = history[0].version;
+
+    progress('Rendering resource templates');
+
+    const { files, chart: processedChart } = await renderTemplate(
+      chart, values, {
+        Name: oldRelease.name,
+        Namespace: oldRelease.namespace,
+        Revision: 1,
+        IsUpgrade: false,
+        IsInstall: true,
+      });
+
+    let notes = '';
+
+    // helm seems to allow fooNOTES.txt?
+    Object.keys(files).filter((f) => f.endsWith('NOTES.txt')).forEach((f) => {
+      if (f == `${chart[0].metadata.name}/templates/NOTES.txt`) {
+        notes = files[f];
+      }
+      // XXX do something with subnotes? but that's not helm default
+      delete files[f];
+    });
+
+    const manifestsAndHooks = Object.entries(files).map(([k, v]) =>
+      parseAllDocuments(v).map((doc) => ({
+        filename: k,
+        resource: doc.toJS() as KubernetesObject,
+        yaml: v.substring(doc.contents?.range[0] ?? 0, doc.contents?.range[1] ?? 0),
+      })).filter((r) => r.resource),
+    ).reduce((a, v) => a.concat(v), []).sort((a, b) => installOrderCompare(a.resource, b.resource));
+
+    const hooks = manifestsAndHooks.filter((r) => r.resource.metadata!.annotations?.['helm.sh/hook'])
+      .map((r): Hook => {
+        const w = parseInt(r.resource.metadata!.annotations!['helm.sh/hook-weight']);
+        return {
+          name: r.resource.metadata!.name!,
+          kind: r.resource.kind!,
+          path: r.filename,
+          manifest: r.yaml,
+          events: r.resource.metadata!.annotations!['helm.sh/hook'].split(',')
+            .map((s) => s.trim().toLowerCase())
+            .filter((h): h is Event => Object.values(Event).includes(h as Event)),
+          last_run: {
+            started_at: '',
+            completed_at: '',
+            phase: Phase.UNKNOWN,
+          },
+          weight: isNaN(w) ? 0 : w,
+          delete_policies: r.resource.metadata!.annotations!['helm.sh/hook-delete-policy']?.split(',')
+            .map((s) => s.trim().toLowerCase())
+            .filter((h): h is DeletePolicy => Object.values(DeletePolicy).includes(h as DeletePolicy)),
+        };
+      });
+    const manifests = manifestsAndHooks.filter((r) => !(r.resource.metadata!.annotations?.['helm.sh/hook']));
+
+    const manifest = manifests.map((f) => `---\n# Source: ${f.filename}\n${f.yaml}\n`).join('');
+
+    const resources = manifests.map((f) => f.resource);
+
+    progress('Creating release');
+
+    const release: Release = {
+      name: oldRelease.name,
+      info: {
+        first_deployed: oldRelease.info.first_deployed,
+        last_deployed: (new Date()).toISOString(),
+        status: Status.PENDING_UPGRADE,
+        description: 'Preparing upgrade',
+        deleted: '',
+        notes,
+      },
+      chart: processedChart,
+      config: values,
+      manifest,
+      hooks,
+      version: latestVersion + 1,
+      namespace: oldRelease.namespace,
+      labels: {},
+    };
+    await createRelease(api, release);
+
+    progress('Calculating upgrade difference')
+
+    const onlineResources = parseManifests(oldRelease.manifest);
+
+    const createsAndUpdates = resources.map((r) => ({
+      op: onlineResources.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
+      resource: addManagedMetadata(r, release),
+    }));
+    const deletes = onlineResources.filter(
+      (r) => !shouldKeepResource(r) && !resources.some((t) => isSameKubernetesObject(r, t)),
+    // helm does not seems to care about ordering here, but probably should
+    ).sort(uninstallOrderCompare).map((r) => ({
+      op: 'delete',
+      resource: r,
+    }));
+
+    const groups = await getGroups();
+    // create/update first, then delete
+    // manifests are already sorted in installation order
+    const steps = createsAndUpdates.concat(deletes).map((step) => ({
+      op: step.op as 'create' | 'replace' | 'delete',
+      resource: step.resource,
+      kindInfo: resolveObject(groups, step.resource),
+    }));
+
+    progress(`Running ${Event.PRE_UPGRADE} hooks`);
+
+    await execHooks(api, batchApi, anyApi, release, Event.PRE_UPGRADE, groups);
+
+    progress('Applying upgrade');
+
+    await steps.reduce(async (a, step) => {
+      const act = (verb: 'create' | 'replace' | 'delete') =>
+        anyApi[`${verb}${step.kindInfo.scope!}CustomObject`]({
+          group: step.kindInfo.group,
+          version: step.kindInfo.version,
+          plural: step.kindInfo.resource!,
+          namespace: step.resource.metadata!.namespace!,
+          name: step.resource.metadata!.name!,
+          body: step.resource,
+          fieldManager,
+        });
+      await a;
+      try {
+        await act(step.op);
+      } catch (e) {
+        // some (apps/v1 Deployment) does not treat PUT without existing resource as create, but the others does
+        if (step.op == 'replace' && await errorIsResourceNotFound(e)) {
+          await act('create');
+          return;
+        }
+        throw e;
+      }
+    }, (async () => {})());
+    // TODO error handling, undo on failure?
+
+    // TODO recreate? (delete old pod to trigger a rollout?), wait?
+
+    progress(`Running ${Event.POST_UPGRADE} hooks`);
+
+    await execHooks(api, batchApi, anyApi, release, Event.POST_UPGRADE, groups);
+
+    progress('Marking release statuses');
+
+    await Promise.all(history.filter((r) => r.info.status == Status.DEPLOYED)
+      .map(async (r) => {
+        r.info.status = Status.SUPERSEDED;
+        await updateRelease(api, r);
+      }));
+
+    release.info.status = Status.DEPLOYED;
+    await updateRelease(api, release);
+  },
 };
 
 const handlers = [

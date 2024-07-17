@@ -254,6 +254,20 @@ const prepareUpgrade = async (intent: 'values' | 'upgrade', target: Release) => 
   upgradingRelease.value = target;
   upgrading.value = true;
 };
+
+const upgrade = (chart: Array<Chart>, values: object, target: Release) => {
+  const worker = prepareWorker();
+  operation.value = `Upgrade release ${target.name} to chart ${chart[0].metadata.version}`;
+  progressMessage.value = 'Upgrading release';
+  progressCompleted.value = false;
+  const op: InboundMessage = {
+    type: 'call',
+    func: 'upgrade',
+    args: [toRaw(chart), toRaw(values), toRaw(target), toRaw(releases.value.filter((r) => r.name == target.name))],
+  };
+  worker.postMessage(op);
+  upgrading.value = false;
+};
 </script>
 
 <template>
@@ -312,7 +326,7 @@ const prepareUpgrade = async (intent: 'values' | 'upgrade', target: Release) => 
       class="v-card--variant-elevated" style="min-height: calc(100dvh - 48px)">
       <HelmUpgrade :from="upgradingRelease" :to="latestChart(upgradingRelease)!"
         :title="`${upgradeIntent == 'values' ? 'Editing' : 'Upgrading'} release ${upgradingRelease.name}`"
-        @cancel="upgrading = false" />
+        @cancel="upgrading = false" @upgrade="upgrade" />
     </LoadingSuspense>
   </VDialog>
 </template>
