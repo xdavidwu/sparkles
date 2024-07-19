@@ -21,7 +21,7 @@ import { PresentedError } from '@/utils/PresentedError';
 import { parse, parseAllDocuments } from 'yaml';
 import {
   secretName,
-  type Chart, type File, type Hook, type Release, type SerializedChart, type SerializedFile,
+  type Chart, type File, type Hook, type Release, type SerializedFile,
   DeletePolicy, Event, Phase, Status,
 } from '@/utils/helm';
 import { type V2APIGroupDiscovery, resolveObject } from '@/utils/discoveryV2';
@@ -124,11 +124,7 @@ const arrayBufferReplacer = (key: string, value: any): any => {
   return value;
 };
 
-const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseOptions):
-  Promise<Omit<Awaited<ReturnType<typeof _helm_renderTemplate>>, 'chart' | 'crds'> & {
-    chart: SerializedChart,
-    crds: Array<CRD>,
-  }> => {
+const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseOptions) => {
   const result = await _helm_renderTemplate(
     chart.map((c) => JSON.stringify(c, arrayBufferReplacer)),
     JSON.stringify(value),
@@ -136,9 +132,58 @@ const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseO
     JSON.stringify(capabilitiesFromDiscovery(await getVersionInfo(), await getGroups())),
     new AnyApi(await getConfig()),
   );
+
+  let notes = '';
+  // helm seems to allow fooNOTES.txt?
+  Object.keys(result.files).filter((f) => f.endsWith('NOTES.txt')).forEach((f) => {
+    if (f == `${chart[0].metadata.name}/templates/NOTES.txt`) {
+      notes = result.files[f];
+    }
+    // XXX do something with subnotes? but that's not helm default
+    delete result.files[f];
+  });
+
+  const manifestsAndHooks = Object.entries(result.files).map(([k, v]) =>
+    parseAllDocuments(v).map((doc) => ({
+      filename: k,
+      resource: doc.toJS() as KubernetesObject,
+      yaml: v.substring(doc.contents?.range[0] ?? 0, doc.contents?.range[1] ?? 0),
+    })).filter((r) => r.resource),
+  ).reduce((a, v) => a.concat(v), []).sort((a, b) => installOrderCompare(a.resource, b.resource));
+
+  const hooks = manifestsAndHooks.filter((r) => r.resource.metadata!.annotations?.['helm.sh/hook'])
+    .map((r): Hook => {
+      const w = parseInt(r.resource.metadata!.annotations!['helm.sh/hook-weight']);
+      return {
+        name: r.resource.metadata!.name!,
+        kind: r.resource.kind!,
+        path: r.filename,
+        manifest: r.yaml,
+        events: r.resource.metadata!.annotations!['helm.sh/hook'].split(',')
+          .map((s) => s.trim().toLowerCase())
+          .filter((h): h is Event => Object.values(Event).includes(h as Event)),
+        last_run: {
+          started_at: '',
+          completed_at: '',
+          phase: Phase.UNKNOWN,
+        },
+        weight: isNaN(w) ? 0 : w,
+        delete_policies: r.resource.metadata!.annotations!['helm.sh/hook-delete-policy']?.split(',')
+          .map((s) => s.trim().toLowerCase())
+          .filter((h): h is DeletePolicy => Object.values(DeletePolicy).includes(h as DeletePolicy)),
+      };
+    });
+  const manifests = manifestsAndHooks.filter((r) => !(r.resource.metadata!.annotations?.['helm.sh/hook']));
+
+  const manifest = manifests.map((f) => `---\n# Source: ${f.filename}\n${f.yaml}\n`).join('');
+
   return {
     chart: JSON.parse(result.chart),
     files: result.files,
+    notes,
+    resources: manifests.map((f) => f.resource),
+    manifest,
+    hooks,
     crds: await Promise.all(
       (JSON.parse(result.crds) as Array<SerializedCRD>).map(async (c) => ({
         ...c,
@@ -620,59 +665,20 @@ const fns = {
 
     progress('Rendering resource templates');
 
-    const { files, chart: processedChart, crds } = await renderTemplate(
-      chart, values, {
-        Name: name,
-        Namespace: namespace,
-        Revision: 1,
-        IsUpgrade: false,
-        IsInstall: true,
-      });
-
-    let notes = '';
-
-    // helm seems to allow fooNOTES.txt?
-    Object.keys(files).filter((f) => f.endsWith('NOTES.txt')).forEach((f) => {
-      if (f == `${chart[0].metadata.name}/templates/NOTES.txt`) {
-        notes = files[f];
-      }
-      // XXX do something with subnotes? but that's not helm default
-      delete files[f];
+    const {
+      notes,
+      resources,
+      hooks,
+      manifest,
+      chart: processedChart,
+      crds,
+    } = await renderTemplate(chart, values, {
+      Name: name,
+      Namespace: namespace,
+      Revision: 1,
+      IsUpgrade: false,
+      IsInstall: true,
     });
-
-    const manifestsAndHooks = Object.entries(files).map(([k, v]) =>
-      parseAllDocuments(v).map((doc) => ({
-        filename: k,
-        resource: doc.toJS() as KubernetesObject,
-        yaml: v.substring(doc.contents?.range[0] ?? 0, doc.contents?.range[1] ?? 0),
-      })).filter((r) => r.resource),
-    ).reduce((a, v) => a.concat(v), []).sort((a, b) => installOrderCompare(a.resource, b.resource));
-
-    const hooks = manifestsAndHooks.filter((r) => r.resource.metadata!.annotations?.['helm.sh/hook'])
-      .map((r): Hook => {
-        const w = parseInt(r.resource.metadata!.annotations!['helm.sh/hook-weight']);
-        return {
-          name: r.resource.metadata!.name!,
-          kind: r.resource.kind!,
-          path: r.filename,
-          manifest: r.yaml,
-          events: r.resource.metadata!.annotations!['helm.sh/hook'].split(',')
-            .map((s) => s.trim().toLowerCase())
-            .filter((h): h is Event => Object.values(Event).includes(h as Event)),
-          last_run: {
-            started_at: '',
-            completed_at: '',
-            phase: Phase.UNKNOWN,
-          },
-          weight: isNaN(w) ? 0 : w,
-          delete_policies: r.resource.metadata!.annotations!['helm.sh/hook-delete-policy']?.split(',')
-            .map((s) => s.trim().toLowerCase())
-            .filter((h): h is DeletePolicy => Object.values(DeletePolicy).includes(h as DeletePolicy)),
-        };
-      });
-    const manifests = manifestsAndHooks.filter((r) => !(r.resource.metadata!.annotations?.['helm.sh/hook']));
-
-    const manifest = manifests.map((f) => `---\n# Source: ${f.filename}\n${f.yaml}\n`).join('');
 
     // before discovery via getGroups
     progress('Installing CRDs');
@@ -733,8 +739,6 @@ const fns = {
     }));
 
     progress('Checking resource conflicts');
-
-    const resources = manifests.map((f) => f.resource);
 
     const resolved = resources.map((r) => ({ r, kindInfo: resolveObject(groups, r) }));
 
@@ -808,59 +812,20 @@ const fns = {
 
     progress('Rendering resource templates');
 
-    const { files, chart: processedChart } = await renderTemplate(
-      chart, values, {
-        Name: oldRelease.name,
-        Namespace: oldRelease.namespace,
-        Revision: 1,
-        IsUpgrade: false,
-        IsInstall: true,
-      });
-
-    let notes = '';
-
-    // helm seems to allow fooNOTES.txt?
-    Object.keys(files).filter((f) => f.endsWith('NOTES.txt')).forEach((f) => {
-      if (f == `${chart[0].metadata.name}/templates/NOTES.txt`) {
-        notes = files[f];
-      }
-      // XXX do something with subnotes? but that's not helm default
-      delete files[f];
+    const version = history[0].version + 1;
+    const {
+      notes,
+      resources,
+      hooks,
+      manifest,
+      chart: processedChart,
+    } = await renderTemplate(chart, values, {
+      Name: oldRelease.name,
+      Namespace: oldRelease.namespace,
+      Revision: version,
+      IsUpgrade: false,
+      IsInstall: true,
     });
-
-    const manifestsAndHooks = Object.entries(files).map(([k, v]) =>
-      parseAllDocuments(v).map((doc) => ({
-        filename: k,
-        resource: doc.toJS() as KubernetesObject,
-        yaml: v.substring(doc.contents?.range[0] ?? 0, doc.contents?.range[1] ?? 0),
-      })).filter((r) => r.resource),
-    ).reduce((a, v) => a.concat(v), []).sort((a, b) => installOrderCompare(a.resource, b.resource));
-
-    const hooks = manifestsAndHooks.filter((r) => r.resource.metadata!.annotations?.['helm.sh/hook'])
-      .map((r): Hook => {
-        const w = parseInt(r.resource.metadata!.annotations!['helm.sh/hook-weight']);
-        return {
-          name: r.resource.metadata!.name!,
-          kind: r.resource.kind!,
-          path: r.filename,
-          manifest: r.yaml,
-          events: r.resource.metadata!.annotations!['helm.sh/hook'].split(',')
-            .map((s) => s.trim().toLowerCase())
-            .filter((h): h is Event => Object.values(Event).includes(h as Event)),
-          last_run: {
-            started_at: '',
-            completed_at: '',
-            phase: Phase.UNKNOWN,
-          },
-          weight: isNaN(w) ? 0 : w,
-          delete_policies: r.resource.metadata!.annotations!['helm.sh/hook-delete-policy']?.split(',')
-            .map((s) => s.trim().toLowerCase())
-            .filter((h): h is DeletePolicy => Object.values(DeletePolicy).includes(h as DeletePolicy)),
-        };
-      });
-    const manifests = manifestsAndHooks.filter((r) => !(r.resource.metadata!.annotations?.['helm.sh/hook']));
-
-    const manifest = manifests.map((f) => `---\n# Source: ${f.filename}\n${f.yaml}\n`).join('');
 
     progress('Creating release');
 
@@ -878,7 +843,7 @@ const fns = {
       config: values,
       manifest,
       hooks,
-      version: history[0].version + 1,
+      version,
       namespace: oldRelease.namespace,
       labels: {},
     };
@@ -890,10 +855,9 @@ const fns = {
 
     progress('Upgrading resources')
 
-    const resources = manifests.map((f) => f.resource).map((r) => addManagedMetadata(r, release));
     const onlineResources = parseManifests(oldRelease.manifest);
 
-    await applyDifference(anyApi, groups, onlineResources, resources);
+    await applyDifference(anyApi, groups, onlineResources, resources.map((r) => addManagedMetadata(r, release)));
 
     // TODO recreate? (delete old pod to trigger a rollout?), wait?
 
