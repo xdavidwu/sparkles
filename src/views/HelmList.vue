@@ -219,7 +219,7 @@ const findBuffers = (o: unknown): Array<ArrayBuffer> => {
   if (o instanceof ArrayBuffer) {
     return [o];
   } else if (Array.isArray(o)) {
-    return o.reduce((a, v) => a.concat(findBuffers(v)), []);
+    return o.flatMap((v) => findBuffers(v));
   } else if (typeof o == 'object' && o != null) {
     return findBuffers(Object.values(o));
   }

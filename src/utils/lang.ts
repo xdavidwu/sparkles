@@ -1,3 +1,6 @@
+export const fetchBase64Data = (s: string) =>
+  fetch(`data:application/octet-stream;base64,${s}`);
+
 export async function* streamToGenerator<T>(r: ReadableStream<T>) {
   const reader = r.getReader();
 

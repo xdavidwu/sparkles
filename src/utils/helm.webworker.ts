@@ -11,17 +11,18 @@ import {
   V1JobFromJSON, V1CustomResourceDefinitionFromJSON, V1PodFromJSON,
   type V1Secret, type V1CustomResourceDefinition, type VersionInfo,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
+import { parse, parseAllDocuments } from 'yaml';
 import { AnyApi } from '@/utils/AnyApi';
 import {
   errorIsResourceNotFound, errorIsAborted, errorIsAlreadyExists, rawErrorIsAborted,
   V1ConditionStatus, V1CustomResourceDefinitionConditionType, V1JobConditionType,
   V1PodStatusPhase, V1WatchEventType,
 } from '@/utils/api';
+import { fetchBase64Data } from '@/utils/lang';
 import { PresentedError } from '@/utils/PresentedError';
-import { parse, parseAllDocuments } from 'yaml';
 import {
   secretName, releaseSecretType,
-  type Chart, type File, type Hook, type Release, type SerializedFile,
+  type Chart, type File, type Hook, type Release, type SerializedChart, type SerializedFile,
   DeletePolicy, Event, Phase, Status,
 } from '@/utils/helm';
 import { type V2APIGroupDiscovery, resolveObject } from '@/utils/discoveryV2';
@@ -93,21 +94,18 @@ const setupGo = async () => {
 };
 
 const capabilitiesFromDiscovery = (versionInfo: VersionInfo, groups: Array<V2APIGroupDiscovery>): Capabilities => {
-  const gv = groups.map((g) =>
-    g.versions.map((v) => g.metadata?.name ? `${g.metadata.name}/${v.version}` : v.version),
-  ).reduce((a, v) => a.concat(v), []);
-  const gvk = groups.map((g) =>
-    g.versions.map((v) => v.resources.map(
-      (r) => g.metadata?.name ? `${g.metadata.name}/${v.version}/${r.responseKind.kind}` : `${v.version}/${r.responseKind.kind}`,
-    )).reduce((a, v) => a.concat(v), []),
-  ).reduce((a, v) => a.concat(v), []);
+  const gvs = groups.flatMap((g) => g.versions.map((v) => ({
+    gv: g.metadata?.name ? `${g.metadata.name}/${v.version}` : v.version,
+    ks: v.resources.map((r) => r.responseKind.kind),
+  })));
+  const gvk = gvs.flatMap((v) => v.ks.map((k) => `${v.gv}/${k}`));
   return {
     KubeVersion: {
       Version: versionInfo.gitVersion,
       Major: versionInfo.major,
       Minor: versionInfo.minor,
     },
-    APIVersions: gv.concat(gvk),
+    APIVersions: gvs.map((v) => v.gv).concat(gvk),
     Groups: groups,
   };
 };
@@ -119,13 +117,18 @@ const base64Buffer = (b: ArrayBuffer) =>
 const arrayBufferReplacer = (key: string, value: any): any =>
   value instanceof ArrayBuffer ? base64Buffer(value) : value;
 
-const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseOptions) => {
+const parseAnnotationList = <T extends string>(e: { [k: string]: T }, s?: string) =>
+  s?.split(',').map((s) => s.trim().toLowerCase())
+  .filter((v): v is T => Object.values(e).includes(v as T));
+
+const renderTemplate = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery>,
+    chart: Array<Chart>, value: object, opts: ReleaseOptions) => {
   const result = await _helm_renderTemplate(
     chart.map((c) => JSON.stringify(c, arrayBufferReplacer)),
     JSON.stringify(value),
     JSON.stringify(opts),
-    JSON.stringify(capabilitiesFromDiscovery(await getVersionInfo(), await getGroups())),
-    new AnyApi(await getConfig()),
+    JSON.stringify(capabilitiesFromDiscovery(await getVersionInfo(), groups)),
+    anyApi,
   );
 
   let notes = '';
@@ -138,20 +141,17 @@ const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseO
     delete result.files[f];
   });
 
-  const manifestsAndHooks = Object.entries(result.files).map(([k, v]) =>
+  const manifestsAndHooks = Object.entries(result.files).flatMap(([k, v]) =>
     parseAllDocuments(v).map((doc) => ({
       filename: k,
       resource: doc.toJS() as KubernetesObject,
       yaml: v.substring(doc.contents?.range[0] ?? 0, doc.contents?.range[1] ?? 0),
     })).filter((r) => r.resource),
-  ).reduce((a, v) => a.concat(v), []).sort((a, b) => installOrderCompare(a.resource, b.resource));
+  ).sort((a, b) => installOrderCompare(a.resource, b.resource));
 
   const hooks = manifestsAndHooks.filter((r) => r.resource.metadata!.annotations?.['helm.sh/hook'])
     .map((r): Hook => {
       const w = parseInt(r.resource.metadata!.annotations!['helm.sh/hook-weight']);
-      const parseAnnotationList = <T extends string>(e: { [k: string]: T }, s?: string) =>
-        s?.split(',').map((s) => s.trim().toLowerCase())
-        .filter((v): v is T => Object.values(e).includes(v as T));
       return {
         name: r.resource.metadata!.name!,
         kind: r.resource.kind!,
@@ -171,21 +171,22 @@ const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseO
     });
   const manifests = manifestsAndHooks.filter((r) => !(r.resource.metadata!.annotations?.['helm.sh/hook']));
 
+  const serializedCRDs: Array<SerializedCRD> = JSON.parse(result.crds);
+  const processedChart: SerializedChart = JSON.parse(result.chart);
+
   return {
-    chart: JSON.parse(result.chart),
+    chart: processedChart,
     notes,
     resources: manifests.map((f) => f.resource),
     manifest: manifests.map((f) => `---\n# Source: ${f.filename}\n${f.yaml}\n`).join(''),
     hooks,
-    crds: await Promise.all(
-      (JSON.parse(result.crds) as Array<SerializedCRD>).map(async (c) => ({
-        ...c,
-        File: {
-          name: c.File.name,
-          data: await (await fetch(`data:application/octet-stream;base64,${c.File.data}`)).arrayBuffer(),
-        },
-      })),
-    ),
+    crds: await Promise.all(serializedCRDs.map(async (c) => ({
+      ...c,
+      File: {
+        name: c.File.name,
+        data: await (await fetchBase64Data(c.File.data)).arrayBuffer(),
+      },
+    }))),
   };
 };
 
@@ -348,8 +349,8 @@ const createRelease = async (api: CoreV1Api, release: Release) => {
   });
 };
 
-const parseManifests = (manifest: string) =>
-  parseAllDocuments(manifest).map((d): KubernetesObject => d.toJS());
+const parseManifest = <T = KubernetesObject>(manifest: string) =>
+  parseAllDocuments(manifest).map((d): T | null => d.toJS()).filter((r): r is T => !!r);
 
 const addManagedMetadata = (resource: KubernetesObject, release: Release): KubernetesObject => ({
   ...resource,
@@ -367,17 +368,22 @@ const addManagedMetadata = (resource: KubernetesObject, release: Release): Kuber
   },
 });
 
+// TODO move resolving out, handle unresolved
 const applyDifference = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery>,
     from: Array<KubernetesObject>, to: Array<KubernetesObject>) => {
-  type op = 'create' | 'replace' | 'delete';
-  const createsAndUpdates = to.sort(installOrderCompare).map((r) => ({
-    op: (from.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create') as op,
+  interface op {
+    op: 'create' | 'replace' | 'delete';
+    resource: KubernetesObject;
+  }
+
+  const createsAndUpdates = to.sort(installOrderCompare).map((r): op => ({
+    op: from.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
     resource: r,
   }));
   const deletes = from.filter(
     (r) => !shouldKeepResource(r) && !to.some((t) => isSameKubernetesObject(r, t)),
-  ).sort(uninstallOrderCompare).map((r) => ({
-    op: 'delete' as op,
+  ).sort(uninstallOrderCompare).map((r): op => ({
+    op: 'delete',
     resource: r,
   }));
 
@@ -385,32 +391,31 @@ const applyDifference = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery
   await createsAndUpdates.concat(deletes).reduce(async (a, step) => {
     await a;
 
-    const kindInfo = resolveObject(groups, step.resource);
+    const kindInfo = resolveObject(groups, step.resource)!;
     const common = {
       group: kindInfo.group,
       version: kindInfo.version,
-      plural: kindInfo.resource!,
+      plural: kindInfo.resource,
       namespace: step.resource.metadata!.namespace!,
       name: step.resource.metadata!.name!,
       fieldManager,
     };
     if (step.op == 'replace') {
       try {
-        const current = await anyApi[`get${kindInfo.scope!}CustomObject`](common) as KubernetesObject;
+        const current = await anyApi[`get${kindInfo.scope}CustomObject`](common) as KubernetesObject;
         step.resource.metadata!.resourceVersion = current.metadata!.resourceVersion;
       } catch (e) {
-        if (await errorIsResourceNotFound(e)) {
-          step.op = 'create';
-        } else {
+        if (!await errorIsResourceNotFound(e)) {
           throw e;
         }
+        step.op = 'create';
       }
     }
 
     try {
       // body has a different meaning on delete (V1DeleteOptions)
-      step.op == 'delete' ? anyApi[`delete${kindInfo.scope!}CustomObject`](common) :
-        anyApi[`${step.op}${kindInfo.scope!}CustomObject`]({
+      step.op == 'delete' ? anyApi[`delete${kindInfo.scope}CustomObject`](common) :
+        anyApi[`${step.op}${kindInfo.scope}CustomObject`]({
           ...common,
           body: step.resource,
         });
@@ -431,21 +436,21 @@ const execHooks = (
     await a;
 
     const obj: KubernetesObject = parse(h.manifest);
-    const info = resolveObject(groups, obj);
+    const kindInfo = resolveObject(groups, obj)!;
     const enforceDeletePolicy = async (p: DeletePolicy) => {
       // if empty, defaults to BEFORE_HOOK_CREATION
       if (!h.delete_policies?.includes(p) &&
           !(p == DeletePolicy.BEFORE_HOOK_CREATION && !h.delete_policies?.length)) {
         try {
-          await anyApi[`delete${info.scope!}CustomObject`]({
-            group: info.group,
-            version: info.version,
-            plural: info.resource!,
+          await anyApi[`delete${kindInfo.scope}CustomObject`]({
+            group: kindInfo.group,
+            version: kindInfo.version,
+            plural: kindInfo.resource,
             namespace: obj.metadata!.namespace!,
             name: obj.metadata!.name!,
           });
         } catch (e) {
-          if (!errorIsResourceNotFound(e)) {
+          if (!await errorIsResourceNotFound(e)) {
             throw e;
           }
         }
@@ -462,10 +467,10 @@ const execHooks = (
     await updateRelease(api, r);
 
     try {
-      await anyApi[`create${info.scope!}CustomObject`]({
-        group: info.group,
-        version: info.version,
-        plural: info.resource!,
+      await anyApi[`create${kindInfo.scope}CustomObject`]({
+        group: kindInfo.group,
+        version: kindInfo.version,
+        plural: kindInfo.resource,
         namespace: obj.metadata!.namespace!,
         body: obj,
         fieldManager,
@@ -560,7 +565,7 @@ const fns = {
 
     progress('Parsing resources to delete');
 
-    const resources = parseManifests(release.manifest)
+    const resources = parseManifest(release.manifest)
       .filter((r) => !shouldKeepResource(r)).sort(uninstallOrderCompare);
 
     progress('Marking release as uninstalling');
@@ -605,7 +610,6 @@ const fns = {
       deleted: '',
     };
     release.version = latest.version + 1;
-
     await createRelease(api, release);
 
     progress(`Running ${Event.PRE_ROLLBACK} hooks`);
@@ -614,8 +618,8 @@ const fns = {
 
     progress('Rolling back resources')
 
-    const resources = parseManifests(release.manifest).map((r) => addManagedMetadata(r, release));
-    const latestResources = parseManifests(latest.manifest);
+    const resources = parseManifest(release.manifest).map((r) => addManagedMetadata(r, release));
+    const latestResources = parseManifest(latest.manifest);
 
     await applyDifference(anyApi, groups, latestResources, resources);
 
@@ -652,7 +656,7 @@ const fns = {
       manifest,
       chart: processedChart,
       crds,
-    } = await renderTemplate(chart, values, {
+    } = await renderTemplate(anyApi, groups, chart, values, {
       Name: name,
       Namespace: namespace,
       Revision: 1,
@@ -664,10 +668,8 @@ const fns = {
     progress('Installing CRDs');
 
     const decoder = new TextDecoder();
-    const defs = crds.reduce((a, v) => a.concat(
-      parseAllDocuments(decoder.decode(v.File.data))
-        .map((d): V1CustomResourceDefinition => d.toJS()).filter((r) => r),
-    ), [] as Array<V1CustomResourceDefinition>);
+    const defs = crds.flatMap((v) =>
+      parseManifest<V1CustomResourceDefinition>(decoder.decode(v.File.data)));
 
     defs.forEach((d) => {
       if (d.apiVersion != 'apiextensions.k8s.io/v1' || d.kind != 'CustomResourceDefinition') {
@@ -720,15 +722,15 @@ const fns = {
 
     progress('Checking resource conflicts');
 
-    const resolved = resources.map((r) => ({ r, kindInfo: resolveObject(groups, r) }));
+    const resolved = resources.map((r) => ({ r, kindInfo: resolveObject(groups, r)! }));
 
     // XXX helm allows adoption if managed, but this is for installing a new release?
     await Promise.all(resolved.map(async (r) => {
       try {
-        await anyApi[`get${r.kindInfo.scope!}CustomObject`]({
+        await anyApi[`get${r.kindInfo.scope}CustomObject`]({
           group: r.kindInfo.group,
-          version: r.kindInfo.version!,
-          plural: r.kindInfo.resource!,
+          version: r.kindInfo.version,
+          plural: r.kindInfo.resource,
           namespace: r.r.metadata!.namespace!,
           name: r.r.metadata!.name!,
         });
@@ -762,7 +764,6 @@ const fns = {
       namespace,
       labels: {},
     };
-
     await createRelease(api, release);
 
     progress(`Running ${Event.PRE_INSTALL} hooks`);
@@ -799,7 +800,7 @@ const fns = {
       hooks,
       manifest,
       chart: processedChart,
-    } = await renderTemplate(chart, values, {
+    } = await renderTemplate(anyApi, groups, chart, values, {
       Name: oldRelease.name,
       Namespace: oldRelease.namespace,
       Revision: version,
@@ -835,7 +836,7 @@ const fns = {
 
     progress('Upgrading resources')
 
-    const onlineResources = parseManifests(oldRelease.manifest);
+    const onlineResources = parseManifest(oldRelease.manifest);
 
     await applyDifference(anyApi, groups, onlineResources, resources.map((r) => addManagedMetadata(r, release)));
 

@@ -68,15 +68,12 @@ const tab = ref('table');
 const tabs = ref<Array<Tab>>([]);
 const _pods = ref<Array<V1Pod>>([]);
 const _containers = computed<Array<ContainerData>>(() =>
-  _pods.value.reduce(
-    (a, v) => a.concat(v.spec!.containers.map((c) =>
-      ({
-        ...c,
-        ...v.status!.containerStatuses?.find((s) => s.name == c.name),
-        _extra: { pod: v },
-      } as ContainerData))),
-    [] as Array<ContainerData>,
-  ));
+  _pods.value.flatMap((pod) => pod.spec!.containers.map((c) =>
+    ({
+      ...c,
+      ...pod.status!.containerStatuses?.find((s) => s.name == c.name),
+      _extra: { pod },
+    } as ContainerData))));
 // XXX: this updates once all settles
 const containers = computedAsync(async () => Promise.all(_containers.value.map(async (c) => ({
   ...c,

@@ -1,5 +1,5 @@
 import type { V1Secret } from '@xdavidwu/kubernetes-client-typescript-fetch';
-import { streamToGenerator } from '@/utils/lang';
+import { fetchBase64Data, streamToGenerator } from '@/utils/lang';
 import { extract } from 'it-tar';
 import { parse } from 'yaml';
 // XXX: the library helm uses support v4,6,7, but codemirror-json-schema uses v4
@@ -196,15 +196,12 @@ export const secretsLabelSelector = 'owner=helm';
 export const releaseSecretType = 'helm.sh/release.v1';
 export const secretsFieldSelector = `type=${releaseSecretType}`;
 export const parseSecret = async (s: V1Secret): Promise<Release> => {
-  const gzipped = (await fetch(
-    `data:application/octet-stream;base64,${atob(s.data!.release!)}`,
-  )).body!;
+  const gzipped = (await fetchBase64Data(
+    await (await fetchBase64Data(s.data!.release!)).text())).body!;
   const stream = gzipped.pipeThrough(new DecompressionStream('gzip'));
 
-  const release: Release = await (new Response(stream)).json();
-
   return {
-    ...release,
+    ...await (new Response(stream)).json(),
     labels: s.metadata!.labels ?? {},
   };
 };
@@ -258,8 +255,7 @@ export const loadChartsFromFiles = async (_rawFiles: RawFiles): Promise<Chart[]>
   }));
 
   parsedSubcharts.push(
-    ...(await Promise.all(Object.values(subcharts).map((c) => loadChartsFromFiles(c))))
-      .reduce((a, v) => a.concat(v), []));
+    ...(await Promise.all(Object.values(subcharts).map((c) => loadChartsFromFiles(c)))).flat());
 
   return [
     {

@@ -10,7 +10,7 @@ const configStore = useApiConfig();
 const config = await configStore.getConfig();
 const { configurable } = configStore;
 
-const schemes = Object.entries(AuthScheme).filter((i) => isNaN(Number(i[0])));
+const schemes = Object.entries(AuthScheme);
 const scheme = ref(configStore.authScheme);
 const token = ref(configStore.accessToken);
 const impersonateUser = ref(configStore.impersonation.asUser);
