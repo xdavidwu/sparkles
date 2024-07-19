@@ -213,6 +213,22 @@ export class AnyApi extends CustomObjectsApi {
     return super.getNamespacedCustomObjectRaw(armCoreParam(requestParameters), initOverrides);
   }
 
+  async getClusterCustomObject(
+    requestParameters: AnyApiGetClusterCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<object> {
+    const response = await this.getClusterCustomObjectRaw(requestParameters, initOverrides);
+    return await response.value();
+  }
+
+  async getNamespacedCustomObject(
+    requestParameters: AnyApiGetNamespacedCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<object> {
+    const response = await this.getNamespacedCustomObjectRaw(requestParameters, initOverrides);
+    return await response.value();
+  }
+
   async deleteClusterCustomObjectRaw(
     requestParameters: AnyApiDeleteClusterCustomObjectRequest,
     initOverrides?: RequestInit | InitOverrideFunction,

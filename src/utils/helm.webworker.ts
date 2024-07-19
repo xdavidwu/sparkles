@@ -352,7 +352,6 @@ const applyDifference = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery
   }));
 
   // create/update first, then delete
-  // manifests are already sorted in installation order
   const steps = createsAndUpdates.concat(deletes).map((step) => ({
     op: step.op as 'create' | 'replace' | 'delete',
     resource: step.resource,
@@ -360,31 +359,37 @@ const applyDifference = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery
   }));
 
   await steps.reduce(async (a, step) => {
-    const act = (verb: 'create' | 'replace' | 'delete') => {
-      const common = {
-        group: step.kindInfo.group,
-        version: step.kindInfo.version,
-        plural: step.kindInfo.resource!,
-        namespace: step.resource.metadata!.namespace!,
-        name: step.resource.metadata!.name!,
-        fieldManager,
-        // body has a different meaning on delete (V1DeleteOptions)
-      };
-      return verb == 'delete' ? anyApi[`delete${step.kindInfo.scope!}CustomObject`](common) :
-        anyApi[`${verb}${step.kindInfo.scope!}CustomObject`]({
+    await a;
+
+    const common = {
+      group: step.kindInfo.group,
+      version: step.kindInfo.version,
+      plural: step.kindInfo.resource!,
+      namespace: step.resource.metadata!.namespace!,
+      name: step.resource.metadata!.name!,
+      fieldManager,
+    };
+    if (step.op == 'replace') {
+      try {
+        const current = await anyApi[`get${step.kindInfo.scope!}CustomObject`](common) as KubernetesObject;
+        step.resource.metadata!.resourceVersion = current.metadata!.resourceVersion;
+      } catch (e) {
+        if (await errorIsResourceNotFound(e)) {
+          step.op = 'create';
+        } else {
+          throw e;
+        }
+      }
+    }
+
+    try {
+      // body has a different meaning on delete (V1DeleteOptions)
+      step.op == 'delete' ? anyApi[`delete${step.kindInfo.scope!}CustomObject`](common) :
+        anyApi[`${step.op}${step.kindInfo.scope!}CustomObject`]({
           ...common,
           body: step.resource,
         });
-    }
-    await a;
-    try {
-      await act(step.op);
     } catch (e) {
-      // some (apps/v1 Deployment) does not treat PUT without existing resource as create, but the others does
-      if (step.op == 'replace' && await errorIsResourceNotFound(e)) {
-        await act('create');
-        return;
-      }
       if (step.op == 'delete' && await errorIsResourceNotFound(e)) {
         return;
       }
@@ -737,7 +742,7 @@ const fns = {
     await Promise.all(resolved.map(async (r) => {
       try {
         await anyApi[`get${r.kindInfo.scope!}CustomObject`]({
-          group: r.kindInfo.group!,
+          group: r.kindInfo.group,
           version: r.kindInfo.version!,
           plural: r.kindInfo.resource!,
           namespace: r.r.metadata!.namespace!,
