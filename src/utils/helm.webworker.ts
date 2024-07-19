@@ -20,7 +20,7 @@ import {
 import { PresentedError } from '@/utils/PresentedError';
 import { parse, parseAllDocuments } from 'yaml';
 import {
-  secretName,
+  secretName, releaseSecretType,
   type Chart, type File, type Hook, type Release, type SerializedFile,
   DeletePolicy, Event, Phase, Status,
 } from '@/utils/helm';
@@ -80,17 +80,16 @@ interface SerializedCRD extends Omit<CRD, 'File'> {
   File: SerializedFile;
 }
 
-let goInitialized = false;
+let goExitPromise: Promise<void> | undefined;
 
 const setupGo = async () => {
-  if (goInitialized) {
+  if (goExitPromise) {
     return;
   }
   progress('Initializing WebAssembly');
   const go = new Go();
   const wasm = await helmWasmInit(go.importObject);
-  go.run(wasm);
-  goInitialized = true;
+  goExitPromise = go.run(wasm);
 };
 
 const capabilitiesFromDiscovery = (versionInfo: VersionInfo, groups: Array<V2APIGroupDiscovery>): Capabilities => {
@@ -117,12 +116,8 @@ const base64Buffer = (b: ArrayBuffer) =>
   btoa(Array.from(new Uint8Array(b), (b) => String.fromCodePoint(b)).join(''));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const arrayBufferReplacer = (key: string, value: any): any => {
-  if (value instanceof ArrayBuffer) {
-    return base64Buffer(value);
-  }
-  return value;
-};
+const arrayBufferReplacer = (key: string, value: any): any =>
+  value instanceof ArrayBuffer ? base64Buffer(value) : value;
 
 const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseOptions) => {
   const result = await _helm_renderTemplate(
@@ -154,35 +149,33 @@ const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseO
   const hooks = manifestsAndHooks.filter((r) => r.resource.metadata!.annotations?.['helm.sh/hook'])
     .map((r): Hook => {
       const w = parseInt(r.resource.metadata!.annotations!['helm.sh/hook-weight']);
+      const parseAnnotationList = <T extends string>(e: { [k: string]: T }, s?: string) =>
+        s?.split(',').map((s) => s.trim().toLowerCase())
+        .filter((v): v is T => Object.values(e).includes(v as T));
       return {
         name: r.resource.metadata!.name!,
         kind: r.resource.kind!,
         path: r.filename,
         manifest: r.yaml,
-        events: r.resource.metadata!.annotations!['helm.sh/hook'].split(',')
-          .map((s) => s.trim().toLowerCase())
-          .filter((h): h is Event => Object.values(Event).includes(h as Event)),
+        events: parseAnnotationList<Event>(Event,
+          r.resource.metadata!.annotations!['helm.sh/hook']),
         last_run: {
           started_at: '',
           completed_at: '',
           phase: Phase.UNKNOWN,
         },
         weight: isNaN(w) ? 0 : w,
-        delete_policies: r.resource.metadata!.annotations!['helm.sh/hook-delete-policy']?.split(',')
-          .map((s) => s.trim().toLowerCase())
-          .filter((h): h is DeletePolicy => Object.values(DeletePolicy).includes(h as DeletePolicy)),
+        delete_policies: parseAnnotationList<DeletePolicy>(DeletePolicy,
+          r.resource.metadata!.annotations!['helm.sh/hook-delete-policy']),
       };
     });
   const manifests = manifestsAndHooks.filter((r) => !(r.resource.metadata!.annotations?.['helm.sh/hook']));
 
-  const manifest = manifests.map((f) => `---\n# Source: ${f.filename}\n${f.yaml}\n`).join('');
-
   return {
     chart: JSON.parse(result.chart),
-    files: result.files,
     notes,
     resources: manifests.map((f) => f.resource),
-    manifest,
+    manifest: manifests.map((f) => `---\n# Source: ${f.filename}\n${f.yaml}\n`).join(''),
     hooks,
     crds: await Promise.all(
       (JSON.parse(result.crds) as Array<SerializedCRD>).map(async (c) => ({
@@ -196,18 +189,11 @@ const renderTemplate = async (chart: Array<Chart>, value: object, opts: ReleaseO
   };
 };
 
-const releaseSecretType = 'helm.sh/release.v1';
-
 // helm.sh/helm/v3/pkg/storage/driver.Secrets.newSecretsObject
 const encodeSecret = async (r: Release): Promise<V1Secret> => {
-  const datum = {
-    ...r,
-    labels: undefined,
-  };
-  const bytes = new Blob([JSON.stringify(datum)]);
+  const bytes = new Blob([ JSON.stringify({ ...r, labels: undefined }) ]);
   const stream = bytes.stream().pipeThrough(new CompressionStream('gzip'));
   const gzipped = await (new Response(stream)).arrayBuffer();
-  const base64d = base64Buffer(gzipped);
 
   return {
     apiVersion: 'v1',
@@ -223,9 +209,8 @@ const encodeSecret = async (r: Release): Promise<V1Secret> => {
         version: `${r.version}`,
       },
     },
-    data: {
-      release: btoa(base64d),
-    },
+    // helm gzip+base64 serialization + secret base64
+    data: { release: btoa(base64Buffer(gzipped)) },
     type: releaseSecretType,
   };
 };
@@ -333,7 +318,6 @@ const orderCompare = (order: Array<string>) => (a: KubernetesObject, b: Kubernet
   }
   return ai - bi;
 };
-
 const uninstallOrderCompare = orderCompare(uninstallOrder);
 const installOrderCompare = orderCompare(installOrder);
 
@@ -385,38 +369,34 @@ const addManagedMetadata = (resource: KubernetesObject, release: Release): Kuber
 
 const applyDifference = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery>,
     from: Array<KubernetesObject>, to: Array<KubernetesObject>) => {
+  type op = 'create' | 'replace' | 'delete';
   const createsAndUpdates = to.sort(installOrderCompare).map((r) => ({
-    op: from.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
+    op: (from.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create') as op,
     resource: r,
   }));
   const deletes = from.filter(
     (r) => !shouldKeepResource(r) && !to.some((t) => isSameKubernetesObject(r, t)),
   ).sort(uninstallOrderCompare).map((r) => ({
-    op: 'delete',
+    op: 'delete' as op,
     resource: r,
   }));
 
   // create/update first, then delete
-  const steps = createsAndUpdates.concat(deletes).map((step) => ({
-    op: step.op as 'create' | 'replace' | 'delete',
-    resource: step.resource,
-    kindInfo: resolveObject(groups, step.resource),
-  }));
-
-  await steps.reduce(async (a, step) => {
+  await createsAndUpdates.concat(deletes).reduce(async (a, step) => {
     await a;
 
+    const kindInfo = resolveObject(groups, step.resource);
     const common = {
-      group: step.kindInfo.group,
-      version: step.kindInfo.version,
-      plural: step.kindInfo.resource!,
+      group: kindInfo.group,
+      version: kindInfo.version,
+      plural: kindInfo.resource!,
       namespace: step.resource.metadata!.namespace!,
       name: step.resource.metadata!.name!,
       fieldManager,
     };
     if (step.op == 'replace') {
       try {
-        const current = await anyApi[`get${step.kindInfo.scope!}CustomObject`](common) as KubernetesObject;
+        const current = await anyApi[`get${kindInfo.scope!}CustomObject`](common) as KubernetesObject;
         step.resource.metadata!.resourceVersion = current.metadata!.resourceVersion;
       } catch (e) {
         if (await errorIsResourceNotFound(e)) {
@@ -429,18 +409,17 @@ const applyDifference = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery
 
     try {
       // body has a different meaning on delete (V1DeleteOptions)
-      step.op == 'delete' ? anyApi[`delete${step.kindInfo.scope!}CustomObject`](common) :
-        anyApi[`${step.op}${step.kindInfo.scope!}CustomObject`]({
+      step.op == 'delete' ? anyApi[`delete${kindInfo.scope!}CustomObject`](common) :
+        anyApi[`${step.op}${kindInfo.scope!}CustomObject`]({
           ...common,
           body: step.resource,
         });
     } catch (e) {
-      if (step.op == 'delete' && await errorIsResourceNotFound(e)) {
-        return;
+      if (!(step.op == 'delete' && await errorIsResourceNotFound(e))) {
+        throw e;
       }
-      throw e;
     }
-  }, (async () => {})());
+  }, Promise.resolve());
 };
 
 const execHooks = (
@@ -450,6 +429,7 @@ const execHooks = (
   .sort((a, b) => a.weight - b.weight)
   .reduce(async (a, h) => {
     await a;
+
     const obj: KubernetesObject = parse(h.manifest);
     const info = resolveObject(groups, obj);
     const enforceDeletePolicy = async (p: DeletePolicy) => {
@@ -566,7 +546,7 @@ const execHooks = (
       throw e;
     }
     await updateRelease(api, r);
-  }, (async () => {})());
+  }, Promise.resolve());
 
 const fns = {
   // helm.sh/helm/v3/pkg/action.Uninstall.Run
@@ -890,7 +870,7 @@ onmessage = async (e) => {
     }
   }
   throw new Error(`unrecognized message ${JSON.stringify(e)}`);
-}
+};
 
 export type OutboundMessage = FnCallOutboundMessage | RequestDataOutboundMessage;
 export type InboundMessage = FnCallInboundMessage<typeof fns> | RequestDataInboundMessage;
