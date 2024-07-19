@@ -338,6 +338,61 @@ const addManagedMetadata = (resource: KubernetesObject, release: Release): Kuber
   },
 });
 
+const applyDifference = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery>,
+    from: Array<KubernetesObject>, to: Array<KubernetesObject>) => {
+  const createsAndUpdates = to.sort(installOrderCompare).map((r) => ({
+    op: from.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
+    resource: r,
+  }));
+  const deletes = from.filter(
+    (r) => !shouldKeepResource(r) && !to.some((t) => isSameKubernetesObject(r, t)),
+  ).sort(uninstallOrderCompare).map((r) => ({
+    op: 'delete',
+    resource: r,
+  }));
+
+  // create/update first, then delete
+  // manifests are already sorted in installation order
+  const steps = createsAndUpdates.concat(deletes).map((step) => ({
+    op: step.op as 'create' | 'replace' | 'delete',
+    resource: step.resource,
+    kindInfo: resolveObject(groups, step.resource),
+  }));
+
+  await steps.reduce(async (a, step) => {
+    const act = (verb: 'create' | 'replace' | 'delete') => {
+      const common = {
+        group: step.kindInfo.group,
+        version: step.kindInfo.version,
+        plural: step.kindInfo.resource!,
+        namespace: step.resource.metadata!.namespace!,
+        name: step.resource.metadata!.name!,
+        fieldManager,
+        // body has a different meaning on delete (V1DeleteOptions)
+      };
+      return verb == 'delete' ? anyApi[`delete${step.kindInfo.scope!}CustomObject`](common) :
+        anyApi[`${verb}${step.kindInfo.scope!}CustomObject`]({
+          ...common,
+          body: step.resource,
+        });
+    }
+    await a;
+    try {
+      await act(step.op);
+    } catch (e) {
+      // some (apps/v1 Deployment) does not treat PUT without existing resource as create, but the others does
+      if (step.op == 'replace' && await errorIsResourceNotFound(e)) {
+        await act('create');
+        return;
+      }
+      if (step.op == 'delete' && await errorIsResourceNotFound(e)) {
+        return;
+      }
+      throw e;
+    }
+  }, (async () => {})());
+};
+
 const execHooks = (
   api: CoreV1Api, batchApi: BatchV1Api, anyApi: AnyApi,
   r: Release, ev: Event, groups: Array<V2APIGroupDiscovery>,
@@ -466,10 +521,10 @@ const execHooks = (
 const fns = {
   // helm.sh/helm/v3/pkg/action.Uninstall.Run
   uninstall: async (release: Release) => {
-    progress(`Running ${Event.PRE_DELETE} hooks`);
-
     const { api, batchApi, anyApi } = await setupClients();
     const groups = await getGroups();
+
+    progress(`Running ${Event.PRE_DELETE} hooks`);
 
     await execHooks(api, batchApi, anyApi, release, Event.PRE_DELETE, groups);
 
@@ -487,25 +542,8 @@ const fns = {
 
     progress('Deleting resources');
 
-    await resources.reduce(async (a, v) => {
-      await a;
-      const info = resolveObject(groups, v);
-      try {
-        await anyApi[`delete${info.scope!}CustomObject`]({
-          group: info.group,
-          version: info.version,
-          plural: info.resource!,
-          namespace: v.metadata!.namespace!,
-          name: v.metadata!.name!,
-        });
-      } catch (e) {
-        if (!errorIsResourceNotFound(e)) {
-          throw e;
-        }
-      }
-    }, (async () => {})());
+    await applyDifference(anyApi, groups, resources, []);
 
-    // TODO perhaps tell user what are kept
     // TODO wait?
 
     progress(`Running ${Event.POST_DELETE} hooks`);
@@ -521,9 +559,10 @@ const fns = {
   // helm.sh/helm/v3/pkg/action.Rollback.Run
   // expect lastest state at first of history (reverse time order)
   rollback: async (release: Release, history: Array<Release>) => {
-    progress('Creating new release');
-
     const { api, batchApi, anyApi } = await setupClients();
+    const groups = await getGroups();
+
+    progress('Creating new release');
 
     const latest = history[0];
 
@@ -539,62 +578,16 @@ const fns = {
 
     await createRelease(api, release);
 
-    progress('Calculating rollback difference')
-
-    const resources = parseManifests(release.manifest);
-    const latestResources = parseManifests(latest.manifest);
-
-    const createsAndUpdates = resources.map((r) => ({
-      op: latestResources.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
-      resource: addManagedMetadata(r, release),
-    }));
-    const deletes = latestResources.filter(
-      (r) => !shouldKeepResource(r) && !resources.some((t) => isSameKubernetesObject(r, t)),
-    // helm does not seems to care about ordering here, but probably should
-    ).sort(uninstallOrderCompare).map((r) => ({
-      op: 'delete',
-      resource: r,
-    }));
-
-    const groups = await getGroups();
-    // create/update first, then delete
-    // manifests are already sorted in installation order
-    const steps = createsAndUpdates.concat(deletes).map((step) => ({
-      op: step.op as 'create' | 'replace' | 'delete',
-      resource: step.resource,
-      kindInfo: resolveObject(groups, step.resource),
-    }));
-
     progress(`Running ${Event.PRE_ROLLBACK} hooks`);
 
     await execHooks(api, batchApi, anyApi, release, Event.PRE_ROLLBACK, groups);
 
-    progress('Applying rollback');
+    progress('Rolling back resources')
 
-    await steps.reduce(async (a, step) => {
-      const act = (verb: 'create' | 'replace' | 'delete') =>
-        anyApi[`${verb}${step.kindInfo.scope!}CustomObject`]({
-          group: step.kindInfo.group,
-          version: step.kindInfo.version,
-          plural: step.kindInfo.resource!,
-          namespace: step.resource.metadata!.namespace!,
-          name: step.resource.metadata!.name!,
-          body: step.resource,
-          fieldManager,
-        });
-      await a;
-      try {
-        await act(step.op);
-      } catch (e) {
-        // some (apps/v1 Deployment) does not treat PUT without existing resource as create, but the others does
-        if (step.op == 'replace' && await errorIsResourceNotFound(e)) {
-          await act('create');
-          return;
-        }
-        throw e;
-      }
-    }, (async () => {})());
-    // TODO error handling, undo on failure?
+    const resources = parseManifests(release.manifest).map((r) => addManagedMetadata(r, release));
+    const latestResources = parseManifests(latest.manifest);
+
+    await applyDifference(anyApi, groups, latestResources, resources);
 
     // TODO recreate? (delete old pod to trigger a rollout?), wait?
 
@@ -617,8 +610,8 @@ const fns = {
   // helm.sh/helm/v3/pkg/action.Install.RunWithContext
   install: async (chart: Array<Chart>, values: object, name: string, namespace: string) => {
     await setupGo();
-
     const { api, batchApi, extensionsApi, anyApi } = await setupClients();
+    const groups = await getGroups();
 
     progress('Rendering resource templates');
 
@@ -675,8 +668,6 @@ const fns = {
     const manifests = manifestsAndHooks.filter((r) => !(r.resource.metadata!.annotations?.['helm.sh/hook']));
 
     const manifest = manifests.map((f) => `---\n# Source: ${f.filename}\n${f.yaml}\n`).join('');
-
-    const resources = manifests.map((f) => f.resource);
 
     // before discovery via getGroups
     progress('Installing CRDs');
@@ -738,7 +729,7 @@ const fns = {
 
     progress('Checking resource conflicts');
 
-    const groups = await getGroups();
+    const resources = manifests.map((f) => f.resource);
 
     const resolved = resources.map((r) => ({ r, kindInfo: resolveObject(groups, r) }));
 
@@ -791,20 +782,7 @@ const fns = {
 
     progress('Creating resources');
 
-    await resolved.map((v) => ({
-      resource: addManagedMetadata(v.r, release),
-      kindInfo: v.kindInfo,
-    })).reduce(async (a, r) => {
-      await a;
-      await anyApi[`create${r.kindInfo.scope!}CustomObject`]({
-        group: r.kindInfo.group!,
-        version: r.kindInfo.version!,
-        plural: r.kindInfo.resource!,
-        namespace: r.resource.metadata!.namespace!,
-        body: r.resource,
-        fieldManager,
-      });
-    }, (async () => {})());
+    await applyDifference(anyApi, groups, [], resources.map((r) => addManagedMetadata(r, release)));
 
     progress(`Running ${Event.POST_INSTALL} hooks`);
 
@@ -820,10 +798,8 @@ const fns = {
   },
   upgrade: async (chart: Array<Chart>, values: object, oldRelease: Release, history: Array<Release>) => {
     await setupGo();
-
     const { api, batchApi, anyApi } = await setupClients();
-
-    const latestVersion = history[0].version;
+    const groups = await getGroups();
 
     progress('Rendering resource templates');
 
@@ -881,8 +857,6 @@ const fns = {
 
     const manifest = manifests.map((f) => `---\n# Source: ${f.filename}\n${f.yaml}\n`).join('');
 
-    const resources = manifests.map((f) => f.resource);
-
     progress('Creating release');
 
     const release: Release = {
@@ -899,67 +873,22 @@ const fns = {
       config: values,
       manifest,
       hooks,
-      version: latestVersion + 1,
+      version: history[0].version + 1,
       namespace: oldRelease.namespace,
       labels: {},
     };
     await createRelease(api, release);
 
-    progress('Calculating upgrade difference')
-
-    const onlineResources = parseManifests(oldRelease.manifest);
-
-    const createsAndUpdates = resources.map((r) => ({
-      op: onlineResources.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
-      resource: addManagedMetadata(r, release),
-    }));
-    const deletes = onlineResources.filter(
-      (r) => !shouldKeepResource(r) && !resources.some((t) => isSameKubernetesObject(r, t)),
-    // helm does not seems to care about ordering here, but probably should
-    ).sort(uninstallOrderCompare).map((r) => ({
-      op: 'delete',
-      resource: r,
-    }));
-
-    const groups = await getGroups();
-    // create/update first, then delete
-    // manifests are already sorted in installation order
-    const steps = createsAndUpdates.concat(deletes).map((step) => ({
-      op: step.op as 'create' | 'replace' | 'delete',
-      resource: step.resource,
-      kindInfo: resolveObject(groups, step.resource),
-    }));
-
     progress(`Running ${Event.PRE_UPGRADE} hooks`);
 
     await execHooks(api, batchApi, anyApi, release, Event.PRE_UPGRADE, groups);
 
-    progress('Applying upgrade');
+    progress('Upgrading resources')
 
-    await steps.reduce(async (a, step) => {
-      const act = (verb: 'create' | 'replace' | 'delete') =>
-        anyApi[`${verb}${step.kindInfo.scope!}CustomObject`]({
-          group: step.kindInfo.group,
-          version: step.kindInfo.version,
-          plural: step.kindInfo.resource!,
-          namespace: step.resource.metadata!.namespace!,
-          name: step.resource.metadata!.name!,
-          body: step.resource,
-          fieldManager,
-        });
-      await a;
-      try {
-        await act(step.op);
-      } catch (e) {
-        // some (apps/v1 Deployment) does not treat PUT without existing resource as create, but the others does
-        if (step.op == 'replace' && await errorIsResourceNotFound(e)) {
-          await act('create');
-          return;
-        }
-        throw e;
-      }
-    }, (async () => {})());
-    // TODO error handling, undo on failure?
+    const resources = manifests.map((f) => f.resource).map((r) => addManagedMetadata(r, release));
+    const onlineResources = parseManifests(oldRelease.manifest);
+
+    await applyDifference(anyApi, groups, onlineResources, resources);
 
     // TODO recreate? (delete old pod to trigger a rollout?), wait?
 
