@@ -6,9 +6,9 @@
 </template>
 
 <style scoped>
-:deep(h1), :deep(h2), :deep(h3), :deep(h4), :deep(h5), :deep(h6), :deep(p) {
-  margin-top: 12px;
-  margin-bottom: 4px;
+:deep(h1), :deep(h2), :deep(h3), :deep(h4), :deep(h5), :deep(h6), :deep(p), :deep(table) {
+  margin-top: 0.3lh;
+  margin-bottom: 0.1lh;
 }
 
 :deep(li) {
@@ -34,6 +34,6 @@
 
 :deep(th), :deep(td) {
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  padding: 4px;
+  padding: 4px 8px;
 }
 </style>
