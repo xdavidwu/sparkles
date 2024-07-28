@@ -42,7 +42,8 @@ export const useNamespaces = defineStore('namespace', () => {
   })().catch((e) => useErrorPresentation().pendingError = e);
 
   watchArray(namespaces, (newNamespaces, old, added, removed) => {
-    if (removed.indexOf(selectedNamespace.value) !== -1) {
+    if (removed.indexOf(selectedNamespace.value) !== -1 ||
+        (old.length == 0 && !newNamespaces.includes(selectedNamespace.value))) {
       useErrorPresentation().pendingToast = `Namespace ${selectedNamespace.value} deleted on server`;
       setDefaultNamespace();
     }
