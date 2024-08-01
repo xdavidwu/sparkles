@@ -77,6 +77,8 @@ onMounted(() => {
     });
   }, { immediate: true });
 });
+
+const navigate = (id: string) => div.value?.querySelector(`#${CSS.escape(id)}`)?.scrollIntoView();
 </script>
 
 <template>
@@ -84,6 +86,6 @@ onMounted(() => {
     <StyledMarkdown class="overflow-y-auto h-100 pe-4">
       <div ref="div" v-html="rendered" />
     </StyledMarkdown>
-    <TableOfContents :toc="toc" />
+    <TableOfContents :toc="toc" @navigate="navigate" />
   </div>
 </template>

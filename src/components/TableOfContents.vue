@@ -11,8 +11,12 @@ const props = defineProps<{
   }>;
 }>();
 
+const emit = defineEmits<{
+  (e: 'navigate', id: string): void;
+}>();
+
 interface TreeItem {
-  id: symbol;
+  id: string;
   title: string;
   children?: Array<TreeItem>;
 }
@@ -23,7 +27,7 @@ const tree = computed(() => {
     let level = Number(t.level);
     const expected = stack.length;
     while (level > expected) {
-      const item = { id: Symbol(''), title: 'Unknown', children: [] };
+      const item = { id: '', title: 'Unknown', children: [] };
       stack[stack.length - 1].push(item);
       console.log(stack.length);
       stack.push(item.children);
@@ -35,7 +39,7 @@ const tree = computed(() => {
       level++;
     }
 
-    const item = { id: Symbol(t.id), title: t.title, children: [] };
+    const item = { id: t.id, title: t.title, children: [] };
     stack[stack.length - 1].push(item);
     stack.push(item.children);
   });
@@ -49,12 +53,18 @@ const tree = computed(() => {
   stack[0].forEach(trim);
   return stack[0];
 });
+
+const navigate = (id: unknown) => {
+  const s = id as string;
+  s.length && emit('navigate', s);
+};
 </script>
 
 <template>
   <ExpandableSidePanel title="table of contents">
     <div class="mx overflow-y-auto">
-      <VTreeview class="light" :items="tree" density="compact" />
+      <VTreeview :items="tree" item-value="id" class="light" density="compact"
+        @update:selected="navigate" />
     </div>
   </ExpandableSidePanel>
 </template>
