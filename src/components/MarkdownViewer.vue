@@ -60,7 +60,7 @@ onMounted(() => {
     div.value?.querySelectorAll('a[href^="#"]').forEach((a) => {
       a.addEventListener('click', (e) => {
         const id = a.getAttribute('href')!;
-        div.value!.querySelector(id)?.scrollIntoView();
+        div.value!.querySelector(`#${CSS.escape(decodeURIComponent(id).substring(1))}`)?.scrollIntoView();
         e.preventDefault();
       });
     });
