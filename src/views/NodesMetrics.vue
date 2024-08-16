@@ -9,6 +9,7 @@ import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useAbortController } from '@/composables/abortController';
 import { CustomObjectsApi, CoreV1Api, ResponseError, V1NodeFromJSON, type V1Node } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { listAndUnwaitedWatch } from '@/utils/watch';
+import { errorIsAborted } from '@/utils/api';
 import { BaseColor, ColorVariant, colorToCode } from '@/utils/colors';
 import type { KubernetesList } from '@/utils/objects';
 import parseDuration from 'parse-duration';
@@ -186,8 +187,10 @@ const { pause } = useIntervalFn(() => {
       }
     });
   })().catch((e) => {
-    useErrorPresentation().pendingError = e;
-    pause();
+    if (!errorIsAborted(e)) {
+      useErrorPresentation().pendingError = e;
+      pause();
+    }
   });
 }, 5000, { immediateCallback: true });
 
