@@ -149,14 +149,18 @@ const columns = computed<Array<{
     description: `Namespace defines the space within which each name must be unique. An empty namespace is equivalent to the "default" namespace, but "default" is the canonical representation. Not all objects are required to be scoped to a namespace - the value of this field for those objects will be empty.\n\nMust be a DNS_LABEL. Cannot be updated. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces`,
   }] : []).concat(
     objects.value.columnDefinitions
-      .filter((c) => verbose.value || c.priority === 0)
       .map((c, i) => {
+        const meta = {
+          title: c.name,
+          description: c.description,
+          priority: c.priority,
+        };
+
         if (isCreationTimestamp(c)){
           return {
-            title: c.name,
+           ...meta,
             key: CREATION_TIMESTAMP_COLUMN,
             value: (r: V1TableRow<V1PartialObjectMetadata>) => r.object.metadata!.creationTimestamp,
-            description: c.description,
             // reverse (time-to-timestamp from timestamp)
             // optional chaining to avoid crash on column def change (more a vuetify bug?)
             sort: (a: string, b: string) => b?.localeCompare(a),
@@ -164,9 +168,8 @@ const columns = computed<Array<{
         }
 
         const column = {
-          title: c.name,
+          ...meta,
           key: `cells.${i}`,
-          description: c.description,
         };
         // k8s.io/kubernetes/pkg/printers/internalversion.printPod
         if (c.name === 'Restarts' && c.description === 'The number of times the containers in this pod have been restarted and when the last container in this pod has restarted.') {
@@ -177,6 +180,7 @@ const columns = computed<Array<{
         }
         return column;
       })
+      .filter((c) => verbose.value || c.priority === 0)
   ),
 );
 const columnsContainCreationTimestamp = computed(() =>
