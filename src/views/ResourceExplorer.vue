@@ -30,6 +30,7 @@ import { useNamespaces } from '@/stores/namespaces';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
+import { usePermissions } from '@/stores/permissions';
 import type { V1ObjectMeta } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import {
   AnyApi,
@@ -72,14 +73,20 @@ const anyApi = new AnyApi(await apiConfigStore.getConfig());
 const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces;
 const { selectedNamespace } = storeToRefs(namespacesStore);
+const { mayAllows } = usePermissions();
+
 const allNamespaces = ref(false);
 const groupVersions: Array<GroupVersion> = [];
-(await useApisDiscovery().getGroups()).forEach((g) => {
+await (await useApisDiscovery().getGroups()).reduce(async (a, g) => {
   const knownResources: Array<string> = [];
-  groupVersions.push(...g.versions.map((v) => {
-    const resources = v.resources
+  const gvs = (await Promise.all(g.versions.map(async (v) => {
+    const resources = (await Promise.all(v.resources
       .filter((r) => !knownResources.includes(r.resource))
-      .filter((r) => r.verbs.includes('list'));
+      .filter((r) => r.verbs.includes('list'))
+      .map(async (r) => ({
+        r,
+        enabled: await mayAllows(selectedNamespace.value, g.metadata?.name ?? '', r.resource, '*', 'list'),
+      })))).filter((r) => r.enabled).map((r) => r.r);
     knownResources.push(...resources.map((r) => r.resource));
 
     return {
@@ -88,8 +95,10 @@ const groupVersions: Array<GroupVersion> = [];
       group: g.metadata?.name,
       groupVersion: g.metadata?.name ? `${g.metadata.name}/${v.version}` : v.version,
     };
-  }).filter((v) => v.resources.length));
-});
+  }))).filter((v) => v.resources.length);
+  await a; // keep the order stable
+  groupVersions.push(...gvs);
+}, Promise.resolve());
 const targetGroupVersion = nonNullableRef(groupVersions[0]);
 
 const types = computed(() => targetGroupVersion.value.resources);
