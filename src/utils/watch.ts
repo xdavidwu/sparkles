@@ -31,20 +31,12 @@ type TypedV1WatchEvent<T extends object> = V1WatchEvent & {
   object: T;
 };
 
-function rawResponseToWatchEvents<T extends KubernetesObject>(
-  raw: ApiResponse<KubernetesList<T>>,
+type ListTypeOf<T> = KubernetesList<T> | T; // FIXME with conditional types?
+
+const rawResponseToWatchEvents = <T extends object>(
+  raw: ApiResponse<ListTypeOf<T>>,
   transformer: (obj: object) => T,
-): AsyncGenerator<TypedV1WatchEvent<T>>;
-
-function rawResponseToWatchEvents(
-  raw: ApiResponse<V1Table>,
-): AsyncGenerator<TypedV1WatchEvent<V1Table<V1PartialObjectMetadata>>>;
-
-// TODO support table with transformer?
-function rawResponseToWatchEvents(
-  raw: ApiResponse<object>,
-  transformer: (obj: object) => object = (v) => v,
-) {
+): AsyncGenerator<TypedV1WatchEvent<T>> => {
   const stream = raw.raw.body!
     .pipeThrough(new TextDecoderStream())
     .pipeThrough(createLineDelimitedJSONStream())
@@ -52,26 +44,24 @@ function rawResponseToWatchEvents(
       start: () => {},
       transform: async (chunk, controller) => {
         const ev = V1WatchEventFromJSON(chunk);
-        if (ev.object) {
-          ev.object = transformer(ev.object);
-        }
-        controller.enqueue(ev);
+        controller.enqueue(ev.object ? { ...ev, object: transformer(ev.object) } : ev);
       },
       flush: () => {},
     }));
   return streamToGenerator(stream);
-}
+};
 
-const watch = async<T extends KubernetesObject> (
-    dest: Ref<Array<T>>,
-    transformer: (obj: object) => T,
-    watchResponse: Promise<ApiResponse<KubernetesList<T>>>,
-  ) => {
+const watch = async<T extends object> (
+  watchResponse: Promise<ApiResponse<ListTypeOf<T>>>,
+  transformer: (obj: object) => T,
+  handler: (event: TypedV1WatchEvent<T>) => boolean | void,
+  expectAbort: boolean = true,
+) => {
   let updates;
   try {
     updates = await watchResponse;
   } catch (e) {
-    if (errorIsAborted(e)) {
+    if (expectAbort && errorIsAborted(e)) {
       return;
     }
     throw e;
@@ -79,22 +69,49 @@ const watch = async<T extends KubernetesObject> (
 
   try {
     for await (const event of rawResponseToWatchEvents(updates, transformer)) {
-      if (event.type === V1WatchEventType.ADDED) {
-        dest.value.push(event.object);
-      } else if (event.type === V1WatchEventType.DELETED) {
-        dest.value = dest.value.filter((v) => !isSameKubernetesObject(event.object, v));
-      } else if (event.type === V1WatchEventType.MODIFIED) {
-        const index = dest.value.findIndex((v) => isSameKubernetesObject(event.object, v));
-        dest.value[index] = event.object;
+      if (handler(event)) {
+        return;
       }
     }
   } catch (e) {
-    if (rawErrorIsAborted(e)) {
+    if (expectAbort && rawErrorIsAborted(e)) {
       return;
     }
     throw e;
   }
-};
+}
+
+const watchArrayHandler = <T extends KubernetesObject>(dest: Ref<Array<T>>):
+    (e: TypedV1WatchEvent<T>) => boolean | void =>
+  (event) => {
+    if (event.type === V1WatchEventType.ADDED) {
+      dest.value.push(event.object);
+    } else if (event.type === V1WatchEventType.DELETED) {
+      dest.value = dest.value.filter((v) => !isSameKubernetesObject(event.object, v));
+    } else if (event.type === V1WatchEventType.MODIFIED) {
+      const index = dest.value.findIndex((v) => isSameKubernetesObject(event.object, v));
+      dest.value[index] = event.object;
+    }
+  };
+
+const tableTransformer = (o: object) => o as V1Table<V1PartialObjectMetadata>;
+const watchTableHandler = (dest: Ref<V1Table<V1PartialObjectMetadata>>):
+    (e: TypedV1WatchEvent<V1Table<V1PartialObjectMetadata>>) => boolean | void =>
+  (event) => {
+    if (event.type === V1WatchEventType.ADDED) {
+      dest.value.rows!.push(...event.object.rows!);
+    } else if (event.type === V1WatchEventType.DELETED) {
+      dest.value.rows = dest.value.rows!.filter((v) => !isKubernetesObjectInRows(v, event.object.rows!));
+    } else if (event.type === V1WatchEventType.MODIFIED) {
+      for (const r of event.object.rows!) {
+        const index = dest.value.rows!.findIndex(
+          (v) => isSameKubernetesObject(v.object, r.object)
+        );
+        dest.value.rows![index] = r;
+      }
+    }
+  };
+
 
 interface WatchOpt {
   watch?: boolean;
@@ -109,18 +126,18 @@ interface WatchOpt {
  */
 
 export const listAndUnwaitedWatch = async<T extends KubernetesObject> (
-    dest: Ref<Array<T>>,
-    transformer: (obj: object) => T,
-    lister: (opt: WatchOpt) => Promise<ApiResponse<KubernetesList<T>>>,
-    catcher: Parameters<Promise<void>['catch']>[0],
-  ) => {
+  dest: Ref<Array<T>>,
+  transformer: (obj: object) => T,
+  lister: (opt: WatchOpt) => Promise<ApiResponse<KubernetesList<T>>>,
+  catcher: Parameters<Promise<void>['catch']>[0],
+) => {
   const listResponse = await (await lister({})).value();
   dest.value = listResponse.items;
 
   watch(
-    dest,
-    transformer,
     lister({ resourceVersion: listResponse.metadata!.resourceVersion, watch: true }),
+    transformer,
+    watchArrayHandler(dest),
   ).catch(catcher);
 };
 
@@ -136,13 +153,13 @@ export const watchUntil = async<T extends KubernetesObject> (
       return;
     }
   }
-  const updates = await lister({ resourceVersion: listResponse.metadata!.resourceVersion, watch: true });
 
-  for await (const event of rawResponseToWatchEvents(updates, transformer)) {
-    if (condition(event)) {
-      return;
-    }
-  }
+  await watch(
+    lister({ resourceVersion: listResponse.metadata!.resourceVersion, watch: true }),
+    transformer,
+    condition,
+    false,
+  );
 };
 
 const isKubernetesObjectInRows = (
@@ -151,50 +168,19 @@ const isKubernetesObjectInRows = (
 ) => b.some((v) => isSameKubernetesObject(a.object, v.object));
 
 export const listAndUnwaitedWatchTable = async (
-    dest: Ref<V1Table<V1PartialObjectMetadata>>,
-    lister: (opt: WatchOpt) => Promise<ApiResponse<V1Table<V1PartialObjectMetadata>>>,
-    catcher: Parameters<Promise<void>['catch']>[0],
-  ) => {
+  dest: Ref<V1Table<V1PartialObjectMetadata>>,
+  lister: (opt: WatchOpt) => Promise<ApiResponse<V1Table<V1PartialObjectMetadata>>>,
+  catcher: Parameters<Promise<void>['catch']>[0],
+) => {
   const listResponse = await (await lister({})).value();
   if (listResponse.rows === undefined) {
     listResponse.rows = [];
   }
   dest.value = listResponse;
 
-  (async () => {
-    let updates;
-    try {
-      updates = await lister({
-        resourceVersion: listResponse.metadata!.resourceVersion,
-        watch: true
-      });
-    } catch (e) {
-      if (errorIsAborted(e)) {
-        return;
-      }
-      throw e;
-    }
-
-    try {
-      for await (const event of rawResponseToWatchEvents(updates)) {
-        if (event.type === V1WatchEventType.ADDED) {
-          dest.value.rows!.push(...event.object.rows!);
-        } else if (event.type === V1WatchEventType.DELETED) {
-          dest.value.rows = dest.value.rows!.filter((v) => !isKubernetesObjectInRows(v, event.object.rows!));
-        } else if (event.type === V1WatchEventType.MODIFIED) {
-          for (const r of event.object.rows!) {
-            const index = dest.value.rows!.findIndex(
-              (v) => isSameKubernetesObject(v.object, r.object)
-            );
-            dest.value.rows![index] = r;
-          }
-        }
-      }
-    } catch (e) {
-      if (rawErrorIsAborted(e)) {
-        return;
-      }
-      throw e;
-    }
-  })().catch(catcher);
+  watch(
+    lister({ resourceVersion: listResponse.metadata!.resourceVersion, watch: true }),
+    tableTransformer,
+    watchTableHandler(dest),
+  ).catch(catcher);
 };
