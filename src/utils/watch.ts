@@ -51,12 +51,13 @@ const rawResponseToWatchEvents = <T extends object>(
   return streamToGenerator(stream);
 };
 
-const watch = async<T extends object> (
+const watch = async<T extends { metadata?: { resourceVersion?: string } }> (
   watchResponse: Promise<ApiResponse<ListTypeOf<T>>>,
   transformer: (obj: object) => T,
   handler: (event: TypedV1WatchEvent<T>) => boolean | void,
-  expectAbort: boolean = true,
-) => {
+  resourceVersion: string,
+  expectAbort: boolean,
+): Promise<string | void> => {
   let updates;
   try {
     updates = await watchResponse;
@@ -67,8 +68,10 @@ const watch = async<T extends object> (
     throw e;
   }
 
+  let lastResourceVersion = resourceVersion;
   try {
     for await (const event of rawResponseToWatchEvents(updates, transformer)) {
+      lastResourceVersion = event.object.metadata!.resourceVersion!;
       if (handler(event)) {
         return;
       }
@@ -77,9 +80,10 @@ const watch = async<T extends object> (
     if (expectAbort && rawErrorIsAborted(e)) {
       return;
     }
-    throw e;
+    console.log("error on watch:", e);
   }
-}
+  return lastResourceVersion;
+};
 
 const watchArrayHandler = <T extends KubernetesObject>(dest: Ref<Array<T>>):
     (e: TypedV1WatchEvent<T>) => boolean | void =>
@@ -112,11 +116,36 @@ const watchTableHandler = (dest: Ref<V1Table<V1PartialObjectMetadata>>):
     }
   };
 
-
 interface WatchOpt {
   watch?: boolean;
   resourceVersion?: string;
+  allowWatchBookmarks?: boolean;
 }
+
+const retryingWatch = async<T extends { metadata?: { resourceVersion?: string } }> (
+  resourceVersion: string,
+  lister: (opt: WatchOpt) => Promise<ApiResponse<ListTypeOf<T>>>,
+  transformer: (obj: object) => T,
+  handler: (event: TypedV1WatchEvent<T>) => boolean | void,
+  expectAbort: boolean = true,
+): Promise<string | void> => {
+  let lastResourceVersion = resourceVersion;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const res = await watch(
+      lister({ resourceVersion: lastResourceVersion, watch: true, allowWatchBookmarks: true }),
+      transformer,
+      handler,
+      lastResourceVersion,
+      expectAbort,
+    );
+    if (!res) {
+      return;
+    }
+    lastResourceVersion = res;
+  }
+};
+
 
 /*
  * XXX after we become comfortable with raising ootb support to 1.31,
@@ -134,8 +163,9 @@ export const listAndUnwaitedWatch = async<T extends KubernetesObject> (
   const listResponse = await (await lister({})).value();
   dest.value = listResponse.items;
 
-  watch(
-    lister({ resourceVersion: listResponse.metadata!.resourceVersion, watch: true }),
+  retryingWatch(
+    listResponse.metadata!.resourceVersion!,
+    lister,
     transformer,
     watchArrayHandler(dest),
   ).catch(catcher);
@@ -154,8 +184,9 @@ export const watchUntil = async<T extends KubernetesObject> (
     }
   }
 
-  await watch(
-    lister({ resourceVersion: listResponse.metadata!.resourceVersion, watch: true }),
+  await retryingWatch(
+    listResponse.metadata!.resourceVersion!,
+    lister,
     transformer,
     condition,
     false,
@@ -178,8 +209,9 @@ export const listAndUnwaitedWatchTable = async (
   }
   dest.value = listResponse;
 
-  watch(
-    lister({ resourceVersion: listResponse.metadata!.resourceVersion, watch: true }),
+  retryingWatch(
+    listResponse.metadata!.resourceVersion!,
+    lister,
     tableTransformer,
     watchTableHandler(dest),
   ).catch(catcher);
