@@ -26,7 +26,12 @@ interface VersionInfoResponse {
   versionInfo: VersionInfo;
 }
 
-export type RequestDataInboundMessage = TokenResponse | ConfigParamsResponse | GroupsResponse | VersionInfoResponse;
+interface BaseURLResponse {
+  type: 'baseURL';
+  baseURL: string;
+}
+
+export type RequestDataInboundMessage = TokenResponse | ConfigParamsResponse | GroupsResponse | VersionInfoResponse | BaseURLResponse;
 export interface RequestDataOutboundMessage {
   type: `request.${RequestDataInboundMessage['type']}`;
 }
@@ -41,6 +46,7 @@ interface PromiseStore {
   configParams?: PromiseStoreItem<ConfigurationParameters>;
   groups?: PromiseStoreItem<Array<V2APIGroupDiscovery>>;
   versionInfo?: PromiseStoreItem<VersionInfo>;
+  baseURL?: PromiseStoreItem<string>;
 }
 
 const pendingPromises: PromiseStore = {};
@@ -96,6 +102,7 @@ export const getConfig = async () => {
 
 export const getGroups = () => request('groups');
 export const getVersionInfo = () => request('versionInfo');
+export const getBaseURL = () => request('baseURL');
 
 export const handleDataResponse =
   async (e: MessageEvent): Promise<boolean> => {
@@ -105,6 +112,7 @@ export const handleDataResponse =
     case 'configParams':
     case 'groups':
     case 'versionInfo':
+    case 'baseURL':
       if (pendingPromises[data.type]) {
         // @ts-expect-error data[data.type]
         pendingPromises[data.type].resolver(data[data.type]);

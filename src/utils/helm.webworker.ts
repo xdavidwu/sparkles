@@ -3,7 +3,7 @@ import {
   type FnCallInboundMessage, type FnCallOutboundMessage, type ToastMessage,
 } from '@/utils/fnCall.webworker';
 import {
-  getConfig, getGroups, getVersionInfo, handleDataResponse,
+  getBaseURL, getConfig, getGroups, getVersionInfo, handleDataResponse,
   type RequestDataInboundMessage, type RequestDataOutboundMessage,
 } from '@/utils/requestData.webworker';
 import {
@@ -89,6 +89,10 @@ const setupGo = async () => {
   }
   progress('Initializing WebAssembly');
   const go = new Go();
+  const __base_url = await getBaseURL();
+  // polyfill for runtime rebasing for apiserver proxy
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).window = { __base_url };
   const wasm = await helmWasmInit(go.importObject);
   goExitPromise = go.run(wasm);
 };

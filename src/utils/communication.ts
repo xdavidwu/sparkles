@@ -51,6 +51,13 @@ export const handleDataRequestMessages = (worker: Worker) => {
       };
       worker.postMessage(msg);
       return true;
+    case 'request.baseURL':
+      msg = {
+        type: 'baseURL',
+        baseURL: window.__base_url,
+      };
+      worker.postMessage(msg);
+      return true;
     default:
       return false;
     }
