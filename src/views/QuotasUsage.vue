@@ -14,6 +14,7 @@ import {
   type V1Pod, V1PodFromJSON,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { V1PodStatusPhase } from '@/utils/api';
+import { excludeFromVisualizationLabel } from '@/utils/contracts';
 import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndUnwaitedWatch } from '@/utils/watch';
 import { notifyListingWatchErrors } from '@/utils/errors';
@@ -82,7 +83,11 @@ const { load, loading } = useLoading(async () => {
 
   await Promise.all([
     listAndUnwaitedWatch(quotas, V1ResourceQuotaFromJSON,
-      (opt) => api.listNamespacedResourceQuotaRaw({ ...opt, namespace: selectedNamespace.value }, { signal: signal.value }),
+      (opt) => api.listNamespacedResourceQuotaRaw({
+        ...opt,
+        namespace: selectedNamespace.value,
+        labelSelector: `${excludeFromVisualizationLabel}!=true`,
+      }, { signal: signal.value }),
       notifyListingWatchErrors,
     ),
     listAndUnwaitedWatch(pods, V1PodFromJSON,
