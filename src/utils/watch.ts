@@ -44,7 +44,7 @@ const rawResponseToWatchEvents = <T extends object>(
       start: () => {},
       transform: async (chunk, controller) => {
         const ev = V1WatchEventFromJSON(chunk);
-        controller.enqueue(ev.object ? { ...ev, object: transformer(ev.object) } : ev);
+        controller.enqueue(ev.type === V1WatchEventType.BOOKMARK ? ev : { ...ev, object: transformer(ev.object) });
       },
       flush: () => {},
     }));
@@ -72,7 +72,7 @@ const watch = async<T extends { metadata?: { resourceVersion?: string } }> (
   try {
     for await (const event of rawResponseToWatchEvents(updates, transformer)) {
       lastResourceVersion = event.object.metadata!.resourceVersion!;
-      if (handler(event)) {
+      if (event.type !== V1WatchEventType.BOOKMARK && handler(event)) {
         return;
       }
     }
