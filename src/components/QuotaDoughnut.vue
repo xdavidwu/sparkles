@@ -32,7 +32,7 @@ const chartData = computed(() => {
   return {
     labels: items.concat(['Unused']),
     datasets: [{
-      data: items.map((k) => data.value[k]).concat([props.total - props.used]),
+      data: items.map((k) => data.value[k]).concat([Math.max(props.total - props.used, 0)]),
       backgroundColor: items.map(() => color.value).concat(['#0000']),
       borderColor: items.map(() => '#fff7').concat(['#fff1']),
     }],
