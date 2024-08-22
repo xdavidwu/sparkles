@@ -115,8 +115,8 @@ watch(selectedNamespace, load);
         <div class="d-flex justify-space-evenly align-center flex-wrap ga-8 px-8">
           <QuotaDoughnut v-for="(value, key) of quota.spec!.hard" :key="key"
             :title="key as string" :details="podsResourceUsage[key]"
-            :used="real(quota.status!.used![key])!" :total="real(value)!">
-            {{ quota.status!.used![key] }}/{{ value }}
+            :used="real(quota.status?.used?.[key] ?? '0')!" :total="real(value)!">
+            {{ quota.status?.used?.[key] ?? '0' }}/{{ value }}
           </QuotaDoughnut>
         </div>
       </template>
