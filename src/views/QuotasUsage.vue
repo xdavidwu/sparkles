@@ -11,6 +11,7 @@ import { useApiConfig } from '@/stores/apiConfig';
 import {
   CoreV1Api,
   type V1ResourceQuota, V1ResourceQuotaFromJSON,
+  type V1PersistentVolumeClaim, V1PersistentVolumeClaimFromJSON,
   type V1Pod, V1PodFromJSON,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { V1PodStatusPhase } from '@/utils/api';
@@ -75,6 +76,29 @@ const podsResourceUsage = computed(() => {
   }
   return res;
 });
+const pvcs = ref<Array<V1PersistentVolumeClaim>>([]);
+const pvcsResourceUsage = computed(() => {
+  const res: { [key: string]: { [key: string]: number } } = { 'requests.storage': {} };
+  pvcs.value.forEach((pvc) => {
+    // k8s.io/kubernetes/pkg/quota/v1/evaluator/core.pvcEvaluator.getStorageUsage()
+    const fromSpec = real(pvc.spec!.resources!.requests!.storage)!;
+    // behind RecoverVolumeExpansionFailure
+    const allocated = real(pvc.status?.allocatedResources?.storage ?? '0')!;
+    const usage = allocated > fromSpec ? allocated : fromSpec;
+
+    res['requests.storage'][pvc.metadata!.name!] = usage;
+
+    // k8s.io/component-helpers/storage/volume.GetPersistentVolumeClaimClass()
+    const sc = pvc.metadata!.annotations?.['volume.beta.kubernetes.io/storage-class'] ??
+      pvc.spec!.storageClassName;
+    if (sc) {
+      const id = `${sc}.storageclass.storage.k8s.io/requests.storage`;
+      res[id] ??= {};
+      res[id][pvc.metadata!.name!] = usage;
+    }
+  });
+  return res;
+});
 
 const { abort: abortRequests, signal } = useAbortController();
 
@@ -98,6 +122,13 @@ const { load, loading } = useLoading(async () => {
       }, { signal: signal.value }),
       notifyListingWatchErrors,
     ),
+    listAndUnwaitedWatch(pvcs, V1PersistentVolumeClaimFromJSON,
+      (opt) => api.listNamespacedPersistentVolumeClaimRaw({
+        ...opt,
+        namespace: selectedNamespace.value,
+      }, { signal: signal.value }),
+      notifyListingWatchErrors,
+    ),
   ]);
 });
 await load();
@@ -114,7 +145,7 @@ watch(selectedNamespace, load);
       <template #text>
         <div class="d-flex justify-space-evenly align-center flex-wrap ga-8 px-8">
           <QuotaDoughnut v-for="(value, key) of quota.spec!.hard" :key="key"
-            :title="key as string" :details="podsResourceUsage[key]"
+            :title="key as string" :details="podsResourceUsage[key] ?? pvcsResourceUsage[key]"
             :used="real(quota.status?.used?.[key] ?? '0')!" :total="real(value)!">
             {{ quota.status?.used?.[key] ?? '0' }}/{{ value }}
           </QuotaDoughnut>
