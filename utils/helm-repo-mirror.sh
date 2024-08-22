@@ -25,7 +25,7 @@ TEMPDIR=$(mktemp -p "$OUTPUT" -d)
 IFS='
 '
 
-for i in $(echo "$INDEX" | yq '.entries.*[0].urls[0]' -r); do
+for i in $(echo "$INDEX" | yq '.entries.[].[0].urls.[0]' -r); do
 	FILENAME=$(basename "$i")
 	if [ -f "$OUTPUT/index.yaml" ] && [ -f "$OUTPUT/$FILENAME" ]; then
 		printf '%s already exists, skipping\n' "$FILENAME"
