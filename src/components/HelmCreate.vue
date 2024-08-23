@@ -4,11 +4,13 @@ import { VBtn, VSpacer, VStepper, VTextField } from 'vuetify/components';
 import HelmRepository from '@/components/HelmRepository.vue';
 import HelmValues from '@/components/HelmValues.vue';
 import LoadingSuspense from '@/components/LoadingSuspense.vue';
+import { defaultCustomValuesAnnotation } from '@/utils/contracts';
 import {
   type Chart, type ChartVersion,
   extractValuesSchema, parseTarball, loadChartsFromFiles,
 } from '@/utils/helm';
 import { PresentedError } from '@/utils/PresentedError';
+import { stringify } from '@/utils/yaml';
 import { parse } from 'yaml';
 import { createNameId } from 'mnemonic-id';
 
@@ -83,6 +85,8 @@ const proceed = async (next: () => void) => {
       const response = await fetch(selectedChart.value!.urls[0]);
       const files = await parseTarball(response.body!);
       parsedChart.value = await loadChartsFromFiles(files);
+      values.value = selectedChart.value!.annotations?.[defaultCustomValuesAnnotation] ?
+        stringify(JSON.parse(selectedChart.value!.annotations[defaultCustomValuesAnnotation])) : '';
       defaults.value = files['values.yaml'] ? await files['values.yaml'].text() : '';
       schema.value = extractValuesSchema(parsedChart.value);
     }
