@@ -2,7 +2,7 @@ import {
   V1WatchEventFromJSON,
   type ApiResponse, type V1WatchEvent,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
-import type { V1PartialObjectMetadata, V1Table, V1TableRow } from '@/utils/AnyApi';
+import type { V1PartialObjectMetadata, V1Table } from '@/utils/AnyApi';
 import { isSameKubernetesObject, type KubernetesObject, type KubernetesList } from '@/utils/objects';
 import { rawErrorIsAborted, errorIsAborted, V1WatchEventType } from '@/utils/api';
 import { streamToGenerator } from '@/utils/lang';
@@ -105,7 +105,8 @@ const watchTableHandler = (dest: Ref<V1Table<V1PartialObjectMetadata>>):
     if (event.type === V1WatchEventType.ADDED) {
       dest.value.rows!.push(...event.object.rows!);
     } else if (event.type === V1WatchEventType.DELETED) {
-      dest.value.rows = dest.value.rows!.filter((v) => !isKubernetesObjectInRows(v, event.object.rows!));
+      dest.value.rows = dest.value.rows!.filter((v) =>
+        !event.object.rows!.some((r) => isSameKubernetesObject(v.object, r.object)));
     } else if (event.type === V1WatchEventType.MODIFIED) {
       for (const r of event.object.rows!) {
         const index = dest.value.rows!.findIndex(
@@ -192,11 +193,6 @@ export const watchUntil = async<T extends KubernetesObject> (
     false,
   );
 };
-
-const isKubernetesObjectInRows = (
-  a: V1TableRow<V1PartialObjectMetadata>,
-  b: Array<V1TableRow<V1PartialObjectMetadata>>,
-) => b.some((v) => isSameKubernetesObject(a.object, v.object));
 
 export const listAndUnwaitedWatchTable = async (
   dest: Ref<V1Table<V1PartialObjectMetadata>>,
