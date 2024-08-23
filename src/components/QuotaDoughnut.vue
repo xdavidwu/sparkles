@@ -59,7 +59,7 @@ const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
 
 <template>
   <div>
-    <h4 class="doughnut-title text-center mb-1">
+    <h4 class="doughnut-title text-center text-pre-wrap mb-1">
       {{ title }}
       <VOverlay location-strategy="connected" location="bottom left"
         activator="parent" content-class="pointer-events-none"
@@ -103,10 +103,11 @@ const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
 
 <style scoped>
 .doughnut-title {
-  width: 150px;
+  width: 174px;
 }
 
 .doughnut {
+  margin: 0 12px;
   width: 150px;
   height: 150px;
   position: relative;

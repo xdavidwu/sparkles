@@ -16,7 +16,6 @@ import {
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { V1PodStatusPhase } from '@/utils/api';
 import { excludeFromVisualizationLabel } from '@/utils/contracts';
-import { uniqueKeyForObject } from '@/utils/objects';
 import { listAndUnwaitedWatch } from '@/utils/watch';
 import { notifyListingWatchErrors } from '@/utils/errors';
 import { real } from '@ragnarpa/quantity';
@@ -27,7 +26,74 @@ const { selectedNamespace } = storeToRefs(namespacesStore);
 
 const api = new CoreV1Api(await useApiConfig().getConfig());
 
-const quotas = ref<Array<V1ResourceQuota>>([]);
+const _quotas = ref<Array<V1ResourceQuota>>([]);
+
+// aliases
+// k8s.io/kubernetes/pkg/quota/v1/evaluator/core.podComputeUsageHelper()
+const aliases = {
+  'cpu': 'requests.cpu',
+  'memory': 'requests.memory',
+  'ephemeral-storage': 'requests.ephemeral-storage',
+  // hugepages-* => requests.hugepages-*
+};
+const aliased = (id: string): id is keyof typeof aliases => Object.keys(aliases).includes(id);
+
+const displayNames = {
+  'cpu': 'CPU',
+  'memory': 'Memory',
+  'ephemeral-storage': 'Ephemeral storage',
+  'storage': 'Storage',
+};
+const nameOverriden = (name: string): name is keyof typeof displayNames => Object.keys(displayNames).includes(name);
+
+const quotas = computed(() => _quotas.value.map((quota) => {
+  const parsed: { [key: string]: { [key: string]: { name: string, value: string, used: string } } } = {};
+  for (const id in quota.spec!.hard) {
+    const canonical = aliased(id) ? aliases[id] :
+      id.startsWith('hugepages-') ? `requests.${id}` : id;
+
+    let name, category;
+    if (canonical.startsWith('limits.')) {
+      name = canonical.substring(7);
+      category = 'Limits';
+    } else if (canonical.startsWith('requests.')) {
+      name = canonical.substring(9);
+      category = 'Requests';
+    } else if (canonical.endsWith('.storageclass.storage.k8s.io/requests.storage')) {
+      name = `Storage in class ${canonical.substring(0, canonical.length - 45)}`;
+      category = 'Requests';
+    } else if (canonical === 'services.loadbalancers') {
+      name = 'services of type LoadBalancer';
+      category = 'Object counts for core API';
+    } else if (canonical === 'services.nodeports') {
+      name = 'services of type NodePort';
+      category = 'Object counts for core API';
+    } else {
+      name = canonical.startsWith('count/') ? canonical.substring(6) : canonical;
+      const dot = name.indexOf('.');
+      if (dot != -1) {
+        // TODO query plurals back to kind?
+        category = `Object count for group ${name.substring(dot + 1)}`;
+        name = name.substring(0, dot);
+      } else {
+        category = 'Object counts for core API';
+      }
+    }
+    name = nameOverriden(name) ? displayNames[name] : name;
+
+    parsed[category] ??= {};
+    parsed[category][canonical] = {
+      name,
+      value: quota.spec!.hard[id],
+      used: quota.status?.used?.[id] ?? '0',
+    };
+  }
+  return {
+    name: quota.metadata!.name,
+    parsed,
+  };
+}));
+
 const pods = ref<Array<V1Pod>>([]);
 // k8s.io/kubernetes/pkg/quota/v1/evaluator/core.QuotaV1Pod()
 // .status.phase is filtered by fieldSelector
@@ -62,20 +128,9 @@ const podsResourceUsage = computed(() => {
       }
     });
   });
-
-  // aliases
-  // k8s.io/kubernetes/pkg/quota/v1/evaluator/core.podComputeUsageHelper()
-  res['cpu'] = res['requests.cpu'];
-  res['memory'] = res['requests.memory'];
-  res['ephemeral-storage'] = res['requests.ephemeral-storage'];
-
-  for (const quotaId in res) {
-    if (quotaId.startsWith('requests.hugepages-')) {
-      res[quotaId.substring(9)] = res[quotaId];
-    }
-  }
   return res;
 });
+
 const pvcs = ref<Array<V1PersistentVolumeClaim>>([]);
 const pvcsResourceUsage = computed(() => {
   const res: { [key: string]: { [key: string]: number } } = { 'requests.storage': {} };
@@ -106,7 +161,7 @@ const { load, loading } = useLoading(async () => {
   abortRequests();
 
   await Promise.all([
-    listAndUnwaitedWatch(quotas, V1ResourceQuotaFromJSON,
+    listAndUnwaitedWatch(_quotas, V1ResourceQuotaFromJSON,
       (opt) => api.listNamespacedResourceQuotaRaw({
         ...opt,
         namespace: selectedNamespace.value,
@@ -139,17 +194,20 @@ watch(selectedNamespace, load);
 <!-- TODO: mark scoped quotas -->
 <template>
   <LoadingSpinner v-if="loading" />
-  <div v-else class="d-flex align-center flex-wrap ga-4">
-    <VCard v-for="quota in quotas" :key="uniqueKeyForObject(quota)"
-      :title="quota.metadata!.name">
+  <div v-else class="d-flex flex-wrap ga-4">
+    <VCard v-for="quota in quotas" :key="quota.name" :title="quota.name">
       <template #text>
-        <div class="d-flex justify-space-evenly align-center flex-wrap ga-8 px-8">
-          <QuotaDoughnut v-for="(value, key) of quota.spec!.hard" :key="key"
-            :title="key as string" :details="podsResourceUsage[key] ?? pvcsResourceUsage[key]"
-            :used="real(quota.status?.used?.[key] ?? '0')!" :total="real(value)!">
-            {{ quota.status?.used?.[key] ?? '0' }}/{{ value }}
-          </QuotaDoughnut>
-        </div>
+        <template v-for="(rules, category) of quota.parsed"
+          :key="category">
+          <div class="text-subtitle-1 pb-2 pt-4">{{ category }}</div>
+          <div class="d-flex justify-space-evenly align-center flex-wrap ga-2 px-4">
+            <QuotaDoughnut v-for="({ name, value, used }, key) of rules" :key="key"
+              :title="name" :details="podsResourceUsage[key] ?? pvcsResourceUsage[key]"
+              :used="real(used)!" :total="real(value)!">
+              {{ used }}/{{ value }}
+            </QuotaDoughnut>
+          </div>
+        </template>
       </template>
     </VCard>
     <template v-if="!quotas.length">
