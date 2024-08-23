@@ -31,12 +31,15 @@ import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useOpenAPISchemaDiscovery } from '@/stores/openAPISchemaDiscovery';
 import { usePermissions } from '@/stores/permissions';
-import type { V1ObjectMeta } from '@xdavidwu/kubernetes-client-typescript-fetch';
+import type { CoreV1Event, EventsV1Event, V1ObjectMeta } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import {
   AnyApi,
   type V1Table, type V1PartialObjectMetadata, type V1TableColumnDefinition, type V1TableRow,
 } from '@/utils/AnyApi';
-import { asYAML, fromYAML, chainOverrideFunction } from '@/utils/api';
+import {
+  asYAML, fromYAML, chainOverrideFunction,
+  setTableIncludeObjectPolicy, V1IncludeObjectPolicy,
+} from '@/utils/api';
 import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscovery } from '@/utils/discoveryV2';
 import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
@@ -64,7 +67,11 @@ interface ObjectRecord {
 }
 
 const NAME_NEW = '(new)'; // must be invalid
-const CREATION_TIMESTAMP_COLUMN = 'creationTimestamp';
+enum TimestampColumns {
+  CREATION_TIMESTAMP = 'creationTimestamp',
+  LAST_SEEN = 'lastSeen',
+  FIRST_SEEN = 'firstSeen',
+}
 
 const apiConfigStore = useApiConfig();
 const openAPISchemaDiscovery = useOpenAPISchemaDiscovery();
@@ -102,11 +109,13 @@ await (await useApisDiscovery().getGroups()).reduce(async (a, g) => {
 const targetGroupVersion = nonNullableRef(groupVersions[0]);
 
 const types = computed(() => targetGroupVersion.value.resources);
-
 const defaultTargetType = () =>
   types.value.find((v) => v.verbs.includes('watch')) ?? types.value[0];
-
 const targetType = nonNullableRef(defaultTargetType());
+const isEvents = computed(() => targetType.value.resource === 'events' &&
+  (targetGroupVersion.value.groupVersion === 'v1' ||
+  targetGroupVersion.value.groupVersion === 'events.k8s.io/v1'));
+
 const objects = ref<V1Table<V1PartialObjectMetadata>>({
   columnDefinitions: [],
   rows: [],
@@ -121,6 +130,7 @@ const { appBarHeightPX } = useAppTabs();
 
 const { abort: abortRequests, signal } = useAbortController();
 
+const includeObject = setTableIncludeObjectPolicy(V1IncludeObjectPolicy.OBJECT);
 const { loading, load } = useLoading(async () => {
   abortRequests();
 
@@ -131,14 +141,15 @@ const { loading, load } = useLoading(async () => {
     namespace: selectedNamespace.value,
   };
   const listType = allNamespaces.value ? 'Cluster' : targetType.value.scope;
+  const api = isEvents.value ? anyApi.withPreMiddleware(includeObject) : anyApi;
   if (targetType.value.verbs.includes('watch')) {
     await listAndUnwaitedWatchTable(
       objects,
-      (opt) => anyApi[`list${listType}CustomObjectAsTableRaw`]({ ...opt, ...options }, { signal: signal.value }),
+      (opt) => api[`list${listType}CustomObjectAsTableRaw`]({ ...opt, ...options }, { signal: signal.value }),
       notifyListingWatchErrors,
     );
   } else {
-    objects.value = await anyApi[`list${listType}CustomObjectAsTable`](options);
+    objects.value = await api[`list${listType}CustomObjectAsTable`](options);
   }
 });
 
@@ -167,13 +178,37 @@ const columns = computed<Array<{
 
         if (isCreationTimestamp(c)){
           return {
-           ...meta,
-            key: CREATION_TIMESTAMP_COLUMN,
+            ...meta,
+            key: TimestampColumns.CREATION_TIMESTAMP,
             value: (r: V1TableRow<V1PartialObjectMetadata>) => r.object.metadata!.creationTimestamp,
             // reverse (time-to-timestamp from timestamp)
             // optional chaining to avoid crash on column def change (more a vuetify bug?)
             sort: (a: string, b: string) => b?.localeCompare(a),
           };
+        }
+        if (isEvents.value) {
+          // k8s.io/kubernetes/pkg/printers/internalversion.printEvent()
+          if (c.name === 'Last Seen') {
+            const coreGetLastTimestamp = (r: V1TableRow<CoreV1Event>) =>
+              r.object.lastTimestamp ?? r.object.firstTimestamp ?? r.object.eventTime;
+            const eventsGetLastTimestamp = (r: V1TableRow<EventsV1Event>) =>
+              r.object.deprecatedLastTimestamp ?? r.object.deprecatedFirstTimestamp ?? r.object.eventTime;
+            return {
+              ...meta,
+              key: TimestampColumns.LAST_SEEN,
+              value: targetGroupVersion.value.group ? eventsGetLastTimestamp : coreGetLastTimestamp,
+            };
+          } else if (c.name === 'First Seen') {
+            const coreGetFirstTimestamp = (r: V1TableRow<CoreV1Event>) =>
+              r.object.firstTimestamp ?? r.object.eventTime;
+            const eventsGetFirstTimestamp = (r: V1TableRow<EventsV1Event>) =>
+              r.object.deprecatedFirstTimestamp ?? r.object.eventTime;
+            return {
+              ...meta,
+              key: TimestampColumns.FIRST_SEEN,
+              value: targetGroupVersion.value.group ? eventsGetFirstTimestamp : coreGetFirstTimestamp,
+            };
+          }
         }
 
         const column = {
@@ -192,13 +227,12 @@ const columns = computed<Array<{
       .filter((c) => verbose.value || c.priority === 0)
   ),
 );
-const columnsContainCreationTimestamp = computed(() =>
-  columns.value.some(c => c.key === CREATION_TIMESTAMP_COLUMN));
 
 const injectTime = useNow({ interval: 5000 });
 const table = computed(() => {
   const rows = objects.value.rows ?? [];
-  if (rows.length && columnsContainCreationTimestamp.value) {
+  if (rows.length &&
+      columns.value.some(c => (TimestampColumns as { [key: string]: string })[c.key])) {
     return { rows, _update: injectTime.value };
   }
   return { rows };
@@ -400,7 +434,7 @@ watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true })
         </template>
         <template #item="{ props: itemProps }">
           <VDataTableRow v-bind="itemProps" @click="inspectObject(itemProps.item.raw.object)">
-            <template #[`item.${CREATION_TIMESTAMP_COLUMN}`]="{ value }">
+            <template v-for="c in TimestampColumns" :key="c" #[`item.${c}`]="{ value }">
               <span>
                 {{ humanDuration((new Date()).valueOf() - (new Date(value)).valueOf()) }}
                 <LinkedTooltip :text="`Since ${(new Date(value)).toLocaleString()}`" activator="parent" />

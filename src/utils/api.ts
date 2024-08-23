@@ -16,6 +16,12 @@ import {
 
 // meta/v1
 
+export enum V1IncludeObjectPolicy {
+  NONE = 'None',
+  METADATA = 'Metadata',
+  OBJECT = 'Object',
+}
+
 // XXX kubernetes does not really use type alias on meta/v1 yet, but has
 // k8s.io/apimachinery/pkg/watch.EventType on watch.Event
 // is ERROR used on-wire?
@@ -152,6 +158,17 @@ export const setFieldManager: Middleware['pre'] = async (context) => {
   }
   return context;
 };
+
+export const setTableIncludeObjectPolicy:
+  (p: V1IncludeObjectPolicy) => Middleware['pre'] = (policy) =>
+    async (context) => {
+      const url = new URL(context.url, origin);
+      const params = url.searchParams;
+      params.set('includeObject', policy);
+      url.search = `?${params.toString()}`;
+      context.url = url.toString();
+      return context;
+    };
 
 export const errorIsResourceNotFound = async (err: unknown) => {
   if (err instanceof ResponseError && err.response.status === 404) {
