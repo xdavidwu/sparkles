@@ -227,8 +227,8 @@ const columns = computed<Array<{
 const injectTime = useNow({ interval: 5000 });
 const table = computed(() => {
   const rows = objects.value.rows ?? [];
-  if (rows.length &&
-      columns.value.some(c => (TimestampColumns as { [key: string]: string })[c.key])) {
+  if (rows.length && columns.value.some(c =>
+      Object.values(TimestampColumns).includes(c.key as TimestampColumns))) {
     return { rows, _update: injectTime.value };
   }
   return { rows };
