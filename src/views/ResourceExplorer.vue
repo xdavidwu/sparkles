@@ -83,27 +83,25 @@ const { selectedNamespace } = storeToRefs(namespacesStore);
 const { mayAllows } = usePermissions();
 
 const allNamespaces = ref(false);
-const groupVersions: Array<GroupVersion> = [];
-await (await useApisDiscovery().getGroups()).reduce(async (a, g) => {
-  const knownResources: Array<string> = [];
-  const gvs = (await Promise.all(g.versions.map(async (v) => {
-    const resources = v.resources.filter((r) =>
-      !knownResources.includes(r.resource) && r.verbs.includes('list'));
-    knownResources.push(...resources.map((r) => r.resource));
+const groupVersions: Array<GroupVersion> =
+  (await Promise.all((await useApisDiscovery().getGroups()).map(async (g) => {
+    const knownResources: Array<string> = [];
+    return (await Promise.all(g.versions.map(async (v) => {
+      const resources = v.resources.filter((r) =>
+        !knownResources.includes(r.resource) && r.verbs.includes('list'));
+      knownResources.push(...resources.map((r) => r.resource));
 
-    return {
-      ...v,
-      resources: (await Promise.all(resources.map(async (r) => ({
-        r,
-        enabled: await mayAllows(selectedNamespace.value, g.metadata?.name ?? '', r.resource, '*', 'list'),
-      })))).filter((r) => r.enabled).map((r) => r.r),
-      group: g.metadata?.name,
-      groupVersion: g.metadata?.name ? `${g.metadata.name}/${v.version}` : v.version,
-    };
-  }))).filter((v) => v.resources.length);
-  await a; // keep the order stable
-  groupVersions.push(...gvs);
-}, Promise.resolve());
+      return {
+        ...v,
+        resources: (await Promise.all(resources.map(async (r) => ({
+          r,
+          enabled: await mayAllows(selectedNamespace.value, g.metadata?.name ?? '', r.resource, '*', 'list'),
+        })))).filter((r) => r.enabled).map((r) => r.r),
+        group: g.metadata?.name,
+        groupVersion: g.metadata?.name ? `${g.metadata.name}/${v.version}` : v.version,
+      };
+    }))).filter((v) => v.resources.length);
+  }))).flat();
 const targetGroupVersion = nonNullableRef(groupVersions[0]);
 
 const types = computed(() => targetGroupVersion.value.resources);
