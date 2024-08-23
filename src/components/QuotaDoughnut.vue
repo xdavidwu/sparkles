@@ -13,12 +13,13 @@ const props = defineProps<{
   details?: { [key: string]: number },
 }>();
 
-const percentage = computed(() => ((props.used / props.total) * 100).toFixed(2));
+const percentage = computed(() => (props.used / props.total) * 100);
+const percentageText = computed(() => props.total ? `${percentage.value.toFixed(2)}%` : 'None allowed');
 
 const color = computed(() => {
-  if (Number(percentage.value) >= 90) {
+  if (percentage.value >= 90 || !props.total) {
     return colors['red']['darken1'];
-  } else if (Number(percentage.value) >= 80) {
+  } else if (percentage.value >= 80) {
     return colors['yellow']['darken3'];
   }
   return colors['green']['darken1'];
@@ -82,7 +83,7 @@ const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
     </h4>
     <div class="doughnut">
       <div class="doughnut-graph">
-        <Doughnut :data="chartData" :options="{
+        <Doughnut v-if="props.total" :data="chartData" :options="{
           cutout: '66%',
           plugins: {
             legend: { display: false },
@@ -92,7 +93,7 @@ const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
       </div>
       <div class="doughnut-text text-center">
         <h2 :style="{ color }">
-          {{ percentage }}%
+          {{ percentageText }}
         </h2>
         <slot />
       </div>
