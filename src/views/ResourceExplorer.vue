@@ -87,18 +87,16 @@ const groupVersions: Array<GroupVersion> = [];
 await (await useApisDiscovery().getGroups()).reduce(async (a, g) => {
   const knownResources: Array<string> = [];
   const gvs = (await Promise.all(g.versions.map(async (v) => {
-    const resources = (await Promise.all(v.resources
-      .filter((r) => !knownResources.includes(r.resource))
-      .filter((r) => r.verbs.includes('list'))
-      .map(async (r) => ({
-        r,
-        enabled: await mayAllows(selectedNamespace.value, g.metadata?.name ?? '', r.resource, '*', 'list'),
-      })))).filter((r) => r.enabled).map((r) => r.r);
+    const resources = v.resources.filter((r) =>
+      !knownResources.includes(r.resource) && r.verbs.includes('list'));
     knownResources.push(...resources.map((r) => r.resource));
 
     return {
       ...v,
-      resources,
+      resources: (await Promise.all(resources.map(async (r) => ({
+        r,
+        enabled: await mayAllows(selectedNamespace.value, g.metadata?.name ?? '', r.resource, '*', 'list'),
+      })))).filter((r) => r.enabled).map((r) => r.r),
       group: g.metadata?.name,
       groupVersion: g.metadata?.name ? `${g.metadata.name}/${v.version}` : v.version,
     };
