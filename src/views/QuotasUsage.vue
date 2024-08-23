@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { VCard } from 'vuetify/components';
+import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 import QuotaDoughnut from '@/components/QuotaDoughnut.vue';
 import { computed, ref, watch } from 'vue';
@@ -88,9 +89,12 @@ const quotas = computed(() => _quotas.value.map((quota) => {
       used: quota.status?.used?.[id] ?? '0',
     };
   }
+
+  const scoped: boolean = !!(quota.spec!.scopeSelector || quota.spec!.scopes?.length);
   return {
     name: quota.metadata!.name,
     parsed,
+    scoped,
   };
 }));
 
@@ -191,19 +195,25 @@ await load();
 watch(selectedNamespace, load);
 </script>
 
-<!-- TODO: mark scoped quotas -->
 <template>
   <LoadingSpinner v-if="loading" />
   <div v-else class="d-flex flex-wrap ga-4">
-    <VCard v-for="quota in quotas" :key="quota.name" :title="quota.name">
+    <VCard v-for="quota in quotas" :key="quota.name">
+      <template #title>
+        {{ quota.name }}
+        <span v-if="quota.scoped">
+          (scoped)
+          <LinkedTooltip activator="parent" text="Covers only resources under certain conditions." />
+        </span>
+      </template>
       <template #text>
         <template v-for="(rules, category) of quota.parsed"
           :key="category">
           <div class="text-subtitle-1 pb-2 pt-4">{{ category }}</div>
           <div class="d-flex justify-space-evenly align-center flex-wrap ga-2 px-4">
             <QuotaDoughnut v-for="({ name, value, used }, key) of rules" :key="key"
-              :title="name" :details="podsResourceUsage[key] ?? pvcsResourceUsage[key]"
-              :used="real(used)!" :total="real(value)!">
+              :title="name" :used="real(used)!" :total="real(value)!"
+              :details="quota.scoped ? undefined : (podsResourceUsage[key] ?? pvcsResourceUsage[key])">
               {{ used }}/{{ value }}
             </QuotaDoughnut>
           </div>
