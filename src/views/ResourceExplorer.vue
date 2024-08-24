@@ -13,6 +13,7 @@ import {
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
 import FixedFab from '@/components/FixedFab.vue';
+import LinkedImage from '@/components/LinkedImage.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import SpeedDialBtn from '@/components/SpeedDialBtn.vue';
 import SpeedDialFab from '@/components/SpeedDialFab.vue';
@@ -72,6 +73,9 @@ enum TimestampColumns {
   CREATION_TIMESTAMP = 'creationTimestamp',
   LAST_SEEN = 'lastSeen',
   FIRST_SEEN = 'firstSeen',
+}
+enum ImageColumns {
+  IMAGES = 'images',
 }
 
 const apiConfigStore = useApiConfig();
@@ -166,6 +170,8 @@ const isCreationTimestamp = (c: V1TableColumnDefinition) =>
   (c.name === 'Age' && c.description.startsWith('CreationTimestamp ')) ||
   // k8s.io/apiextensions-apiserver/pkg/registry/customresource/tableconverter.New
   c.description === 'Custom resource definition column (in JSONPath format): .metadata.creationTimestamp';
+const isImages = (c: V1TableColumnDefinition) => c.name === 'Images' &&
+  c.description === 'Images referenced by each container in the template.';
 
 const columns = computed<Array<{
   title: string,
@@ -194,8 +200,13 @@ const columns = computed<Array<{
             // optional chaining to avoid crash on column def change (more a vuetify bug?)
             sort: (a: string, b: string) => b?.localeCompare(a),
           };
-        }
-        if (isEvents.value) {
+        } else if (isImages(c)) {
+          return {
+            ...meta,
+            key: ImageColumns.IMAGES,
+            value: (r: V1TableRow<V1PartialObjectMetadata>) => r.cells[i],
+          };
+        } else if (isEvents.value) {
           // k8s.io/kubernetes/pkg/printers/internalversion.printEvent()
           if (c.name === 'Last Seen') {
             const coreGetLastTimestamp = (r: V1TableRow<CoreV1Event>) =>
@@ -455,6 +466,12 @@ watch(verbose, runTableLayoutAlgorithm);
                   {{ humanDuration((new Date()).valueOf() - (new Date(value)).valueOf()) }}
                   <LinkedTooltip :text="`Since ${(new Date(value)).toLocaleString()}`" activator="parent" />
                 </span>
+              </template>
+              <template v-for="c in ImageColumns" :key="c" #[`item.${c}`]="{ value }">
+                <template v-for="i in value.split(',')" :key="i">
+                  <LinkedImage :image="i" />
+                  <br>
+                </template>
               </template>
             </VDataTableRow>
           </template>

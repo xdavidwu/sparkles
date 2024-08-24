@@ -4,7 +4,7 @@ import { computed } from 'vue';
 
 const props = defineProps<{
   image: string,
-  id: string,
+  id?: string,
 }>();
 
 // basically simplified github.com/containers/image/v5/docker/reference.ParseNormalizedNamed?
