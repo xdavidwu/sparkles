@@ -53,6 +53,7 @@ import { notifyListingWatchErrors } from '@/utils/errors';
 import type { JSONSchema4 } from 'json-schema';
 import { stringify } from '@/utils/yaml';
 import { parse } from 'yaml';
+import { real } from '@ragnarpa/quantity';
 import { createNameId } from 'mnemonic-id';
 
 type GroupVersion = V2APIVersionDiscovery & { group?: string, groupVersion: string };
@@ -181,6 +182,9 @@ const isHumanDuration = (c: V1TableColumnDefinition) =>
 // TODO should we still store estimated timestamp and present from it?
 const sortHumanDuration = (a: string, b: string) =>
   (humanDurationToS(a) ?? 0) - (humanDurationToS(b) ?? 0);
+// metrics.k8s.io/v1beta1 uses this (k8s.io/apimachinery/pkg/api/resource.Quantity)
+const isQuantity = (c: V1TableColumnDefinition) => c.format === 'quantity';
+const sortQuantity = (a: string, b: string) => (real(a) ?? 0) - (real(b) ?? 0);
 
 const columns = computed<Array<{
   title: string,
@@ -243,7 +247,7 @@ const columns = computed<Array<{
         const column = {
           ...meta,
           key: `cells.${i}`,
-          sort: isHumanDuration(c) ? sortHumanDuration : undefined,
+          sort: isHumanDuration(c) ? sortHumanDuration : isQuantity(c) ? sortQuantity : undefined,
         };
         // k8s.io/kubernetes/pkg/printers/internalversion.printPod
         if (c.name === 'Restarts' && c.description === 'The number of times the containers in this pod have been restarted and when the last container in this pod has restarted.') {
