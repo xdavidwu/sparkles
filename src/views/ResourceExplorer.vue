@@ -4,7 +4,7 @@ import {
   VBtn,
   VCheckbox,
   VCol,
-  VDataTable,
+  VDataTableVirtual,
   VDataTableRow,
   VIcon,
   VRow,
@@ -19,6 +19,7 @@ import SpeedDialFab from '@/components/SpeedDialFab.vue';
 import TabsWindow from '@/components/TabsWindow.vue';
 import WindowItem from '@/components/WindowItem.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
+import { vResizeObserver } from '@vueuse/components';
 import { computed, watch, ref, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDisplay } from 'vuetify';
@@ -126,6 +127,17 @@ const { appBarHeightPX } = useAppTabs();
 
 const { abort: abortRequests, signal } = useAbortController();
 
+const runTableLayoutAlgorithm = () => {
+  const table = document.querySelector('.v-data-table table')!;
+  table.querySelectorAll('th').forEach((th) => th.removeAttribute('width'));
+  table.setAttribute('style', 'table-layout: auto');
+  requestAnimationFrame(() => {
+    table.querySelectorAll('th').forEach((th) =>
+      th.setAttribute('width', `${th.getBoundingClientRect().width}`));
+    table.setAttribute('style', 'table-layout: fixed');
+  });
+};
+
 const includeObject = setTableIncludeObjectPolicy(V1IncludeObjectPolicy.OBJECT);
 const { loading, load } = useLoading(async () => {
   abortRequests();
@@ -147,6 +159,7 @@ const { loading, load } = useLoading(async () => {
   } else {
     objects.value = await api[`list${listType}CustomObjectAsTable`](options);
   }
+  runTableLayoutAlgorithm();
 });
 
 const isCreationTimestamp = (c: V1TableColumnDefinition) =>
@@ -374,6 +387,7 @@ const title = (o: ObjectRecord) =>
 
 watch(targetGroupVersion, () => targetType.value = defaultTargetType());
 watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true });
+watch(verbose, runTableLayoutAlgorithm);
 </script>
 
 <template>
@@ -385,62 +399,69 @@ watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true })
   </AppTabs>
   <TabsWindow v-model="tab">
     <WindowItem value="explore">
-      <VRow class="mb-1" :dense="smAndDown">
-        <VCol cols="6" sm="">
-          <VAutocomplete label="API version" v-model="targetGroupVersion"
-            :items="groupVersions" return-object hide-details
-            item-title="groupVersion" auto-select-first />
-        </VCol>
-        <VCol cols="6" sm="">
-          <VAutocomplete label="Type" v-model="targetType" :items="types"
-            return-object hide-details item-title="responseKind.kind"
-            auto-select-first />
-        </VCol>
-        <VCol md="3" sm="4">
-          <div>
-            <VCheckbox :disabled="targetType.scope === V2ResourceScope.Cluster"
-              class="checkbox-intense" label="All namespaces"
-              v-model="allNamespaces" hide-details density="compact" />
-            <LinkedTooltip v-if="targetType.scope === V2ResourceScope.Cluster"
-              activator="parent" text="Selected type is not namespaced" />
-          </div>
-          <VCheckbox class="checkbox-intense" label="Verbose" v-model="verbose"
-            hide-details density="compact" />
-        </VCol>
-      </VRow>
-      <div v-if="!targetType.verbs.includes('watch')"
-        class="text-caption text-medium-emphasis mb-2">
-        This type does not support watch operation, last updated
-        <span class="font-weight-bold">
-          {{ lastUpdated }}
-          <LinkedTooltip :text="new Date(lastUpdatedAt).toLocaleString()" activator="parent" />
-        </span>
-        <VBtn variant="text" size="x-small" color="primary" @click="load">refresh</VBtn>
-      </div>
-      <VDataTable :items="table.rows" :headers="columns" :loading="loading">
-        <!-- TODO: ask vuetify to open up VDataTableHeaderCell -->
-        <template v-for="(c, i) in columns" #[`header.${c.key}`]="{ column, getSortIcon }" :key="i">
-          <div class="v-data-table-header__content">
-            <span>
-              {{ column.title }}
-              <LinkedTooltip v-if="c.description" :text="c.description" activator="parent" />
-            </span>
-            <VIcon v-if="column.sortable" key="icon" class="v-data-table-header__sort-icon" :icon="getSortIcon(column)" />
-          </div>
-        </template>
-        <template #item="{ props: itemProps }">
-          <VDataTableRow v-bind="itemProps" @click="inspectObject(itemProps.item.raw.object)">
-            <template v-for="c in TimestampColumns" :key="c" #[`item.${c}`]="{ value }">
+      <div class="d-flex flex-column"
+        :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`">
+        <VRow class="flex-grow-0 mb-1" :dense="smAndDown">
+          <VCol cols="6" sm="">
+            <VAutocomplete label="API version" v-model="targetGroupVersion"
+              :items="groupVersions" return-object hide-details
+              item-title="groupVersion" auto-select-first />
+          </VCol>
+          <VCol cols="6" sm="">
+            <VAutocomplete label="Type" v-model="targetType" :items="types"
+              return-object hide-details item-title="responseKind.kind"
+              auto-select-first />
+          </VCol>
+          <VCol md="3" sm="4">
+            <div>
+              <VCheckbox :disabled="targetType.scope === V2ResourceScope.Cluster"
+                class="checkbox-intense" label="All namespaces"
+                v-model="allNamespaces" hide-details density="compact" />
+              <LinkedTooltip v-if="targetType.scope === V2ResourceScope.Cluster"
+                activator="parent" text="Selected type is not namespaced" />
+            </div>
+            <VCheckbox class="checkbox-intense" label="Verbose" v-model="verbose"
+              hide-details density="compact" />
+          </VCol>
+        </VRow>
+        <div v-if="!targetType.verbs.includes('watch')"
+          class="flex-grow-0 text-caption text-medium-emphasis mb-2">
+          This type does not support watch operation, last updated
+          <span class="font-weight-bold">
+            {{ lastUpdated }}
+            <LinkedTooltip :text="new Date(lastUpdatedAt).toLocaleString()" activator="parent" />
+          </span>
+          <VBtn variant="text" size="x-small" color="primary" @click="load">refresh</VBtn>
+        </div>
+        <VDataTableVirtual class="flex-shrink-1" style="min-height: 0"
+          v-resize-observer="runTableLayoutAlgorithm"
+          :items="table.rows" :headers="columns" :loading="loading"
+          hover fixed-header>
+          <!-- TODO: ask vuetify to open up VDataTableHeaderCell -->
+          <template v-for="(c, i) in columns" #[`header.${c.key}`]="{ column, getSortIcon }" :key="i">
+            <div class="v-data-table-header__content">
               <span>
-                {{ humanDuration((new Date()).valueOf() - (new Date(value)).valueOf()) }}
-                <LinkedTooltip :text="`Since ${(new Date(value)).toLocaleString()}`" activator="parent" />
+                {{ column.title }}
+                <LinkedTooltip v-if="c.description" :text="c.description" activator="parent" />
               </span>
-            </template>
-          </VDataTableRow>
-        </template>
-      </VDataTable>
-      <!-- TODO we should show info for type somewhere -->
-      <FixedFab v-if="targetType.verbs.includes('create')" icon="$plus" @click="newDraft" />
+              <VIcon v-if="column.sortable" key="icon" class="v-data-table-header__sort-icon" :icon="getSortIcon(column)" />
+            </div>
+          </template>
+          <template #item="{ props: itemProps, itemRef }">
+            <VDataTableRow v-bind="itemProps" :ref="itemRef"
+              @click="inspectObject(itemProps.item.raw.object)">
+              <template v-for="c in TimestampColumns" :key="c" #[`item.${c}`]="{ value }">
+                <span>
+                  {{ humanDuration((new Date()).valueOf() - (new Date(value)).valueOf()) }}
+                  <LinkedTooltip :text="`Since ${(new Date(value)).toLocaleString()}`" activator="parent" />
+                </span>
+              </template>
+            </VDataTableRow>
+          </template>
+        </VDataTableVirtual>
+        <!-- TODO we should show info for type somewhere -->
+        <FixedFab v-if="targetType.verbs.includes('create')" icon="$plus" @click="newDraft" />
+      </div>
     </WindowItem>
     <WindowItem v-for="[key, r] in inspectedObjects" :key="key" :value="key">
       <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
@@ -463,5 +484,9 @@ watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true })
 <style scoped>
 :deep(.checkbox-intense > .v-input__control > .v-selection-control) {
   min-height: unset !important;
+}
+
+:deep(td) {
+  word-break: break-all;
 }
 </style>

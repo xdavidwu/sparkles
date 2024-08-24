@@ -26,6 +26,7 @@
     "@openapi-contrib/openapi-schema-to-json-schema": "^5.1.0",
     "@ragnarpa/quantity": "^0.2.0",
     "@tsmx/human-readable": "^2.0.1",
+    "@vueuse/components": "^11.0.1",
     "@vueuse/core": "^10.4.1",
     "@xdavidwu/kubernetes-client-typescript-fetch": "^0.4.0",
     "@xterm/addon-fit": "^0.10.0",
