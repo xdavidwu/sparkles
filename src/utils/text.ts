@@ -5,7 +5,7 @@ export const truncateStart = (s: string, toLength: number) =>
   s.length > toLength ? `...${s.substring(s.length - (toLength - 3))}` : s;
 
 // may be valid, but not typically at the end
-const endHeuristic = '[^{}"%\\s\\.,:;\\?!\']';
+const endHeuristic = '[^{}"%\\s\\.,:;\\?!\'\\)]';
 const schemes = 'https?';
 const unreserved = 'a-zA-Z0-9\\-\\._~';
 const subDelims = '!$&\'\\(\\)\\*\\+,;=';
