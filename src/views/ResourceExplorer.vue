@@ -257,6 +257,7 @@ const table = computed(() => {
   }
   return { rows };
 });
+const order = ref([]);
 
 const maybeGetSchema = (r: ObjectRecord) =>
   openAPISchemaDiscovery.getJSONSchema({
@@ -399,6 +400,7 @@ const title = (o: ObjectRecord) =>
 watch(targetGroupVersion, () => targetType.value = defaultTargetType());
 watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true });
 watch(verbose, runTableLayoutAlgorithm);
+watch([targetType, verbose], () => order.value = []);
 </script>
 
 <template>
@@ -446,7 +448,7 @@ watch(verbose, runTableLayoutAlgorithm);
         </div>
         <VDataTableVirtual class="flex-shrink-1" style="min-height: 0"
           v-resize-observer="runTableLayoutAlgorithm"
-          :items="table.rows" :headers="columns" :loading="loading"
+          :items="table.rows" :headers="columns" :loading="loading" :sort-by="order"
           hover fixed-header>
           <!-- TODO: ask vuetify to open up VDataTableHeaderCell -->
           <template v-for="(c, i) in columns" #[`header.${c.key}`]="{ column, getSortIcon }" :key="i">
