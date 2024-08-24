@@ -46,7 +46,7 @@ import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscover
 import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
 import { truncate, truncateStart } from '@/utils/text';
-import { humanDuration } from '@/utils/duration';
+import { humanDuration, humanDurationToS } from '@/utils/duration';
 import { nonNullableRef } from '@/utils/reactivity';
 import { PresentedError } from '@/utils/PresentedError';
 import { notifyListingWatchErrors } from '@/utils/errors';
@@ -172,6 +172,15 @@ const isCreationTimestamp = (c: V1TableColumnDefinition) =>
   c.description === 'Custom resource definition column (in JSONPath format): .metadata.creationTimestamp';
 const isImages = (c: V1TableColumnDefinition) => c.name === 'Images' &&
   c.description === 'Images referenced by each container in the template.';
+const isHumanDuration = (c: V1TableColumnDefinition) =>
+  (c.name === 'Duration' && c.description === 'Time required to complete the job.') || // batch/jobs
+  (c.name === 'Last Schedule' && c.description === 'Information when was the last time the job was successfully scheduled.') || // batch/cronjobs
+  (c.name === 'RequestedDuration' && c.description.startsWith('expirationSeconds')) || // certificates.k8s.io/certificatesigningrequests
+  c.type === 'date'; // k8s.io/apiextensions-apiserver/pkg/registry/customresource/tableconvertor.cellForJSONValue
+// for where exact ts is not interesting enough for us to get from full object
+// TODO should we still store estimated timestamp and present from it?
+const sortHumanDuration = (a: string, b: string) =>
+  (humanDurationToS(a) ?? 0) - (humanDurationToS(b) ?? 0);
 
 const columns = computed<Array<{
   title: string,
@@ -234,6 +243,7 @@ const columns = computed<Array<{
         const column = {
           ...meta,
           key: `cells.${i}`,
+          sort: isHumanDuration(c) ? sortHumanDuration : undefined,
         };
         // k8s.io/kubernetes/pkg/printers/internalversion.printPod
         if (c.name === 'Restarts' && c.description === 'The number of times the containers in this pod have been restarted and when the last container in this pod has restarted.') {

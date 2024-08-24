@@ -39,4 +39,31 @@ export const humanDuration = (d: number): string => {
     return (d == 0) ? `${years}y` : `${years}y${d}d`;
   }
   return `${years}y`;
-}
+};
+
+const suffixMap: { [key: string]: number } = {
+  's': 1,
+  'm': 60,
+  'h': 60 * 60,
+  'd': 60 * 60 * 24,
+  'y': 60 * 60 * 24 * 365,
+};
+
+export const humanDurationToS = (h?: string) => {
+  let s = 0;
+  let digits = '';
+  for (const c of h ?? '') {
+    if (c >= '0' && c <= '9') {
+      digits += c;
+    } else if (suffixMap[c]) {
+      if (!digits.length) {
+        return undefined;
+      }
+      s += parseInt(digits, 10) * suffixMap[c];
+      digits = '';
+    } else {
+      return undefined;
+    }
+  }
+  return s;
+};
