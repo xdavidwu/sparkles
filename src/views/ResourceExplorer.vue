@@ -297,7 +297,7 @@ const save = async (r: ObjectRecord, key: string) => {
     try {
       createMeta = parse(r.object)?.metadata;
     } catch (e) {
-      throw new PresentedError(`Invalid YAML input:\n${e}`);
+      throw new PresentedError(`Invalid YAML input:\n${e}`, { cause: e });
     }
   }
 

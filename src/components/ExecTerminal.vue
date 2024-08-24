@@ -74,7 +74,9 @@ const display = async (terminal: Terminal) => {
   socket.binaryType = 'arraybuffer';
   socket.onerror = (event) => {
     useErrorPresentation().pendingError = new PresentedError(
-      `WebSocket connetion to ${(event.target as WebSocket).url} failed`);
+      `WebSocket connetion to ${(event.target as WebSocket).url} failed`,
+      { cause: event },
+    );
   };
 
   const resize = (t: { cols: number, rows: number }) => {

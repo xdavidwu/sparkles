@@ -95,7 +95,7 @@ const proceed = async (next: () => void) => {
     try {
       parsedValues.value = parse(values.value);
     } catch (e) {
-      throw new PresentedError(`Invalid YAML input:\n${e}`);
+      throw new PresentedError(`Invalid YAML input:\n${e}`, { cause: e });
     }
     break;
   case Step.SET_NAME:

@@ -1,9 +1,10 @@
 export class PresentedError extends Error {
   override name = 'PresentedError';
-  constructor(msg: string) {
-    super(msg);
+  constructor(msg: string, opt?: ErrorOptions) {
+    super(msg, opt);
   }
 
+  // TODO support cause
   serialize() {
     return {
       type: this.name,

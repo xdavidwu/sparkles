@@ -23,7 +23,10 @@ export const useHelmRepository = defineStore('helmRepository', () => {
       } catch (e) {
         // a guess for SPA fallback html
         if (response.headers.get('Content-Type') == 'text/html') {
-          throw new PresentedError(`Failed to obtain Helm repo index at ${indexURL}, maybe it isn't set up by instance admin yet?`);
+          throw new PresentedError(
+            `Failed to obtain Helm repo index at ${indexURL}, maybe it isn't set up by instance admin yet?`,
+            { cause: e },
+          );
         }
         throw e;
       }

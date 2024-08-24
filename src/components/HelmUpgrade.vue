@@ -34,7 +34,7 @@ const upgrade = () => {
   try {
     parsedValues = parse(values.value);
   } catch (e) {
-    throw new PresentedError(`Invalid YAML input:\n${e}`);
+    throw new PresentedError(`Invalid YAML input:\n${e}`, { cause: e });
   }
   emit('upgrade', chart, parsedValues, props.from);
 };
