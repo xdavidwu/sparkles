@@ -36,6 +36,15 @@ const aliases = {
   'memory': 'requests.memory',
   'ephemeral-storage': 'requests.ephemeral-storage',
   // hugepages-* => requests.hugepages-*
+
+  // object counts
+  'pods': 'count/pods', // actually contains additional rules
+  'services': 'count/services',
+  'replicationcontrollers': 'count/replicationcontrollers',
+  'resourcequotas': 'count/resourcequotas',
+  'secrets': 'count/secrets',
+  'configmaps': 'count/configmaps',
+  'persistentvolumeclaims': 'count/persistentvolumeclaims',
 };
 const aliased = (id: string): id is keyof typeof aliases => Object.keys(aliases).includes(id);
 
@@ -69,8 +78,8 @@ const quotas = computed(() => _quotas.value.map((quota) => {
     } else if (canonical === 'services.nodeports') {
       name = 'services of type NodePort';
       category = 'Object counts for core API';
-    } else {
-      name = canonical.startsWith('count/') ? canonical.substring(6) : canonical;
+    } else if (canonical.startsWith('count/')){
+      name = canonical.substring(6);
       const dot = name.indexOf('.');
       if (dot != -1) {
         // TODO query plurals back to kind?
@@ -79,6 +88,10 @@ const quotas = computed(() => _quotas.value.map((quota) => {
       } else {
         category = 'Object counts for core API';
       }
+    } else {
+      // TODO support DRA
+      name = canonical;
+      category = 'Unknown';
     }
     name = nameOverriden(name) ? displayNames[name] : name;
 
