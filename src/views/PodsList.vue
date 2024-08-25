@@ -60,7 +60,7 @@ const { appBarHeightPX } = useAppTabs();
 
 const columns = [
   {
-    title: 'Pod',
+    title: 'Name',
     key: 'metadata.name',
   },
   {
@@ -183,10 +183,13 @@ const bell = (index: number) => {
     <WindowItem value="table">
       <VDataTable :items="pods" :headers="columns" :loading="loading"
         item-value="metadata.name" show-expand>
-        <template #[`header.metadata.name`]>
-          Pod
-          <KeyValueBadge k="annotation" v="value" class="mr-1" />
-          <KeyValueBadge k="label" v="value" pill />
+        <template #[`header.metadata.name`]="{ column, getSortIcon }">
+          <div class="v-data-table-header__content">
+            {{ column.title }}
+            <KeyValueBadge k="annotation" v="value" class="mr-1" />
+            <KeyValueBadge k="label" v="value" pill />
+            <VIcon v-if="column.sortable" key="icon" class="v-data-table-header__sort-icon" :icon="getSortIcon(column)" />
+          </div>
         </template>
         <template #[`item.metadata.name`]="{ item: pod, value }">
           {{ value }}
