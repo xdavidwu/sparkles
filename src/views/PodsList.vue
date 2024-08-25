@@ -8,10 +8,10 @@ import {
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
 import ExecTerminal from '@/components/ExecTerminal.vue';
+import HumanDurationSince from '@/components/HumanDurationSince.vue';
 import KeyValueBadge from '@/components/KeyValueBadge.vue';
 import LogViewer from '@/components/LogViewer.vue';
 import LinkedImage from '@/components/LinkedImage.vue';
-import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import TabsWindow from '@/components/TabsWindow.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
 import WindowItem from '@/components/WindowItem.vue';
@@ -29,7 +29,6 @@ import {
 import { truncateStart } from '@/utils/text';
 import { listAndUnwaitedWatch } from '@/utils/watch';
 import { notifyListingWatchErrors } from '@/utils/errors';
-import { humanDuration } from '@/utils/duration';
 
 interface ContainerSpec {
   pod: string,
@@ -240,11 +239,9 @@ const toggleExpandAll = (expand: boolean) => expand ?
                 </template>
                 <template #[`item.restartCount`]="{ item, value }">
                   {{ value }}
-                  <span v-if="value && item.lastState?.terminated?.finishedAt">
-                    <!-- TODO update this -->
-                    ({{ humanDuration((new Date()).valueOf() - item.lastState.terminated.finishedAt.valueOf()) }} ago)
-                    <LinkedTooltip :text="item.lastState.terminated.finishedAt.toLocaleString()" activator="parent" />
-                  </span>
+                  <template v-if="value && item.lastState?.terminated?.finishedAt">
+                    (<HumanDurationSince :since="item.lastState.terminated.finishedAt" ago />)
+                  </template>
                 </template>
                 <template #[`item.actions`]="{ item }">
                   <!-- TODO bring permission check back? -->

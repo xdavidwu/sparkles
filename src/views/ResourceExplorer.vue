@@ -13,6 +13,7 @@ import {
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
 import FixedFab from '@/components/FixedFab.vue';
+import HumanDurationSince from '@/components/HumanDurationSince.vue';
 import LinkedImage from '@/components/LinkedImage.vue';
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import SpeedDialBtn from '@/components/SpeedDialBtn.vue';
@@ -24,7 +25,7 @@ import { vResizeObserver } from '@vueuse/components';
 import { computed, watch, ref, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDisplay } from 'vuetify';
-import { timestamp, useLastChanged, useNow, useTimeAgo } from '@vueuse/core';
+import { timestamp, useLastChanged } from '@vueuse/core';
 import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
 import { useLoading } from '@/composables/loading';
@@ -46,7 +47,7 @@ import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscover
 import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
 import { truncate, truncateStart } from '@/utils/text';
-import { humanDuration, humanDurationToS } from '@/utils/duration';
+import { humanDurationToS } from '@/utils/duration';
 import { nonNullableRef } from '@/utils/reactivity';
 import { PresentedError } from '@/utils/PresentedError';
 import { notifyListingWatchErrors } from '@/utils/errors';
@@ -123,7 +124,6 @@ const objects = ref<V1Table<V1PartialObjectMetadata>>({
   rows: [],
 });
 const lastUpdatedAt = useLastChanged(objects, { initialValue: timestamp() });
-const lastUpdated = useTimeAgo(lastUpdatedAt);
 const tab = ref('explore');
 const inspectedObjects = ref<Map<string, ObjectRecord>>(new Map());
 const { smAndDown, xlAndUp } = useDisplay();
@@ -179,7 +179,7 @@ const isHumanDuration = (c: V1TableColumnDefinition) =>
   (c.name === 'RequestedDuration' && c.description.startsWith('expirationSeconds')) || // certificates.k8s.io/certificatesigningrequests
   c.type === 'date'; // k8s.io/apiextensions-apiserver/pkg/registry/customresource/tableconvertor.cellForJSONValue
 // for where exact ts is not interesting enough for us to get from full object
-// TODO should we still store estimated timestamp and present from it?
+// TODO store estimated timestamp (need update ts tracking) and present from it?
 const sortHumanDuration = (a: string, b: string) =>
   (humanDurationToS(a) ?? 0) - (humanDurationToS(b) ?? 0);
 // metrics.k8s.io/v1beta1 uses this (k8s.io/apimachinery/pkg/api/resource.Quantity)
@@ -262,15 +262,6 @@ const columns = computed<Array<{
   ),
 );
 
-const injectTime = useNow({ interval: 5000 });
-const table = computed(() => {
-  const rows = objects.value.rows ?? [];
-  if (rows.length && columns.value.some(c =>
-      Object.values(TimestampColumns).includes(c.key as TimestampColumns))) {
-    return { rows, _update: injectTime.value };
-  }
-  return { rows };
-});
 const order = ref([]);
 
 const maybeGetSchema = (r: ObjectRecord) =>
@@ -454,15 +445,12 @@ watch([targetType, verbose], () => order.value = []);
         <div v-if="!targetType.verbs.includes('watch')"
           class="flex-grow-0 text-caption text-medium-emphasis mb-2">
           This type does not support watch operation, last updated
-          <span class="font-weight-bold">
-            {{ lastUpdated }}
-            <LinkedTooltip :text="new Date(lastUpdatedAt).toLocaleString()" activator="parent" />
-          </span>
+          <HumanDurationSince class="font-weight-bold" :since="new Date(lastUpdatedAt)" ago />
           <VBtn variant="text" size="x-small" color="primary" @click="load">refresh</VBtn>
         </div>
         <VDataTableVirtual class="flex-shrink-1" style="min-height: 0"
           v-resize-observer="runTableLayoutAlgorithm"
-          :items="table.rows" :headers="columns" :loading="loading" :sort-by="order"
+          :items="objects.rows" :headers="columns" :loading="loading" :sort-by="order"
           hover fixed-header>
           <!-- TODO: ask vuetify to open up VDataTableHeaderCell -->
           <template v-for="(c, i) in columns" #[`header.${c.key}`]="{ column, getSortIcon }" :key="i">
@@ -478,10 +466,7 @@ watch([targetType, verbose], () => order.value = []);
             <VDataTableRow v-bind="itemProps" :ref="itemRef"
               @click="inspectObject(itemProps.item.raw.object)">
               <template v-for="c in TimestampColumns" :key="c" #[`item.${c}`]="{ value }">
-                <span>
-                  {{ humanDuration((new Date()).valueOf() - (new Date(value)).valueOf()) }}
-                  <LinkedTooltip :text="`Since ${(new Date(value)).toLocaleString()}`" activator="parent" />
-                </span>
+                <HumanDurationSince :since="new Date(value)" />
               </template>
               <template v-for="c in ImageColumns" :key="c" #[`item.${c}`]="{ value }">
                 <template v-for="i in value.split(',')" :key="i">
