@@ -450,7 +450,7 @@ watch([targetType, verbose], () => order.value = []);
         </div>
         <VDataTableVirtual class="flex-shrink-1" style="min-height: 0"
           v-resize-observer="runTableLayoutAlgorithm"
-          :items="objects.rows" :headers="columns" :loading="loading" :sort-by="order"
+          :items="objects.rows ?? []" :headers="columns" :loading="loading" :sort-by="order"
           hover fixed-header>
           <!-- TODO: ask vuetify to open up VDataTableHeaderCell -->
           <template v-for="(c, i) in columns" #[`header.${c.key}`]="{ column, getSortIcon }" :key="i">
