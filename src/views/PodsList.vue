@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {
+  VBtn,
   VDataTable,
   VIcon,
   VTab,
@@ -57,6 +58,7 @@ const api = new CoreV1Api(await useApiConfig().getConfig());
 const tab = ref('table');
 const tabs = ref<Array<Tab>>([]);
 const pods = ref<Array<V1Pod>>([]);
+const expanded = ref<Array<string>>([]);
 
 const { appBarHeightPX } = useAppTabs();
 
@@ -176,6 +178,10 @@ const bell = (index: number) => {
     }
   }, 1000);
 };
+
+const toggleExpandAll = (expand: boolean) => expand ?
+  (expanded.value = pods.value.map((p) => p.metadata!.name!)) :
+  (expanded.value = []);
 </script>
 
 <template>
@@ -188,7 +194,8 @@ const bell = (index: number) => {
   <TabsWindow v-model="tab">
     <WindowItem value="table">
       <VDataTable :items="pods" :headers="columns" :loading="loading"
-        item-value="metadata.name" show-expand>
+        v-model:expanded="expanded"
+        item-value="metadata.name" expand-on-click show-expand>
         <template #[`header.metadata.name`]="{ column, getSortIcon }">
           <div class="v-data-table-header__content">
             {{ column.title }}
@@ -196,6 +203,12 @@ const bell = (index: number) => {
             <KeyValueBadge k="label" v="value" pill />
             <VIcon v-if="column.sortable" key="icon" class="v-data-table-header__sort-icon" :icon="getSortIcon(column)" />
           </div>
+        </template>
+        <template #[`header.data-table-expand`]>
+          <VBtn
+            :icon="`mdi-chevron-double-${expanded.length === pods.length ? 'up' : 'down'}`"
+            size="small" variant="text"
+            @click="toggleExpandAll(expanded.length !== pods.length)" />
         </template>
         <template #[`item.metadata.name`]="{ item: pod, value }">
           {{ value }}
