@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import { computed } from 'vue';
-import { useNow } from '@vueuse/core';
+import { storeToRefs } from 'pinia';
+import { useTime } from '@/stores/time';
 import { humanDuration } from '@/utils/duration';
 
 const props = defineProps<{
@@ -9,7 +10,7 @@ const props = defineProps<{
   ago?: boolean,
 }>();
 
-const now = useNow({ interval: 1000 });
+const { now } = storeToRefs(useTime());
 const duration = computed(() =>
   humanDuration(now.value.valueOf() - props.since.valueOf()));
 const tooltip = computed(() =>
