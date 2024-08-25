@@ -96,8 +96,8 @@ const innerColumns = [
     key: `state`,
     value: (c: ContainerData) =>
       c.state?.waiting ? `Waiting: ${c.state.waiting.reason}` :
-      c.state?.running ? `Running: ${c.ready ? 'ready' : 'unready'}` :
-      c.state?.terminated ? `Terminated: status ${c.state.terminated.exitCode}` : 'Unknown',
+      c.state?.running ? `Running: ${c.ready ? 'Ready' : 'Unready'}` :
+      c.state?.terminated ? `Terminated: Status ${c.state.terminated.exitCode}` : 'Unknown',
   },
   {
     title: 'Restarts',
@@ -211,19 +211,21 @@ const toggleExpandAll = (expand: boolean) => expand ?
             @click="toggleExpandAll(expanded.length !== pods.length)" />
         </template>
         <template #[`item.metadata.name`]="{ item: pod, value }">
-          {{ value }}
-          <br />
-          <KeyValueBadge v-for="(value, key) in pod.metadata!.annotations"
-            class="mr-1 mb-1"
-            :key="key" :k="key as string" :v="value" />
-          <br v-if="pod.metadata!.annotations" />
-          <KeyValueBadge v-for="(value, key) in pod.metadata!.labels"
-            class="mr-1 mb-1"
-            :key="key" :k="key as string" :v="value" pill />
+          <div class="my-2">
+            {{ value }}
+            <br />
+            <KeyValueBadge v-for="(value, key) in pod.metadata!.annotations"
+              class="mr-1 mb-1"
+              :key="key" :k="key as string" :v="value" />
+            <br v-if="pod.metadata!.annotations" />
+            <KeyValueBadge v-for="(value, key) in pod.metadata!.labels"
+              class="mr-1 mb-1"
+              :key="key" :k="key as string" :v="value" pill />
+          </div>
         </template>
         <template #expanded-row="{ columns, item: pod }">
           <tr>
-            <td class="inner-table py-4" :colspan="columns.length">
+            <td class="inner-table py-3 no-hover" :colspan="columns.length">
               <VDataTable class="bg-transparent"
                 :items="mergeContainerSpecStatus(pod)"
                 :headers="innerColumns" density="compact">
@@ -274,5 +276,9 @@ const toggleExpandAll = (expand: boolean) => expand ?
 <style scoped>
 .inner-table {
   background-color: rgba(var(--v-theme-background), var(--v-medium-emphasis-opacity));
+}
+
+.no-hover:after {
+  background-color: transparent !important;
 }
 </style>
