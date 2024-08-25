@@ -505,6 +505,6 @@ watch([targetType, verbose], () => order.value = []);
 }
 
 :deep(td) {
-  word-break: break-all;
+  overflow-wrap: break-word;
 }
 </style>
