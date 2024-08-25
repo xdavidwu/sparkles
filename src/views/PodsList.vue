@@ -10,6 +10,7 @@ import ExecTerminal from '@/components/ExecTerminal.vue';
 import KeyValueBadge from '@/components/KeyValueBadge.vue';
 import LogViewer from '@/components/LogViewer.vue';
 import LinkedImage from '@/components/LinkedImage.vue';
+import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import TabsWindow from '@/components/TabsWindow.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
 import WindowItem from '@/components/WindowItem.vue';
@@ -27,6 +28,7 @@ import {
 import { truncateStart } from '@/utils/text';
 import { listAndUnwaitedWatch } from '@/utils/watch';
 import { notifyListingWatchErrors } from '@/utils/errors';
+import { humanDuration } from '@/utils/duration';
 
 interface ContainerSpec {
   pod: string,
@@ -220,6 +222,14 @@ const bell = (index: number) => {
                 </template>
                 <template #[`item.image`]="{ item, value }">
                   <LinkedImage :image="value" :id="item.imageID" />
+                </template>
+                <template #[`item.restartCount`]="{ item, value }">
+                  {{ value }}
+                  <span v-if="value && item.lastState?.terminated?.finishedAt">
+                    <!-- TODO update this -->
+                    ({{ humanDuration((new Date()).valueOf() - item.lastState.terminated.finishedAt.valueOf()) }} ago)
+                    <LinkedTooltip :text="item.lastState.terminated.finishedAt.toLocaleString()" activator="parent" />
+                  </span>
                 </template>
                 <template #[`item.actions`]="{ item }">
                   <!-- TODO bring permission check back? -->
