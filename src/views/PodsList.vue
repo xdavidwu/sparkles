@@ -63,6 +63,19 @@ const columns = [
     title: 'Pod',
     key: 'metadata.name',
   },
+  {
+    title: 'IPs',
+    key: 'status.podIPs',
+    value: (pod: V1Pod) => pod.status?.podIPs?.map((a) => a.ip).join(', '),
+  },
+  {
+    title: 'Node',
+    key: 'spec.nodeName',
+  },
+  {
+    title: 'Phase',
+    key: 'status.phase',
+  },
 ];
 
 const innerColumns = [
@@ -79,9 +92,14 @@ const innerColumns = [
     key: 'ready',
   },
   {
+    title: 'Restarts',
+    key: 'restartCount',
+  },
+  {
     title: 'Actions',
     key: 'actions',
     value: () => '',
+    sortable: false,
     nowrap: true,
     width: 0,
     cellProps: {
@@ -110,7 +128,7 @@ const mergeContainerSpecStatus = (pod: V1Pod): Array<ContainerData & { type?: st
   })).concat(pod.spec!.initContainers?.map((c) => ({
     ...c,
     ...pod.status?.initContainerStatuses?.find((s) => s.name == c.name),
-    type: 'init',
+    type: c.restartPolicy == 'Always' ? 'sidecar' : 'init',
   })) ?? []).concat(pod.spec!.ephemeralContainers?.map((c) => ({
     ...c,
     ...pod.status?.ephemeralContainerStatuses?.find((s) => s.name == c.name),
@@ -164,7 +182,7 @@ const bell = (index: number) => {
   <TabsWindow v-model="tab">
     <WindowItem value="table">
       <VDataTable :items="pods" :headers="columns" :loading="loading"
-        item-value="metadata.name" disable-sort show-expand>
+        item-value="metadata.name" show-expand>
         <template #[`header.metadata.name`]>
           Pod
           <KeyValueBadge k="annotation" v="value" class="mr-1" />
