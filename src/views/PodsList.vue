@@ -211,7 +211,7 @@ const bell = (index: number) => {
         <template #expanded-row="{ columns, item: pod }">
           <tr>
             <td class="inner-table py-4" :colspan="columns.length">
-              <VDataTable class="inner-table"
+              <VDataTable class="bg-transparent"
                 :items="mergeContainerSpecStatus(pod)"
                 :headers="innerColumns" density="compact">
                 <template #[`item.name`]="{ item, value }">
