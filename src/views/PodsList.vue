@@ -22,7 +22,7 @@ import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
 import {
   CoreV1Api,
-  type V1Pod, V1PodFromJSON, type V1Container, type V1ContainerStatus,
+  type V1Pod, V1PodFromJSON, type V1Container, type V1ContainerStatus, type V1EphemeralContainer,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { truncateStart } from '@/utils/text';
 import { listAndUnwaitedWatch } from '@/utils/watch';
@@ -44,7 +44,7 @@ interface Tab {
   bellTimeoutID?: ReturnType<typeof setTimeout>,
 }
 
-type ContainerData = V1Container & Partial<V1ContainerStatus>;
+type ContainerData = (V1Container | V1EphemeralContainer) & Partial<V1ContainerStatus>;
 
 const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces;
@@ -103,11 +103,19 @@ const { load, loading } = useLoading(async () => {
 
 watch(selectedNamespace, load, { immediate: true });
 
-const mergeContainerSpecStatus = (pod: V1Pod) =>
-  pod.spec?.containers.map((c) => ({
+const mergeContainerSpecStatus = (pod: V1Pod): Array<ContainerData & { type?: string }> =>
+  pod.spec!.containers.map((c) => ({
     ...c,
     ...pod.status?.containerStatuses?.find((s) => s.name == c.name),
-  }));
+  })).concat(pod.spec!.initContainers?.map((c) => ({
+    ...c,
+    ...pod.status?.initContainerStatuses?.find((s) => s.name == c.name),
+    type: 'init',
+  })) ?? []).concat(pod.spec!.ephemeralContainers?.map((c) => ({
+    ...c,
+    ...pod.status?.ephemeralContainerStatuses?.find((s) => s.name == c.name),
+    type: c.targetContainerName ? `ephemeral, targeting ${c.targetContainerName}` : 'ephemeral',
+  })) ?? []);
 
 const closeTab = (index: number) => {
   tab.value = 'table';
@@ -179,6 +187,12 @@ const bell = (index: number) => {
               <VDataTable class="inner-table"
                 :items="mergeContainerSpecStatus(pod)"
                 :headers="innerColumns" density="compact">
+                <template #[`item.name`]="{ item, value }">
+                  {{ value }}
+                  <template v-if="item.type">
+                    ({{ item.type }})
+                  </template>
+                </template>
                 <template #[`item.image`]="{ item, value }">
                   <LinkedImage :image="value" :id="item.imageID" />
                 </template>
