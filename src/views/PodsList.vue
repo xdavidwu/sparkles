@@ -13,15 +13,13 @@ import LinkedImage from '@/components/LinkedImage.vue';
 import TabsWindow from '@/components/TabsWindow.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
 import WindowItem from '@/components/WindowItem.vue';
-import { computed, ref, watch } from 'vue';
-import { computedAsync } from '@vueuse/core';
+import { ref, watch } from 'vue';
 import { useAbortController } from '@/composables/abortController';
 import { useAppTabs } from '@/composables/appTabs';
 import { useLoading } from '@/composables/loading';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
-import { usePermissions } from '@/stores/permissions';
 import {
   CoreV1Api,
   type V1Pod, V1PodFromJSON, type V1Container, type V1ContainerStatus,
@@ -46,17 +44,7 @@ interface Tab {
   bellTimeoutID?: ReturnType<typeof setTimeout>,
 }
 
-type _ContainerData = V1Container & V1ContainerStatus;
-
-interface ContainerData extends _ContainerData {
-  _extra: {
-    pod: V1Pod,
-    mayReadLogs?: boolean,
-    mayExec?: boolean,
-  },
-}
-
-const { mayAllows } = usePermissions();
+type ContainerData = V1Container & Partial<V1ContainerStatus>;
 
 const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces;
@@ -66,36 +54,18 @@ const api = new CoreV1Api(await useApiConfig().getConfig());
 
 const tab = ref('table');
 const tabs = ref<Array<Tab>>([]);
-const _pods = ref<Array<V1Pod>>([]);
-const _containers = computed<Array<ContainerData>>(() =>
-  _pods.value.flatMap((pod) => pod.spec!.containers.map((c) =>
-    ({
-      ...c,
-      ...pod.status!.containerStatuses?.find((s) => s.name == c.name),
-      _extra: { pod },
-    } as ContainerData))));
-// XXX: this updates once all settles
-const containers = computedAsync(async () => Promise.all(_containers.value.map(async (c) => ({
-  ...c,
-  _extra: {
-    pod: c._extra.pod,
-    mayReadLogs: await mayAllows(selectedNamespace.value, '', 'pods/log', c._extra.pod.metadata!.name!, 'get'),
-    mayExec: await mayAllows(selectedNamespace.value, '', 'pods/exec', c._extra.pod.metadata!.name!, 'create'),
-  },
-}))), _containers.value);
+const pods = ref<Array<V1Pod>>([]);
 
 const { appBarHeightPX } = useAppTabs();
 
 const columns = [
   {
     title: 'Pod',
-    key: '_extra.pod.metadata.name',
-    // XXX: reconsider this?
-    cellProps: ({ item }: { item: ContainerData }) => ({
-      rowspan: item._extra.pod.spec!.containers.length,
-      style: item.name === item._extra.pod.spec!.containers[0].name ? '' : 'display: none',
-    }),
+    key: 'metadata.name',
   },
+];
+
+const innerColumns = [
   {
     title: 'Container',
     key: 'name',
@@ -125,7 +95,7 @@ const { abort: abortRequests, signal } = useAbortController();
 const { load, loading } = useLoading(async () => {
   abortRequests();
 
-  await listAndUnwaitedWatch(_pods, V1PodFromJSON,
+  await listAndUnwaitedWatch(pods, V1PodFromJSON,
     (opt) => api.listNamespacedPodRaw({ ...opt, namespace: selectedNamespace.value }, { signal: signal.value }),
     notifyListingWatchErrors,
   );
@@ -133,21 +103,27 @@ const { load, loading } = useLoading(async () => {
 
 watch(selectedNamespace, load, { immediate: true });
 
+const mergeContainerSpecStatus = (pod: V1Pod) =>
+  pod.spec?.containers.map((c) => ({
+    ...c,
+    ...pod.status?.containerStatuses?.find((s) => s.name == c.name),
+  }));
+
 const closeTab = (index: number) => {
   tab.value = 'table';
   tabs.value.splice(index, 1);
 };
 
-const createTab = (type: 'exec' | 'log', target: ContainerData) => {
-  const pod = target._extra.pod.metadata!.name!;
-  const container = target.name;
-  const id = type === 'log' ? `${pod}/${container}` : crypto.randomUUID();
+const createTab = (type: 'exec' | 'log', target: ContainerData, pod: V1Pod) => {
+  const podName = pod.metadata!.name!;
+  const containerName = target.name;
+  const id = type === 'log' ? `${podName}/${containerName}` : crypto.randomUUID();
   if (!tabs.value.some((t) => t.id === id)) {
-    const isOnlyContainer = target._extra.pod.status!.containerStatuses!.length === 1;
-    const name = isOnlyContainer ? truncateStart(pod, 8) : `${truncateStart(pod, 8)}/${container}`;
-    const fullName = `${pod}/${container}`;
+    const isOnlyContainer = pod.status?.containerStatuses!.length === 1;
+    const name = isOnlyContainer ? truncateStart(podName, 8) : `${truncateStart(podName, 8)}/${containerName}`;
+    const fullName = `${podName}/${containerName}`;
     tabs.value.push({
-      type, id, spec: { pod, container }, alerting: false,
+      type, id, spec: { pod: podName, container: containerName }, alerting: false,
       defaultTitle: `${type === 'exec' ? 'Terminal' : 'Log'}: ${name}`,
       description: `${type === 'exec' ? 'Terminal' : 'Log'}: ${fullName}`,
     });
@@ -179,14 +155,14 @@ const bell = (index: number) => {
   </AppTabs>
   <TabsWindow v-model="tab">
     <WindowItem value="table">
-      <VDataTable :items="containers" :headers="columns" :loading="loading"
-        disable-sort>
-        <template #[`header._extra.pod.metadata.name`]>
+      <VDataTable :items="pods" :headers="columns" :loading="loading"
+        item-value="metadata.name" disable-sort show-expand>
+        <template #[`header.metadata.name`]>
           Pod
           <KeyValueBadge k="annotation" v="value" class="mr-1" />
           <KeyValueBadge k="label" v="value" pill />
         </template>
-        <template #[`item._extra.pod.metadata.name`]="{ item: { _extra: { pod } }, value }">
+        <template #[`item.metadata.name`]="{ item: pod, value }">
           {{ value }}
           <br />
           <KeyValueBadge v-for="(value, key) in pod.metadata!.annotations"
@@ -197,20 +173,32 @@ const bell = (index: number) => {
             class="mr-1 mb-1"
             :key="key" :k="key as string" :v="value" pill />
         </template>
-        <template #[`item.image`]="{ item, value }">
-          <LinkedImage :image="value" :id="item.imageID ?? ''" />
-        </template>
-        <template #[`item.ready`]="{ value }">
-          <VIcon v-if="value" icon="mdi-check" />
-          <VIcon v-else icon="mdi-close" color="red" />
-        </template>
-        <template #[`item.actions`]="{ item }">
-          <TippedBtn size="small" icon="mdi-console-line" tooltip="Terminal" variant="text"
-            :disabled="!item.state?.running || (item._extra.mayExec !== undefined && !item._extra.mayExec)"
-            @click="createTab('exec', item)" />
-          <TippedBtn size="small" icon="mdi-file-document" tooltip="Log" variant="text"
-            :disabled="item._extra.mayReadLogs !== undefined && !item._extra.mayReadLogs"
-            @click="createTab('log', item)" />
+        <template #expanded-row="{ columns, item: pod }">
+          <tr>
+            <td class="inner-table py-4" :colspan="columns.length">
+              <VDataTable class="inner-table"
+                :items="mergeContainerSpecStatus(pod)"
+                :headers="innerColumns" density="compact">
+                <template #[`item.image`]="{ item, value }">
+                  <LinkedImage :image="value" :id="item.imageID" />
+                </template>
+                <template #[`item.ready`]="{ value }">
+                  <VIcon v-if="value" icon="mdi-check" />
+                  <VIcon v-else icon="mdi-close" color="red" />
+                </template>
+                <template #[`item.actions`]="{ item }">
+                  <!-- TODO bring permission check back? -->
+                  <TippedBtn size="small" icon="mdi-console-line"
+                    tooltip="Terminal" variant="text"
+                    :disabled="!item.state?.running"
+                    @click="createTab('exec', item, pod)" />
+                  <TippedBtn size="small" icon="mdi-file-document"
+                    tooltip="Log" variant="text"
+                    @click="createTab('log', item, pod)" />
+                </template>
+              </VDataTable>
+            </td>
+          </tr>
         </template>
       </VDataTable>
     </WindowItem>
@@ -224,3 +212,9 @@ const bell = (index: number) => {
     </WindowItem>
   </TabsWindow>
 </template>
+
+<style scoped>
+.inner-table {
+  background-color: rgba(var(--v-theme-background), var(--v-medium-emphasis-opacity));
+}
+</style>
