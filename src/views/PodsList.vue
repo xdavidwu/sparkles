@@ -198,8 +198,8 @@ const toggleExpandAll = (expand: boolean) => expand ?
         <template #[`header.metadata.name`]="{ column, getSortIcon }">
           <div class="v-data-table-header__content">
             {{ column.title }}
-            <KeyValueBadge k="annotation" v="value" class="mr-1" />
-            <KeyValueBadge k="label" v="value" pill />
+            <KeyValueBadge k="annotation" v="value" class="ms-1" />
+            <KeyValueBadge k="label" v="value" class="ms-1" pill />
             <VIcon v-if="column.sortable" key="icon" class="v-data-table-header__sort-icon" :icon="getSortIcon(column)" />
           </div>
         </template>
