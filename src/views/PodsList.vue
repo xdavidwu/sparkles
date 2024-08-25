@@ -88,8 +88,12 @@ const innerColumns = [
     key: 'image',
   },
   {
-    title: 'Ready',
-    key: 'ready',
+    title: 'State',
+    key: `state`,
+    value: (c: ContainerData) =>
+      c.state?.waiting ? `Waiting: ${c.state.waiting.reason}` :
+      c.state?.running ? `Running: ${c.ready ? 'ready' : 'unready'}` :
+      c.state?.terminated ? `Terminated: status ${c.state.terminated.exitCode}` : 'Unknown',
   },
   {
     title: 'Restarts',
@@ -216,10 +220,6 @@ const bell = (index: number) => {
                 </template>
                 <template #[`item.image`]="{ item, value }">
                   <LinkedImage :image="value" :id="item.imageID" />
-                </template>
-                <template #[`item.ready`]="{ value }">
-                  <VIcon v-if="value" icon="mdi-check" />
-                  <VIcon v-else icon="mdi-close" color="red" />
                 </template>
                 <template #[`item.actions`]="{ item }">
                   <!-- TODO bring permission check back? -->
