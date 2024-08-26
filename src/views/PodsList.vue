@@ -67,6 +67,12 @@ const columns = [
     key: 'metadata.name',
   },
   {
+    title: 'Owned by',
+    key: 'metadata.ownerReferences',
+    value: (pod: V1Pod) =>
+      pod.metadata!.ownerReferences?.map((o) => `${o.kind} ${o.name}`).join(', '),
+  },
+  {
     title: 'IPs',
     key: 'status.podIPs',
     value: (pod: V1Pod) => pod.status?.podIPs?.map((a) => a.ip).join(', '),
