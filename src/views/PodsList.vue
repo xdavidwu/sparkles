@@ -130,6 +130,7 @@ const { load, loading } = useLoading(async () => {
     (opt) => api.listNamespacedPodRaw({ ...opt, namespace: selectedNamespace.value }, { signal: signal.value }),
     notifyListingWatchErrors,
   );
+  toggleExpandAll(false);
 });
 
 watch(selectedNamespace, load, { immediate: true });
