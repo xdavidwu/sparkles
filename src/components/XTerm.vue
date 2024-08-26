@@ -33,7 +33,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div ref="div" style="touch-action: pan-x pinch-zoom; overflow: clip" />
+  <div ref="div" class="bg-black"
+    style="touch-action: pan-x pinch-zoom; overflow: clip" />
 </template>
 
 <style scoped>
