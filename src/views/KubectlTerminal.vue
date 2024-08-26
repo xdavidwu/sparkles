@@ -105,9 +105,18 @@ const create = async () => {
         // TODO find a better one with completion, helm, match version with cluster
         image: 'bitnami/kubectl',
         command: ['/bin/sleep', 'infinity'],
+        securityContext: {
+          allowPrivilegeEscalation: false,
+          capabilities: {
+            drop: ['ALL'],
+          },
+          runAsNonRoot: true,
+          seccompProfile: {
+            type: 'RuntimeDefault',
+          },
+        },
       }],
       serviceAccountName: SUPPORTING_SERVICEACCOUNT_NAME,
-      // TODO sec context for pss
     },
   };
 
