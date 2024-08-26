@@ -7,11 +7,13 @@ const expanded = ref(false);
 
 defineProps<{
   title?: string;
+  offset?: number;
 }>();
 </script>
 
 <template>
-  <VCard class="panel" :class="{ expanded, 'text-medium-emphasis': !expanded }">
+  <VCard class="panel" :class="{ expanded, 'text-medium-emphasis': !expanded }"
+    :style='`right: ${offset ?? 0}px`'>
     <div class="d-flex align-center">
       <div class="d-flex flex-column align-center toggle py-2" v-ripple
         @click="expanded = !expanded">
@@ -32,7 +34,6 @@ defineProps<{
 .panel {
   position: absolute;
   top: 8px;
-  right: 0;
   z-index: 1000;
   background-color: rgba(var(--v-theme-surface-light), var(--v-medium-emphasis-opacity));
 }

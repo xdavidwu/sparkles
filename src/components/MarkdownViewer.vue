@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
 import TableOfContents from '@/components/TableOfContents.vue';
+import { useResizeObserver } from '@vueuse/core';
 import markdownit from 'markdown-it';
 import anchor from 'markdown-it-anchor';
 import DOMPurify from 'dompurify';
@@ -44,6 +45,12 @@ const renderer = markdownit('commonmark', {
 const div = ref<HTMLDivElement>();
 const toc = ref<Array<{ level: number, id: string, title: string }>>([]);
 const rendered = computed(() => DOMPurify.sanitize(renderer.render(props.markdown)));
+const tocOffset = ref(0);
+
+useResizeObserver(div, () => {
+  console.log(div.value);
+  tocOffset.value = div.value!.offsetWidth - div.value!.clientWidth;
+});
 
 onMounted(() => {
   StyleModule.mount(document, oneDarkHighlightStyle.module!);
@@ -83,6 +90,6 @@ const navigate = (id: string) => div.value?.querySelector(`#${CSS.escape(id)}`)?
 <template>
   <div>
     <div ref="div" class="overflow-y-auto h-100 pe-4 markdown" v-html="rendered" />
-    <TableOfContents :toc="toc" @navigate="navigate" />
+    <TableOfContents :toc="toc" :offset="tocOffset" @navigate="navigate" />
   </div>
 </template>
