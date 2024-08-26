@@ -116,6 +116,21 @@ export const fromYAML: ChainableInitOverrideFunction = async (context) => {
   return overridden;
 };
 
+interface ConditionConvention {
+  type: string;
+  status: string;
+}
+
+export const matchCondition = (
+  conditions: (Array<ConditionConvention> | undefined),
+  condition: string, status: V1ConditionStatus,
+): boolean => conditions?.some((c) => c.type === condition && c.status === status) ?? false;
+
+export const hasCondition = (
+  object: { status?: { conditions?: Array<ConditionConvention> }},
+  condition: string, status: V1ConditionStatus,
+): boolean => matchCondition(object.status?.conditions, condition, status);
+
 const identityOverrideFn: InitOverrideFunction = async ({ init }) => init;
 
 export const chainOverrideFunction = (

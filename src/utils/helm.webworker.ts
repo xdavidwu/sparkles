@@ -15,7 +15,7 @@ import { parse, parseAllDocuments } from 'yaml';
 import { AnyApi } from '@/utils/AnyApi';
 import {
   errorIsResourceNotFound, errorIsAborted, errorIsAlreadyExists, rawErrorIsAborted,
-  V1ConditionStatus, V1CustomResourceDefinitionConditionType, V1JobConditionType,
+  hasCondition, V1ConditionStatus, V1CustomResourceDefinitionConditionType, V1JobConditionType,
   V1PodStatusPhase, V1WatchEventType,
 } from '@/utils/api';
 import { fetchBase64Data } from '@/utils/lang';
@@ -493,12 +493,10 @@ const execHooks = (
           V1JobFromJSON,
           (ev) => {
             if (ev.type == V1WatchEventType.ADDED || ev.type == V1WatchEventType.MODIFIED) {
-              if (ev.object.status?.conditions?.some((c) =>
-                  c.type == V1JobConditionType.COMPLETE && c.status == V1ConditionStatus.TRUE)) {
+              if (hasCondition(ev.object, V1JobConditionType.COMPLETE, V1ConditionStatus.TRUE)) {
                 return true;
               }
-              if (ev.object.status?.conditions?.some((c) =>
-                  c.type == V1JobConditionType.FAILED && c.status == V1ConditionStatus.TRUE)) {
+              if (hasCondition(ev.object, V1JobConditionType.FAILED, V1ConditionStatus.TRUE)) {
                 throw new PresentedError(`Failed to exec hook: Job ${obj.metadata!.name} failed`);
               }
               return false;
@@ -701,12 +699,10 @@ const fns = {
         V1CustomResourceDefinitionFromJSON,
         (ev) => {
           if (ev.type == V1WatchEventType.ADDED || ev.type == V1WatchEventType.MODIFIED) {
-            if (ev.object.status?.conditions?.some((c) =>
-                c.type == V1CustomResourceDefinitionConditionType.ESTABLISHED && c.status == V1ConditionStatus.TRUE)) {
+            if (hasCondition(ev.object, V1CustomResourceDefinitionConditionType.ESTABLISHED, V1ConditionStatus.TRUE)) {
               return true;
             }
-            if (ev.object.status?.conditions?.some((c) =>
-                c.type == V1CustomResourceDefinitionConditionType.NAMES_ACCEPTED && c.status == V1ConditionStatus.FALSE)) {
+            if (hasCondition(ev.object, V1CustomResourceDefinitionConditionType.NAMES_ACCEPTED, V1ConditionStatus.FALSE)) {
               // a conflict, server already accepts it but with other defs
               const msg: ToastMessage = {
                 type: 'toast',
