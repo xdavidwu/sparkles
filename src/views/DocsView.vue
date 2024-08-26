@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { VueComponent as Content } from '@/assets/docs.md';
-import StyledMarkdown from '@/components/StyledMarkdown.vue';
 
 const div = ref<HTMLDivElement>();
 
@@ -13,9 +12,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <StyledMarkdown>
-    <div ref="div">
-      <Content />
-    </div>
-  </StyledMarkdown>
+  <div class="markdown" ref="div">
+    <Content />
+  </div>
 </template>

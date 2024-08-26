@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
-import StyledMarkdown from '@/components/StyledMarkdown.vue';
 import TableOfContents from '@/components/TableOfContents.vue';
 import markdownit from 'markdown-it';
 import anchor from 'markdown-it-anchor';
@@ -83,9 +82,7 @@ const navigate = (id: string) => div.value?.querySelector(`#${CSS.escape(id)}`)?
 
 <template>
   <div>
-    <StyledMarkdown class="overflow-y-auto h-100 pe-4">
-      <div ref="div" v-html="rendered" />
-    </StyledMarkdown>
+    <div ref="div" class="overflow-y-auto h-100 pe-4 markdown" v-html="rendered" />
     <TableOfContents :toc="toc" @navigate="navigate" />
   </div>
 </template>

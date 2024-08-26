@@ -234,4 +234,35 @@ a:not([class^="v-"]):visited {
 a:not([class^="v-"]):active, a:not([class^="v-"]):visited:active {
   color: #ff9e9e;
 }
+
+.markdown :is(h1, h2, h3, h4, h5, h6, p, table) {
+  margin-top: 0.4lh;
+  margin-bottom: 0.2lh;
+}
+
+.markdown li {
+  margin-left: 16px;
+  margin-top: 2px;
+}
+
+.markdown code {
+  padding: 0 2px;
+  background: black;
+}
+
+.markdown pre > code {
+  padding: 4px;
+  display: block;
+  background: #282c34;
+  color: #abb2bf;
+}
+
+.markdown table {
+  border-collapse: collapse;
+}
+
+.markdown :is(th, td) {
+  border: 2px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  padding: 4px 8px;
+}
 </style>
