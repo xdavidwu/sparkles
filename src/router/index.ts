@@ -72,6 +72,12 @@ const router = createRouter({
       component: () => import('@/views/ResourceExplorer.vue'),
       meta: { name: 'Resource Explorer', category: Category.NAMESPACED },
     },
+    {
+      path: '/kubectl',
+      name: 'kubectl',
+      component: () => import('@/views/KubectlTerminal.vue'),
+      meta: { name: 'kubectl', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'pods') },
+    },
     // cluster
     {
       path: '/metrics',
