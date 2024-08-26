@@ -31,7 +31,7 @@ defineProps<{
 <style scoped>
 .panel {
   position: absolute;
-  top: 16px;
+  top: 8px;
   right: 0;
   z-index: 1000;
   background-color: rgba(var(--v-theme-surface-light), var(--v-medium-emphasis-opacity));

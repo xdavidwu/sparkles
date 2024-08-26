@@ -29,9 +29,7 @@ const tree = computed(() => {
     while (level > expected) {
       const item = { id: '', title: 'Unknown', children: [] };
       stack[stack.length - 1].push(item);
-      console.log(stack.length);
       stack.push(item.children);
-      console.log(stack.length);
       level--;
     }
     while (level < expected) {
@@ -54,18 +52,18 @@ const tree = computed(() => {
   return stack[0];
 });
 
-const navigate = (id: unknown) => {
-  const s = id as string;
-  s.length && emit('navigate', s);
+const navigate = (ids: unknown) => {
+  const s = ids as Array<string>;
+  emit('navigate', s[0]);
 };
 </script>
 
 <template>
   <ExpandableSidePanel title="table of contents">
-    <div class="mx overflow-y-auto">
-      <VTreeview :items="tree" item-value="id" class="light" density="compact"
-        @update:selected="navigate" />
-    </div>
+    <VTreeview class="mx overflow-y-auto light smaller"
+      :items="tree" item-value="id" density="compact"
+      open-all activatable mandatory
+      @update:activated="navigate" />
   </ExpandableSidePanel>
 </template>
 
@@ -79,6 +77,10 @@ const navigate = (id: unknown) => {
 }
 
 .mx {
-  max-height: calc(100dvh - 256px);
+  max-height: calc(100dvh - 128px);
+}
+
+.smaller {
+  zoom: 0.875;
 }
 </style>
