@@ -133,13 +133,13 @@ const { appBarHeightPX } = useAppTabs();
 const { abort: abortRequests, signal } = useAbortController();
 
 const runTableLayoutAlgorithm = () => {
-  const table = document.querySelector('.v-data-table table')!;
-  table.querySelectorAll('th').forEach((th) => th.removeAttribute('width'));
-  table.setAttribute('style', 'table-layout: auto');
+  const table = document.querySelector('.v-data-table table');
+  table?.querySelectorAll('th').forEach((th) => th.removeAttribute('width'));
+  table?.setAttribute('style', 'table-layout: auto');
   requestAnimationFrame(() => {
-    table.querySelectorAll('th').forEach((th) =>
+    table?.querySelectorAll('th').forEach((th) =>
       th.setAttribute('width', `${th.getBoundingClientRect().width}`));
-    table.setAttribute('style', 'table-layout: fixed');
+    table?.setAttribute('style', 'table-layout: fixed');
   });
 };
 
