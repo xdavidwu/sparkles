@@ -219,6 +219,9 @@ const toggleExpandAll = (expand: boolean) => expand ?
         <template #[`item.metadata.name`]="{ item: pod, value }">
           <div class="my-2">
             {{ value }}
+            <template v-if="pod.metadata.deletionTimestamp">
+              (deleting)
+            </template>
             <br />
             <KeyValueBadge v-for="(value, key) in pod.metadata!.annotations"
               class="mr-1 mb-1"
