@@ -14,6 +14,7 @@ import {
   type V1Pod, type V1ServiceAccount, type V1RoleBinding,
   V1PodFromJSON,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
+import { createNameId } from 'mnemonic-id';
 
 const config = await useApiConfig().getConfig();
 const api = new CoreV1Api(config);
@@ -53,7 +54,7 @@ const create = async () => {
   state.value = State.CREATING;
   progressMessage.value = 'Creating supporting pod';
   progressing.value = true;
-  podName.value = `${SUPPORTING_POD_PREFIX}${crypto.randomUUID()}`;
+  podName.value = `${SUPPORTING_POD_PREFIX}${createNameId()}`;
 
   const managedByLabel = {
     'apps.kubernetes.io/managed-by': 'sparkles',
@@ -137,7 +138,7 @@ const create = async () => {
 };
 
 const waitForReady = async () => {
-  progressMessage.value = 'Waiting supporting pod to become ready';
+  progressMessage.value = 'Waiting for supporting pod to become ready';
   progressing.value = true;
   // TODO timeout?
   await watchUntil(
