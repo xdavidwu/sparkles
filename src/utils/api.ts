@@ -98,23 +98,19 @@ export enum V1CustomResourceDefinitionConditionType {
 export type ChainableInitOverrideFunction = (...p: Parameters<InitOverrideFunction>) =>
   (Promise<Awaited<ReturnType<InitOverrideFunction>> & HTTPRequestInit & { headers: HTTPHeaders }>);
 
-export const asYAML: ChainableInitOverrideFunction = async (context) => {
-  const overridden = {
-    ...context.init,
-    headers: context.init.headers ?? {},
+const overrideHeader = (key: string, value: string): ChainableInitOverrideFunction =>
+  async (context) => {
+    const overridden = {
+      ...context.init,
+      headers: context.init.headers ?? {},
+    };
+    overridden.headers[key] = value;
+    return overridden;
   };
-  overridden.headers['accept'] = 'application/yaml';
-  return overridden;
-};
 
-export const fromYAML: ChainableInitOverrideFunction = async (context) => {
-  const overridden = {
-    ...context.init,
-    headers: context.init.headers ?? {},
-  };
-  overridden.headers['Content-Type'] = 'application/yaml';
-  return overridden;
-};
+export const asYAML = overrideHeader('Accept', 'application/yaml');
+export const fromYAML = overrideHeader('Content-Type', 'application/yaml');
+export const fromYAMLSSA = overrideHeader('Content-Type', 'application/apply-patch+yaml');
 
 interface ConditionConvention {
   type: string;
