@@ -1,3 +1,7 @@
+export const managedByLabel = {
+  'apps.kubernetes.io/managed-by': 'sparkles',
+};
+
 const namespace = 'sparkles.xdavidwu.link';
 
 // on ResourceQuota to exclude from QuotasUsage

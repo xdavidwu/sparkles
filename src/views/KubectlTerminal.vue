@@ -8,6 +8,7 @@ import { useEventListener } from '@vueuse/core';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
 import { errorIsResourceNotFound, fromYAMLSSA, V1WatchEventType } from '@/utils/api';
+import { managedByLabel } from '@/utils/contracts';
 import { watchUntil } from '@/utils/watch';
 import { PresentedError } from '@/utils/PresentedError';
 import {
@@ -57,14 +58,12 @@ const create = async () => {
   progressing.value = true;
   podName.value = `${SUPPORTING_POD_PREFIX}${createNameId()}`;
 
-  const managedByLabel = {
-    'apps.kubernetes.io/managed-by': 'sparkles',
-  };
   const serviceAccount: V1ServiceAccount = {
     apiVersion: 'v1',
     kind: 'ServiceAccount',
     metadata: {
       name: SUPPORTING_SERVICEACCOUNT_NAME,
+      labels: managedByLabel,
     },
   };
   const roleBinding: V1RoleBinding = {
@@ -72,6 +71,7 @@ const create = async () => {
     kind: 'RoleBinding',
     metadata: {
       name: SUPPORTING_ROLEBINDING_NAME,
+      labels: managedByLabel,
     },
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',
