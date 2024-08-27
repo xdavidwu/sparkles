@@ -87,6 +87,13 @@ const { load, loading } = useLoading(async () => {
     }, { signal: signal.value }),
     notifyListingWatchErrors,
   );
+
+  // attempt gc
+  await Promise.all(secrets.value.filter(
+    (s) => s.metadata!.annotations?.[tokenExpiresAtAnnotation] &&
+      (new Date(s.metadata!.annotations[tokenExpiresAtAnnotation]) < new Date()))
+    .map((s) => api.deleteNamespacedSecret({
+      namespace: s.metadata!.namespace!, name: s.metadata!.name! })));
 });
 
 watch(selectedNamespace, load, { immediate: true });
