@@ -219,7 +219,7 @@ const toggleExpandAll = (expand: boolean) => expand ?
         <template #[`item.metadata.name`]="{ item: pod, value }">
           <div class="my-2">
             {{ value }}
-            <template v-if="pod.metadata.deletionTimestamp">
+            <template v-if="pod.metadata!.deletionTimestamp">
               (deleting)
             </template>
             <br />
