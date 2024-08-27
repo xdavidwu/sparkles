@@ -2,7 +2,7 @@
 import { VBtn, VCard, VDialog } from 'vuetify/components';
 import ExecTerminal from '@/components/ExecTerminal.vue';
 import ProgressDialog from '@/components/ProgressDialog.vue';
-import { ref, watch } from 'vue';
+import { ref, watch, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
@@ -29,15 +29,18 @@ enum State {
 }
 
 const state = ref(State.LOADING);
+const podName = ref('');
 const progressMessage = ref('');
 const progressing = ref(false);
 
-const SUPPORTING_POD_NAME = 'sparkles-kubectl-shell';
+const name = 'sparkles-kubectl-shell';
+const SUPPORTING_POD_PREFIX = `${name}-`;
 const SUPPORTING_CONTAINER_NAME = 'kubectl';
-const SUPPORTING_SERVICEACCOUNT_NAME = SUPPORTING_POD_NAME;
-const SUPPORTING_ROLEBINDING_NAME = SUPPORTING_POD_NAME;
+const SUPPORTING_SERVICEACCOUNT_NAME = name;
+const SUPPORTING_ROLEBINDING_NAME = name;
 
 const load = async () => {
+  podName.value = '';
   state.value = State.ASK_FOR_CREATING;
 };
 
@@ -50,6 +53,7 @@ const create = async () => {
   state.value = State.CREATING;
   progressMessage.value = 'Creating supporting pod';
   progressing.value = true;
+  podName.value = `${SUPPORTING_POD_PREFIX}${crypto.randomUUID()}`;
 
   const managedByLabel = {
     'apps.kubernetes.io/managed-by': 'sparkles',
@@ -82,7 +86,7 @@ const create = async () => {
     apiVersion: 'v1',
     kind: 'Pod',
     metadata: {
-      name: SUPPORTING_POD_NAME,
+      name: podName.value,
       labels: managedByLabel,
     },
     spec: {
@@ -90,7 +94,10 @@ const create = async () => {
         name: SUPPORTING_CONTAINER_NAME,
         // TODO find a better one with completion, helm, match version with cluster
         image: 'bitnami/kubectl',
-        command: ['/bin/sleep', 'infinity'],
+        command: ['/bin/bash'],
+        tty: true,
+        stdin: true,
+        stdinOnce: true,
         securityContext: {
           allowPrivilegeEscalation: false,
           capabilities: {
@@ -114,12 +121,10 @@ const create = async () => {
   }, fromYAMLSSA);
 
   await Promise.all([
-    api.patchNamespacedPod({
+    api.createNamespacedPod({
       namespace: selectedNamespace.value,
-      name: SUPPORTING_POD_NAME,
-      force: true,
-      body: encodeBlob(pod),
-    }, fromYAMLSSA),
+      body: pod,
+    }),
     rbacApi.patchNamespacedRoleBinding({
       namespace: selectedNamespace.value,
       name: SUPPORTING_ROLEBINDING_NAME,
@@ -138,7 +143,7 @@ const waitForReady = async () => {
   await watchUntil(
     (opt) => api.listNamespacedPodRaw({
       namespace: selectedNamespace.value,
-      fieldSelector: `metadata.name=${SUPPORTING_POD_NAME}`,
+      fieldSelector: `metadata.name=${podName.value}`,
       ...opt
     }),
     V1PodFromJSON,
@@ -159,7 +164,15 @@ const waitForReady = async () => {
 
 await load();
 
-watch(selectedNamespace, load);
+const cleanup = (namespace: string) =>
+  podName.value ? api.deleteNamespacedPod({ namespace, name: podName.value }) : undefined;
+
+watch(selectedNamespace, (to: string, from: string) => Promise.all([
+  load,
+  cleanup(from),
+]));
+
+onUnmounted(() => cleanup(selectedNamespace.value));
 </script>
 
 <template>
@@ -190,7 +203,7 @@ watch(selectedNamespace, load);
     <ExecTerminal v-if="state === State.READY"
       style="height: calc(100dvh - 64px - 32px)"
       :container-spec="{ namespace: selectedNamespace,
-        pod: SUPPORTING_POD_NAME, container: SUPPORTING_CONTAINER_NAME }" />
+        pod: podName, container: SUPPORTING_CONTAINER_NAME }" />
     <template v-if="state === State.USER_CANCELED">
       This feature requires supporting pod.
     </template>
