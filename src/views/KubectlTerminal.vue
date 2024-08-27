@@ -95,10 +95,9 @@ const create = async () => {
         name: SUPPORTING_CONTAINER_NAME,
         // TODO find a better one with completion, helm, match version with cluster
         image: 'bitnami/kubectl',
-        command: ['/bin/bash'],
-        tty: true,
-        stdin: true,
-        stdinOnce: true,
+        // fork and wait to get rid of pid 1 signal quirks
+        command: ['/bin/sh', '-c'],
+        args: ['sleep infinity; true'],
         securityContext: {
           allowPrivilegeEscalation: false,
           capabilities: {
@@ -111,6 +110,7 @@ const create = async () => {
         },
       }],
       serviceAccountName: SUPPORTING_SERVICEACCOUNT_NAME,
+      restartPolicy: 'Never',
     },
   };
 
@@ -203,6 +203,7 @@ onUnmounted(() => cleanup(selectedNamespace.value));
       title="Setting up kubectl shell" :text="progressMessage" />
     <ExecTerminal v-if="state === State.READY"
       style="height: calc(100dvh - 64px - 32px)"
+      :command="['/bin/sh', '-c', '/bin/bash; kill 2']"
       :container-spec="{ namespace: selectedNamespace,
         pod: podName, container: SUPPORTING_CONTAINER_NAME }" />
     <template v-if="state === State.USER_CANCELED">
