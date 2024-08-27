@@ -6,7 +6,7 @@ import { ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
-import { errorIsResourceNotFound, V1WatchEventType } from '@/utils/api';
+import { fromYAMLSSA, V1WatchEventType } from '@/utils/api';
 import { watchUntil } from '@/utils/watch';
 import { PresentedError } from '@/utils/PresentedError';
 import {
@@ -38,28 +38,14 @@ const SUPPORTING_SERVICEACCOUNT_NAME = SUPPORTING_POD_NAME;
 const SUPPORTING_ROLEBINDING_NAME = SUPPORTING_POD_NAME;
 
 const load = async () => {
-  state.value = State.LOADING;
-  try {
-    await api.readNamespacedPod({
-      namespace: selectedNamespace.value,
-      name: SUPPORTING_POD_NAME,
-    });
-  } catch (e) {
-    if (await errorIsResourceNotFound(e)) {
-      state.value = State.ASK_FOR_CREATING;
-      return;
-    } else {
-      throw e;
-    }
-  }
-  // TODO sanity check pod?
-  await waitForReady();
+  state.value = State.ASK_FOR_CREATING;
 };
 
 const cancelCreate = () => {
   state.value = State.USER_CANCELED;
 };
 
+const encodeBlob = (o: object) => new Blob([JSON.stringify(o)]);
 const create = async () => {
   state.value = State.CREATING;
   progressMessage.value = 'Creating supporting pod';
@@ -120,20 +106,26 @@ const create = async () => {
     },
   };
 
-  await api.createNamespacedServiceAccount({
+  await api.patchNamespacedServiceAccount({
     namespace: selectedNamespace.value,
-    body: serviceAccount,
-  });
+    name: SUPPORTING_SERVICEACCOUNT_NAME,
+    force: true,
+    body: encodeBlob(serviceAccount),
+  }, fromYAMLSSA);
 
   await Promise.all([
-    api.createNamespacedPod({
+    api.patchNamespacedPod({
       namespace: selectedNamespace.value,
-      body: pod,
-    }),
-    rbacApi.createNamespacedRoleBinding({
+      name: SUPPORTING_POD_NAME,
+      force: true,
+      body: encodeBlob(pod),
+    }, fromYAMLSSA),
+    rbacApi.patchNamespacedRoleBinding({
       namespace: selectedNamespace.value,
-      body: roleBinding,
-    }),
+      name: SUPPORTING_ROLEBINDING_NAME,
+      force: true,
+      body: encodeBlob(roleBinding),
+    }, fromYAMLSSA),
   ]);
 
   await waitForReady();
@@ -173,12 +165,12 @@ watch(selectedNamespace, load);
 <template>
   <div>
     <VDialog :model-value="state === State.ASK_FOR_CREATING" persistent width="auto">
-      <VCard title="Create supporting pod">
+      <VCard title="Use kubectl shell">
         <template #text>
-          Supporting pod for a kubectl shell in this namespace is not found.
+          A supporting pod is required for a kubectl shell.
           <br />
           <br />
-          Supporting pod has privilege as admin role in this namespace,
+          This will create a supporting pod with privilege as admin role in this namespace if not already exists,
           <br />
           be careful if you have previously set up roles to allow others to attach or exec pods.
           <br />
