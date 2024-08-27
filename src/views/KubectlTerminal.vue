@@ -66,7 +66,7 @@ const create = async () => {
   progressing.value = true;
 
   const managedByLabel = {
-    'apps.kubernetes.io/managed-by': import.meta.env.VITE_APP_BRANDING ?? 'Sparkles',
+    'apps.kubernetes.io/managed-by': 'sparkles',
   };
   const serviceAccount: V1ServiceAccount = {
     apiVersion: 'v1',
