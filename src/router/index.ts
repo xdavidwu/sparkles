@@ -76,7 +76,13 @@ const router = createRouter({
       path: '/kubectl',
       name: 'kubectl',
       component: () => import('@/views/KubectlTerminal.vue'),
-      meta: { name: 'kubectl', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'pods') },
+      meta: { name: 'kubectl', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'pods') }, // TODO correct permission check
+    },
+    {
+      path: '/tokens',
+      name: 'tokens',
+      component: () => import('@/views/SATokens.vue'),
+      meta: { name: 'Tokens', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'secrets') }, // TODO correct permission check
     },
     // cluster
     {
