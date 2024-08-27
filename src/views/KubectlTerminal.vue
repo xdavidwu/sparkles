@@ -4,6 +4,7 @@ import ExecTerminal from '@/components/ExecTerminal.vue';
 import ProgressDialog from '@/components/ProgressDialog.vue';
 import { ref, watch, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
+import { useEventListener } from '@vueuse/core';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
 import { fromYAMLSSA, V1WatchEventType } from '@/utils/api';
@@ -174,6 +175,10 @@ watch(selectedNamespace, (to: string, from: string) => Promise.all([
 ]));
 
 onUnmounted(() => cleanup(selectedNamespace.value));
+
+useEventListener(window, 'beforeunload', () => {
+  cleanup(selectedNamespace.value);
+});
 </script>
 
 <template>
