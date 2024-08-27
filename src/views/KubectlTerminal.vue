@@ -25,6 +25,7 @@ enum State {
   ASK_FOR_CREATING,
   CREATING,
   READY,
+  USER_CANCELED,
 }
 
 const state = ref(State.LOADING);
@@ -56,8 +57,7 @@ const load = async () => {
 };
 
 const cancelCreate = () => {
-  state.value = State.LOADING;
-  throw new PresentedError('This feature requires supporting pod.');
+  state.value = State.USER_CANCELED;
 };
 
 const create = async () => {
@@ -199,5 +199,8 @@ watch(selectedNamespace, load);
       style="height: calc(100dvh - 64px - 32px)"
       :container-spec="{ namespace: selectedNamespace,
         pod: SUPPORTING_POD_NAME, container: SUPPORTING_CONTAINER_NAME }" />
+    <template v-if="state === State.USER_CANCELED">
+      This feature requires supporting pod.
+    </template>
   </div>
 </template>
