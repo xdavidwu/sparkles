@@ -7,7 +7,7 @@ import { storeToRefs } from 'pinia';
 import { useEventListener } from '@vueuse/core';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
-import { fromYAMLSSA, V1WatchEventType } from '@/utils/api';
+import { errorIsResourceNotFound, fromYAMLSSA, V1WatchEventType } from '@/utils/api';
 import { watchUntil } from '@/utils/watch';
 import { PresentedError } from '@/utils/PresentedError';
 import {
@@ -166,8 +166,19 @@ const waitForReady = async () => {
 
 await load();
 
-const cleanup = (namespace: string) =>
-  podName.value ? api.deleteNamespacedPod({ namespace, name: podName.value }) : undefined;
+const cleanup = async (namespace: string) => {
+  if (!podName.value) {
+    return;
+  }
+
+  try {
+    await api.deleteNamespacedPod({ namespace, name: podName.value });
+  } catch (e) {
+    if (!await errorIsResourceNotFound(e)) {
+      throw e;
+    }
+  }
+};
 
 watch(selectedNamespace, (to: string, from: string) => Promise.all([
   load,
@@ -210,7 +221,8 @@ useEventListener(window, 'beforeunload', () => {
       style="height: calc(100dvh - 64px - 32px)"
       :command="['/bin/sh', '-c', '/bin/bash; kill 2']"
       :container-spec="{ namespace: selectedNamespace,
-        pod: podName, container: SUPPORTING_CONTAINER_NAME }" />
+        pod: podName, container: SUPPORTING_CONTAINER_NAME }"
+      @closed="cleanup(selectedNamespace)" />
     <template v-if="state === State.USER_CANCELED">
       This feature requires supporting pod.
     </template>

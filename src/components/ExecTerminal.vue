@@ -17,6 +17,10 @@ const props = defineProps<{
   command?: Array<string>,
 }>();
 
+const emit = defineEmits<{
+  (e: 'closed'): void;
+}>();
+
 const findShell = 'for i in /bin/bash /bin/sh; do [ -x "$i" ] && exec "$i"; done';
 const wsstreamV4Channel = 'v4.channel.k8s.io';
 const wsstreamV5Channel = 'v5.channel.k8s.io';
@@ -115,6 +119,7 @@ const display = async (terminal: Terminal) => {
       terminal.write(`${CSI}?25l`); // unset mode: cursor visible
 
       socket.close();
+      emit('closed');
     }
   };
 
