@@ -128,9 +128,10 @@ const inspectedObjects = ref<Map<string, ObjectRecord>>(new Map());
 const { smAndDown, xlAndUp } = useDisplay();
 const verbose = ref(xlAndUp.value);
 const { appBarHeightPX } = useAppTabs();
+const tableRef = ref<InstanceType<typeof VDataTableVirtual> | null>(null);
 
 const runTableLayoutAlgorithm = () => {
-  const table = document.querySelector('.v-data-table table');
+  const table = tableRef.value?.$el as HTMLDivElement | undefined;
   table?.querySelectorAll('th').forEach((th) => th.removeAttribute('width'));
   table?.setAttribute('style', 'table-layout: auto');
   requestAnimationFrame(() => {
@@ -443,7 +444,7 @@ watch([targetType, verbose], () => order.value = []);
           <HumanDurationSince class="font-weight-bold" :since="new Date(lastUpdatedAt)" ago />
           <VBtn variant="text" size="x-small" color="primary" @click="load">refresh</VBtn>
         </div>
-        <VDataTableVirtual class="flex-shrink-1" style="min-height: 0"
+        <VDataTableVirtual class="flex-shrink-1" style="min-height: 0" ref="tableRef"
           v-resize-observer="runTableLayoutAlgorithm"
           :items="objects.rows ?? []" :headers="columns" :loading="loading" :sort-by="order"
           hover fixed-header>
