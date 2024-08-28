@@ -2,9 +2,9 @@
 import { VBtn, VCard, VDataTable, VDatePicker, VDialog, VTextarea, VTextField } from 'vuetify/components';
 import FixedFab from '@/components/FixedFab.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
-import { useApiConfig } from '@/stores/apiConfig';
+import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
 import { useLoading } from '@/composables/loading';
 import { useAbortController } from '@/composables/abortController';
@@ -16,6 +16,7 @@ import {
   tokenNoteAnnotation, tokenExpiresAtAnnotation,
 } from '@/utils/contracts';
 import { listAndUnwaitedWatch } from '@/utils/watch';
+import { stringify } from '@/utils/yaml';
 import { notifyListingWatchErrors } from '@/utils/errors';
 import {
   CoreV1Api, RbacAuthorizationV1Api,
@@ -25,6 +26,7 @@ import {
 import { createNameId } from 'mnemonic-id';
 
 const config = await useApiConfig().getConfig();
+const { authScheme } = storeToRefs(useApiConfig());
 const api = new CoreV1Api(config);
 const rbacApi = new RbacAuthorizationV1Api(config);
 const { selectedNamespace } = storeToRefs(useNamespaces());
@@ -38,6 +40,38 @@ creatingExpiresAt.value.setDate(creatingExpiresAt.value.getDate() + 1);
 const pickingDate = ref(false);
 const tokenCreated = ref(false);
 const token = ref('');
+// on None, current api is likely under mTLS or kubectl proxy,
+// where config needs more then we have
+// mTLS: likely needs a self-signed CA
+// kubectl proxy: auth is overriden on endpoint we access
+const doKubeconfigGen = computed(() => authScheme.value != AuthScheme.None);
+
+// names TODO make it better?
+const [cluster, user, context] = ['cluster', 'user', 'context'];
+// k8s.io/client-go/tools/clientcmd/api/v1.Config
+const kubeconfig = computed(() => stringify({
+  apiVersion: 'v1',
+  kind: 'Config',
+  clusters: [{
+    name: cluster,
+    cluster: { server: config.basePath },
+  }],
+  users: [{
+    name: user,
+    user: {
+      token: token.value,
+    },
+  }],
+  contexts: [{
+    name: context,
+    context: {
+      cluster,
+      user,
+      namespace: selectedNamespace.value,
+    },
+  }],
+  'current-context': context,
+}));
 
 const name = 'sparkles-serviceaccount-tokens';
 const SECRET_PREFIX = `${name}-handle-`;
@@ -209,7 +243,7 @@ const create = async () => {
   tokenCreated.value = true;
 };
 
-const copy = () => navigator.clipboard.writeText(token.value);
+const copy = (s: string) => navigator.clipboard.writeText(s);
 
 const revoke = async (s: V1Secret) => {
   await api.deleteNamespacedSecret({
@@ -258,13 +292,20 @@ const revoke = async (s: V1Secret) => {
         <template #text>
           <div class="text-subtitle-2 mb-4">
             Be sure to save it as it will not be shown again.
+            <template v-if="doKubeconfigGen">
+              <br />
+              A kubeconfig suitable for tools like kubectl with this token is also provided.
+            </template>
           </div>
           <div class="d-flex flex-row ga-1 align-center">
-          <VTextField :model-value="token" label="Token" type="password"
-            readonly hide-details />
-          <TippedBtn tooltip="Copy to clipboard"
-            icon="mdi-clipboard-text-multiple" variant="text" @click="copy" />
+            <VTextField :model-value="token" label="Token" type="password"
+              readonly hide-details />
+            <TippedBtn tooltip="Copy to clipboard"
+              icon="mdi-clipboard-text-multiple" variant="text"
+              @click="copy(token)" />
           </div>
+          <VBtn v-if="doKubeconfigGen" class="mt-4" color="primary" block
+            @click="copy(kubeconfig)">Copy kubeconfig</VBtn>
         </template>
         <template #actions>
           <VBtn color="primary" @click="tokenCreated = false">Close</VBtn>
