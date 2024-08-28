@@ -9,6 +9,7 @@ import { UserManager, WebStorageStateStore } from 'oidc-client-ts';
 import router from '@/router';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { extractWarnings, setFieldManager } from '@/utils/api';
+import { brand } from '@/utils/config';
 
 export enum AuthScheme {
   OIDC = 'oidc',
@@ -74,7 +75,7 @@ export const useApiConfig = defineStore('api-config', () => {
     const headers: HTTPHeaders = {
       // avoid pretty printing, sliently dropped on chromium
       // https://crbug.com/571722
-      'User-Agent': `${import.meta.env.VITE_APP_BRANDING ?? 'Sparkles'}; ${navigator.userAgent}`,
+      'User-Agent': `${brand}; ${navigator.userAgent}`,
     };
 
     const token = await getBearerToken();

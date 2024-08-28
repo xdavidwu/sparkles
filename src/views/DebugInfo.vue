@@ -5,6 +5,7 @@ import { computedAsync } from '@vueuse/core';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { doSelfSubjectReview, errorIsTypeUnsupported } from '@/utils/api';
+import { brand } from '@/utils/config';
 
 const configStore = useApiConfig();
 const config = await configStore.getConfig();
@@ -16,7 +17,6 @@ const token = ref(configStore.accessToken);
 const impersonateUser = ref(configStore.impersonation.asUser);
 const impersonateGroup = ref(configStore.impersonation.asGroup);
 
-const brand = import.meta.env.VITE_APP_BRANDING ?? 'Sparkles';
 const version = '__version_placeholder__';
 const kubernetesVersion = computedAsync(async () => {
   const info = await useApisDiscovery().getVersionInfo();

@@ -31,10 +31,9 @@ import { renderAppTabs } from '@/composables/appTabs';
 import { useRouter } from 'vue-router';
 import { Category } from '@/router';
 import { useTitle } from '@vueuse/core';
+import { brand } from '@/utils/config';
 import { stringify } from '@/utils/yaml';
 import { parse } from 'yaml';
-
-const brand = import.meta.env.VITE_APP_BRANDING ?? 'Sparkles';
 
 const { namespaces, selectedNamespace, loading: namespacesLoading } = storeToRefs(useNamespaces());
 const { pendingError, pendingToast } = storeToRefs(useErrorPresentation());

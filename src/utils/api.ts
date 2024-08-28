@@ -5,6 +5,7 @@ import {
   Configuration, FetchError, ResponseError,
   type InitOverrideFunction, type HTTPRequestInit, type HTTPHeaders, type RequestContext, type Middleware,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
+import { brand } from '@/utils/config';
 
 /*
  * enums in openapi codegen uses exhaustive enums on types,
@@ -95,6 +96,8 @@ export enum V1CustomResourceDefinitionConditionType {
   KUBERNETES_API_APPROVAL_POLICY_CONFORMANT = 'KubernetesAPIApprovalPolicyConformant',
 }
 
+export const descriptionAnnotaion = 'kubernetes.io/description';
+
 export type ChainableInitOverrideFunction = (...p: Parameters<InitOverrideFunction>) =>
   (Promise<Awaited<ReturnType<InitOverrideFunction>> & HTTPRequestInit & { headers: HTTPHeaders }>);
 
@@ -163,7 +166,7 @@ export const setFieldManager: Middleware['pre'] = async (context) => {
   const params = url.searchParams;
   // allow to override for e.g. helm
   if (params.get('fieldManager') == null) {
-    params.set('fieldManager', import.meta.env.VITE_APP_BRANDING ?? 'Sparkles');
+    params.set('fieldManager', brand);
     url.search = `?${params.toString()}`;
     context.url = url.toString();
   }

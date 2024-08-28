@@ -7,6 +7,7 @@ import NotFound from '@/views/NotFound.vue';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useNamespaces } from '@/stores/namespaces';
 import { usePermissions } from '@/stores/permissions';
+import { brand } from '@/utils/config';
 
 declare global {
   interface Window {
@@ -18,7 +19,7 @@ export const Category = {
   NAMESPACED: 'Namespaced',
   CLUSTER: 'Cluster',
   // XXX this (not a const expression) make it hard to use as ts enum
-  APP: import.meta.env.VITE_APP_BRANDING ?? 'Sparkles',
+  APP: brand,
   HIDDEN: 'Hidden',
 };
 
