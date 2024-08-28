@@ -164,8 +164,8 @@ const createTab = (type: 'exec' | 'log', target: ContainerData, pod: V1Pod) => {
     const fullName = `${podName}/${containerName}`;
     tabs.value.push({
       type, id, spec: { pod: podName, container: containerName }, alerting: false,
-      defaultTitle: `${type === 'exec' ? 'Terminal' : 'Log'}: ${name}`,
-      description: `${type === 'exec' ? 'Terminal' : 'Log'}: ${fullName}`,
+      defaultTitle: `${type === 'exec' ? 'Shell' : 'Log'}: ${name}`,
+      description: `${type === 'exec' ? 'Shell' : 'Log'}: ${fullName}`,
     });
   }
   tab.value = id;
@@ -256,7 +256,7 @@ const toggleExpandAll = (expand: boolean) => expand ?
                 <template #[`item.actions`]="{ item }">
                   <!-- TODO bring permission check back? -->
                   <TippedBtn size="small" icon="mdi-console-line"
-                    tooltip="Terminal" variant="text"
+                    tooltip="Shell" variant="text"
                     :disabled="!item.state?.running"
                     @click="createTab('exec', item, pod)" />
                   <TippedBtn size="small" icon="mdi-file-document"
