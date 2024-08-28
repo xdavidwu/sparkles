@@ -8,7 +8,8 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
 import { useLoading } from '@/composables/loading';
 import { useAbortController } from '@/composables/abortController';
-import { fromYAMLSSA } from '@/utils/api';
+import { descriptionAnnotaion, fromYAMLSSA } from '@/utils/api';
+import { brand } from '@/utils/config';
 import {
   managedByLabel,
   tokenHandleSecretType,
@@ -110,6 +111,9 @@ const create = async () => {
     metadata: {
       name: SERVICEACCOUNT_NAME,
       labels: managedByLabel,
+      annotations: {
+        [descriptionAnnotaion]: `Used by tokens functionality in ${brand}.`,
+      },
     },
   };
   const roleBinding: V1RoleBinding = {
@@ -118,6 +122,9 @@ const create = async () => {
     metadata: {
       name: ROLEBINDING_NAME,
       labels: managedByLabel,
+      annotations: {
+        [descriptionAnnotaion]: `Used by tokens functionality in ${brand}.`,
+      },
     },
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',
@@ -138,6 +145,11 @@ const create = async () => {
       labels: managedByLabel,
       annotations: {
         [tokenNoteAnnotation]: creatingNote.value,
+        [descriptionAnnotaion]: `Used by tokens functionality in ${brand}, ` +
+          'to represent a issued token of a ServiceAccount with edit role in the same namespace. ' +
+          'This does not store the issued token. ' +
+          'The token is bound to this object, and can be revoked by deleting this. ' +
+          'Secrets representing expired tokens will be deleted when visiting the tokens page of the namespace.',
       },
     },
     type: tokenHandleSecretType,
