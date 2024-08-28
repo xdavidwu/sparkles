@@ -125,7 +125,7 @@ const { load, loading } = useApiLoader(async (signal) => {
     (opt) => api.listNamespacedPodRaw({ ...opt, namespace: selectedNamespace.value }, { signal }),
     notifyListingWatchErrors,
   );
-  toggleExpandAll(false);
+  toggleExpandAll(true); // TODO what about new pods from watch?
 });
 
 watch(selectedNamespace, load, { immediate: true });
