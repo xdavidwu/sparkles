@@ -16,9 +16,8 @@ import TabsWindow from '@/components/TabsWindow.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
 import WindowItem from '@/components/WindowItem.vue';
 import { ref, watch } from 'vue';
-import { useAbortController } from '@/composables/abortController';
+import { useApiLoader } from '@/composables/apiLoader';
 import { useAppTabs } from '@/composables/appTabs';
-import { useLoading } from '@/composables/loading';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -121,13 +120,9 @@ const innerColumns = [
   },
 ];
 
-const { abort: abortRequests, signal } = useAbortController();
-
-const { load, loading } = useLoading(async () => {
-  abortRequests();
-
+const { load, loading } = useApiLoader(async (signal) => {
   await listAndUnwaitedWatch(pods, V1PodFromJSON,
-    (opt) => api.listNamespacedPodRaw({ ...opt, namespace: selectedNamespace.value }, { signal: signal.value }),
+    (opt) => api.listNamespacedPodRaw({ ...opt, namespace: selectedNamespace.value }, { signal }),
     notifyListingWatchErrors,
   );
   toggleExpandAll(false);

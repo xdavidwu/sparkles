@@ -15,8 +15,7 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useHelmRepository } from '@/stores/helmRepository';
 import { useNamespaces } from '@/stores/namespaces';
-import { useAbortController } from '@/composables/abortController';
-import { useLoading } from '@/composables/loading';
+import { useApiLoader } from '@/composables/apiLoader';
 import { stringify } from '@/utils/yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { listAndUnwaitedWatch } from '@/utils/watch';
@@ -123,23 +122,19 @@ const columns = [
   },
 ];
 
-const { abort: abortRequests, signal } = useAbortController();
-
-const { loading, load } = useLoading(async () => {
-  abortRequests();
-  await listAndUnwaitedWatch(secrets, V1SecretFromJSON,
-    (opt) => api.listNamespacedSecretRaw(
-      {
-        ...opt,
-        namespace: selectedNamespace.value,
-        fieldSelector: secretsFieldSelector,
-        labelSelector: secretsLabelSelector,
-      },
-      { signal: signal.value },
-    ),
-    notifyListingWatchErrors,
-  );
-});
+const { loading, load } = useApiLoader((signal) => listAndUnwaitedWatch(
+  secrets, V1SecretFromJSON,
+  (opt) => api.listNamespacedSecretRaw(
+    {
+      ...opt,
+      namespace: selectedNamespace.value,
+      fieldSelector: secretsFieldSelector,
+      labelSelector: secretsLabelSelector,
+    },
+    { signal },
+  ),
+  notifyListingWatchErrors,
+));
 
 watch(selectedNamespace, load, { immediate: true });
 

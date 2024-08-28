@@ -6,8 +6,7 @@ import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
-import { useLoading } from '@/composables/loading';
-import { useAbortController } from '@/composables/abortController';
+import { useApiLoader } from '@/composables/apiLoader';
 import { descriptionAnnotaion, fromYAMLSSA } from '@/utils/api';
 import { brand } from '@/utils/config';
 import {
@@ -109,17 +108,13 @@ const columns = [
   },
 ];
 
-const { abort: abortRequests, signal } = useAbortController();
-
-const { load, loading } = useLoading(async () => {
-  abortRequests();
-
+const { load, loading } = useApiLoader(async (signal) => {
   await listAndUnwaitedWatch(secrets, V1SecretFromJSON,
     (opt) => api.listNamespacedSecretRaw({
       ...opt,
       namespace: selectedNamespace.value,
       fieldSelector: `type=${tokenHandleSecretType}`,
-    }, { signal: signal.value }),
+    }, { signal }),
     notifyListingWatchErrors,
   );
 

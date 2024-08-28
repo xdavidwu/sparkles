@@ -26,9 +26,8 @@ import { computed, watch, ref, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDisplay } from 'vuetify';
 import { timestamp, useLastChanged } from '@vueuse/core';
-import { useAbortController } from '@/composables/abortController';
+import { useApiLoader } from '@/composables/apiLoader';
 import { useAppTabs } from '@/composables/appTabs';
-import { useLoading } from '@/composables/loading';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -130,8 +129,6 @@ const { smAndDown, xlAndUp } = useDisplay();
 const verbose = ref(xlAndUp.value);
 const { appBarHeightPX } = useAppTabs();
 
-const { abort: abortRequests, signal } = useAbortController();
-
 const runTableLayoutAlgorithm = () => {
   const table = document.querySelector('.v-data-table table');
   table?.querySelectorAll('th').forEach((th) => th.removeAttribute('width'));
@@ -144,9 +141,7 @@ const runTableLayoutAlgorithm = () => {
 };
 
 const includeObject = setTableIncludeObjectPolicy(V1IncludeObjectPolicy.OBJECT);
-const { loading, load } = useLoading(async () => {
-  abortRequests();
-
+const { loading, load } = useApiLoader(async (signal) => {
   const options = {
     group: targetGroupVersion.value.group,
     version: targetGroupVersion.value.version,
@@ -158,7 +153,7 @@ const { loading, load } = useLoading(async () => {
   if (targetType.value.verbs.includes('watch')) {
     await listAndUnwaitedWatchTable(
       objects,
-      (opt) => api[`list${listType}CustomObjectAsTableRaw`]({ ...opt, ...options }, { signal: signal.value }),
+      (opt) => api[`list${listType}CustomObjectAsTableRaw`]({ ...opt, ...options }, { signal }),
       notifyListingWatchErrors,
     );
   } else {

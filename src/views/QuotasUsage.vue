@@ -4,8 +4,7 @@ import LinkedTooltip from '@/components/LinkedTooltip.vue';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 import QuotaDoughnut from '@/components/QuotaDoughnut.vue';
 import { computed, ref, watch } from 'vue';
-import { useAbortController } from '@/composables/abortController';
-import { useLoading } from '@/composables/loading';
+import { useApiLoader } from '@/composables/apiLoader';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiConfig } from '@/stores/apiConfig';
@@ -172,37 +171,31 @@ const pvcsResourceUsage = computed(() => {
   return res;
 });
 
-const { abort: abortRequests, signal } = useAbortController();
-
-const { load, loading } = useLoading(async () => {
-  abortRequests();
-
-  await Promise.all([
-    listAndUnwaitedWatch(_quotas, V1ResourceQuotaFromJSON,
-      (opt) => api.listNamespacedResourceQuotaRaw({
-        ...opt,
-        namespace: selectedNamespace.value,
-        labelSelector: `${excludeFromVisualizationLabel}!=true`,
-      }, { signal: signal.value }),
-      notifyListingWatchErrors,
-    ),
-    listAndUnwaitedWatch(pods, V1PodFromJSON,
-      (opt) => api.listNamespacedPodRaw({
-        ...opt,
-        namespace: selectedNamespace.value,
-        fieldSelector: `status.phase!=${V1PodStatusPhase.FAILED},status.phase!=${V1PodStatusPhase.SUCCEEDED}`,
-      }, { signal: signal.value }),
-      notifyListingWatchErrors,
-    ),
-    listAndUnwaitedWatch(pvcs, V1PersistentVolumeClaimFromJSON,
-      (opt) => api.listNamespacedPersistentVolumeClaimRaw({
-        ...opt,
-        namespace: selectedNamespace.value,
-      }, { signal: signal.value }),
-      notifyListingWatchErrors,
-    ),
-  ]);
-});
+const { load, loading } = useApiLoader((signal) => Promise.all([
+  listAndUnwaitedWatch(_quotas, V1ResourceQuotaFromJSON,
+    (opt) => api.listNamespacedResourceQuotaRaw({
+      ...opt,
+      namespace: selectedNamespace.value,
+      labelSelector: `${excludeFromVisualizationLabel}!=true`,
+    }, { signal }),
+    notifyListingWatchErrors,
+  ),
+  listAndUnwaitedWatch(pods, V1PodFromJSON,
+    (opt) => api.listNamespacedPodRaw({
+      ...opt,
+      namespace: selectedNamespace.value,
+      fieldSelector: `status.phase!=${V1PodStatusPhase.FAILED},status.phase!=${V1PodStatusPhase.SUCCEEDED}`,
+    }, { signal }),
+    notifyListingWatchErrors,
+  ),
+  listAndUnwaitedWatch(pvcs, V1PersistentVolumeClaimFromJSON,
+    (opt) => api.listNamespacedPersistentVolumeClaimRaw({
+      ...opt,
+      namespace: selectedNamespace.value,
+    }, { signal }),
+    notifyListingWatchErrors,
+  ),
+]));
 await load();
 
 watch(selectedNamespace, load);

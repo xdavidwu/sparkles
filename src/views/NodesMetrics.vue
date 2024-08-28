@@ -6,10 +6,13 @@ import type { ChartOptions } from 'chart.js';
 import { useIntervalFn } from '@vueuse/core';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useErrorPresentation } from '@/stores/errorPresentation';
-import { useAbortController } from '@/composables/abortController';
-import { CustomObjectsApi, CoreV1Api, ResponseError, V1NodeFromJSON, type V1Node } from '@xdavidwu/kubernetes-client-typescript-fetch';
+import { useApiLoader } from '@/composables/apiLoader';
+import {
+  CustomObjectsApi, CoreV1Api,
+  ResponseError,
+  V1NodeFromJSON, type V1Node,
+} from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { listAndUnwaitedWatch } from '@/utils/watch';
-import { errorIsAborted } from '@/utils/api';
 import { BaseColor, ColorVariant, colorToCode } from '@/utils/colors';
 import type { KubernetesList } from '@/utils/objects';
 import parseDuration from 'parse-duration';
@@ -27,22 +30,19 @@ const samples = ref<Array<{
   [key: string]: { cpu: number, mem: number, cpuPercentage?: number, memPercentage?: number }
 }>>(Array(timeRange).fill(false).map(() => ({})));
 const stacked = ref(false);
-const { abort: abortRequests, signal } = useAbortController();
 let latestSample = Math.floor(new Date().valueOf() / 1000);
 let capacityAvailable = true;
 
-try {
-  const abort = new AbortController();
+const { load: loadNodes } = useApiLoader(async (signal) => {
   await listAndUnwaitedWatch(
     _nodes,
     V1NodeFromJSON,
-    (opt) => coreApi.listNodeRaw(opt, { signal: abort.signal }),
+    (opt) => coreApi.listNodeRaw(opt, { signal }),
     (e) => {
       console.log(e);
       useErrorPresentation().pendingToast = `Watching for nodes failed,\npercentage graphs on new nodes will not be available.`;
     },
   );
-  onUnmounted(() => abort.abort());
   watch(_nodes, () => {
     _nodes.value.forEach((n) => {
       nodes.value[n.metadata!.name!] = {
@@ -51,6 +51,10 @@ try {
       };
     });
   }, { immediate: true });
+});
+
+try {
+  await loadNodes();
 } catch (e) {
   capacityAvailable = false;
   if (e instanceof ResponseError && e.response.status === 403) {
@@ -139,58 +143,58 @@ const metricsApi = {
   group: 'metrics.k8s.io',
   version: 'v1beta1',
 };
-const { pause } = useIntervalFn(() => {
-  (async () => {
-    abortRequests();
-    const response = await api.listClusterCustomObject(
-      { ...metricsApi, plural: 'nodes' },
-      { signal: signal.value }) as KubernetesList;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    response.items.forEach((i: any) => { // TODO
-      const time = Math.floor(new Date(i.timestamp).valueOf() / 1000);
-      let index = time - (latestSample - timeRange);
+
+const { load } = useApiLoader(async (signal) => {
+  const response = await api.listClusterCustomObject(
+    { ...metricsApi, plural: 'nodes' },
+    { signal }) as KubernetesList;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  response.items.forEach((i: any) => { // TODO
+    const time = Math.floor(new Date(i.timestamp).valueOf() / 1000);
+    let index = time - (latestSample - timeRange);
+    if (index < 0) {
+      return;
+    }
+
+    if (index >= timeRange) {
+      const room = index - timeRange + 1;
+      for (let i = 0; i < room; i++) {
+        samples.value.shift();
+        samples.value.push({});
+      }
+      latestSample += room;
+      index = time - (latestSample - timeRange);
+    }
+
+    const cpu = real(i.usage.cpu)!, mem = real(i.usage.memory)!;
+    const metrics: {
+      cpu: number, mem: number,
+      cpuPercentage?: number, memPercentage?: number,
+    } = { cpu, mem };
+    nodes.value[i.metadata.name] ??= {};
+    if (nodes.value[i.metadata.name].cpu) {
+      metrics.cpuPercentage = metrics.cpu / nodes.value[i.metadata.name].cpu! * 100;
+    }
+    if (nodes.value[i.metadata.name].mem) {
+      metrics.memPercentage = metrics.mem / nodes.value[i.metadata.name].mem! * 100;
+    }
+    samples.value[index][i.metadata.name] = metrics;
+
+    const d = parseDuration(i.window, 's')!;
+    for (let j = 1; j < d; j++) {
+      index -= 1;
       if (index < 0) {
         return;
       }
-
-      if (index >= timeRange) {
-        const room = index - timeRange + 1;
-        for (let i = 0; i < room; i++) {
-          samples.value.shift();
-          samples.value.push({});
-        }
-        latestSample += room;
-        index = time - (latestSample - timeRange);
-      }
-
-      const cpu = real(i.usage.cpu)!, mem = real(i.usage.memory)!;
-      const metrics: {
-        cpu: number, mem: number,
-        cpuPercentage?: number, memPercentage?: number,
-      } = { cpu, mem };
-      nodes.value[i.metadata.name] ??= {};
-      if (nodes.value[i.metadata.name].cpu) {
-        metrics.cpuPercentage = metrics.cpu / nodes.value[i.metadata.name].cpu! * 100;
-      }
-      if (nodes.value[i.metadata.name].mem) {
-        metrics.memPercentage = metrics.mem / nodes.value[i.metadata.name].mem! * 100;
-      }
       samples.value[index][i.metadata.name] = metrics;
-
-      const d = parseDuration(i.window, 's')!;
-      for (let j = 1; j < d; j++) {
-        index -= 1;
-        if (index < 0) {
-          return;
-        }
-        samples.value[index][i.metadata.name] = metrics;
-      }
-    });
-  })().catch((e) => {
-    if (!errorIsAborted(e)) {
-      useErrorPresentation().pendingError = e;
-      pause();
     }
+  });
+});
+
+const { pause } = useIntervalFn(() => {
+  load().catch((e) => {
+    pause();
+    throw e;
   });
 }, 5000, { immediateCallback: true });
 
