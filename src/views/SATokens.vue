@@ -242,7 +242,8 @@ const revoke = async (s: V1Secret) => {
           </div>
           <VTextField :model-value="creatingExpiresAt.toLocaleDateString()"
             label="Expires at" readonly
-            @click="pickingDate = true" @keydown="pickingDate = true" />
+            @click="pickingDate = true"
+            @keydown.exact="(e: KeyboardEvent) => e.key != 'Tab' && (pickingDate = true)" />
           <VTextarea v-model="creatingNote" label="Note" clearable
             placeholder="Describe what this token is for" />
         </template>
