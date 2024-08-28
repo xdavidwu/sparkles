@@ -7,7 +7,11 @@ import { storeToRefs } from 'pinia';
 import { useEventListener } from '@vueuse/core';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
-import { errorIsResourceNotFound, fromYAMLSSA, V1WatchEventType } from '@/utils/api';
+import {
+  descriptionAnnotaion, errorIsResourceNotFound, fromYAMLSSA,
+  V1WatchEventType,
+} from '@/utils/api';
+import { brand } from '@/utils/config';
 import { managedByLabel } from '@/utils/contracts';
 import { watchUntil } from '@/utils/watch';
 import { PresentedError } from '@/utils/PresentedError';
@@ -24,14 +28,13 @@ const rbacApi = new RbacAuthorizationV1Api(config);
 const { selectedNamespace } = storeToRefs(useNamespaces());
 
 enum State {
-  LOADING,
   ASK_FOR_CREATING,
   CREATING,
   READY,
   USER_CANCELED,
 }
 
-const state = ref(State.LOADING);
+const state = ref(State.ASK_FOR_CREATING);
 const podName = ref('');
 const progressMessage = ref('');
 const progressing = ref(false);
@@ -64,6 +67,9 @@ const create = async () => {
     metadata: {
       name: SUPPORTING_SERVICEACCOUNT_NAME,
       labels: managedByLabel,
+      annotations: {
+        [descriptionAnnotaion]: `Used for kubectl shell functionality in ${brand}.`,
+      },
     },
   };
   const roleBinding: V1RoleBinding = {
@@ -72,6 +78,9 @@ const create = async () => {
     metadata: {
       name: SUPPORTING_ROLEBINDING_NAME,
       labels: managedByLabel,
+      annotations: {
+        [descriptionAnnotaion]: `Used for kubectl shell functionality in ${brand}.`,
+      },
     },
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',
@@ -90,6 +99,13 @@ const create = async () => {
     metadata: {
       name: podName.value,
       labels: managedByLabel,
+      annotations: {
+        [descriptionAnnotaion]: `Pod that implements kubectl shell funtionality in ${brand}. ` +
+          'A pod is used per kubectl shell session, with ServiceAccount of admin role under the same namespace. ' +
+          'Will be deleted automatically when user exit the session, ' +
+          'but may still be left running if the browser crashes. ' +
+          'In that case, you can delete this manually.',
+      },
     },
     spec: {
       containers: [{
@@ -195,14 +211,14 @@ useEventListener(window, 'beforeunload', () => {
 <template>
   <div>
     <VDialog :model-value="state === State.ASK_FOR_CREATING" persistent width="auto">
-      <VCard title="Use kubectl shell">
+      <VCard title="Using kubectl shell">
         <template #text>
-          A supporting pod is required for a kubectl shell.
+          A supporting pod is required for each kubectl shell session.
           <br />
           <br />
-          This will create a supporting pod with privilege as admin role in this namespace if not already exists,
+          This will create a supporting pod with privilege as admin role in this namespace,
           <br />
-          be careful if you have previously set up roles to allow others to attach or exec pods.
+          be careful if you have previously set up roles allowing others to execute commands in pods.
           <br />
           Quota restriction, if any, may applies.
           <br />
