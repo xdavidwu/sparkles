@@ -48,7 +48,6 @@ const rendered = computed(() => DOMPurify.sanitize(renderer.render(props.markdow
 const tocOffset = ref(0);
 
 useResizeObserver(div, () => {
-  console.log(div.value);
   tocOffset.value = div.value!.offsetWidth - div.value!.clientWidth;
 });
 
