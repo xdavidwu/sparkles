@@ -157,7 +157,7 @@ const { loading, load } = useApiLoader(async (signal) => {
       notifyListingWatchErrors,
     );
   } else {
-    objects.value = await api[`list${listType}CustomObjectAsTable`](options);
+    objects.value = await api[`list${listType}CustomObjectAsTable`](options, { signal });
   }
   runTableLayoutAlgorithm();
 });
