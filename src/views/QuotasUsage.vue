@@ -71,6 +71,9 @@ const quotas = computed(() => _quotas.value.map((quota) => {
     } else if (canonical.endsWith('.storageclass.storage.k8s.io/requests.storage')) {
       name = `Storage in class ${canonical.substring(0, canonical.length - 45)}`;
       category = 'Requests';
+    } else if (canonical.endsWith('.storageclass.storage.k8s.io/persistentvolumeclaims')) {
+      name = `persistentvolumeclaims in class ${canonical.substring(0, canonical.length - 51)}`;
+      category = 'Object counts for core API';
     } else if (canonical === 'services.loadbalancers') {
       name = 'services of type LoadBalancer';
       category = 'Object counts for core API';
