@@ -56,16 +56,22 @@ const router = createRouter({
       meta: { name: 'Pods', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'pods') },
     },
     {
+      path: '/helm',
+      name: 'helm',
+      component: () => import('@/views/HelmList.vue'),
+      meta: { name: 'Helm', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'secrets') }
+    },
+    {
       path: '/quotas',
       name: 'quotas',
       component: () => import('@/views/QuotasUsage.vue'),
       meta: { name: 'Quotas', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'resourcequotas') },
     },
     {
-      path: '/helm',
-      name: 'helm',
-      component: () => import('@/views/HelmList.vue'),
-      meta: { name: 'Helm', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'secrets') }
+      path: '/tokens',
+      name: 'tokens',
+      component: () => import('@/views/SATokens.vue'),
+      meta: { name: 'Tokens', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'secrets') }, // TODO correct permission check
     },
     {
       path: '/explore',
@@ -78,12 +84,6 @@ const router = createRouter({
       name: 'kubectl',
       component: () => import('@/views/KubectlTerminal.vue'),
       meta: { name: 'kubectl', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'pods') }, // TODO correct permission check
-    },
-    {
-      path: '/tokens',
-      name: 'tokens',
-      component: () => import('@/views/SATokens.vue'),
-      meta: { name: 'Tokens', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'secrets') }, // TODO correct permission check
     },
     // cluster
     {
