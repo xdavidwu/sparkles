@@ -7,6 +7,10 @@ const props = defineProps<{
   id?: string,
 }>();
 
+// TODO investigate real-word use of org.opencontainers.image.url
+// see if it is typically used to link to pages about the image or product
+// consider supporting it and maybe other annotations
+
 // basically simplified github.com/containers/image/v5/docker/reference.ParseNormalizedNamed?
 const url = computed(() => {
   // https://github.com/opencontainers/distribution-spec/blob/main/spec.md

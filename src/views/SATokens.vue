@@ -155,6 +155,7 @@ const create = async () => {
         [descriptionAnnotaion]: `Used by tokens functionality in ${brand}.`,
       },
     },
+    // FIXME includes serviceaccounts/token create, which can get more tokens
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',
       kind: 'ClusterRole',
