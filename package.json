@@ -27,7 +27,7 @@
     "@ragnarpa/quantity": "^0.2.0",
     "@tsmx/human-readable": "^2.0.1",
     "@vueuse/components": "^11.0.1",
-    "@vueuse/core": "^10.4.1",
+    "@vueuse/core": "^11.0.3",
     "@xdavidwu/kubernetes-client-typescript-fetch": "^0.4.0",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/addon-web-links": "^0.11.0",
