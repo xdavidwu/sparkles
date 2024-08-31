@@ -16,7 +16,7 @@ import { AnyApi } from '@/utils/AnyApi';
 import {
   errorIsResourceNotFound, errorIsAborted, errorIsAlreadyExists, rawErrorIsAborted,
   hasCondition, V1ConditionStatus, V1CustomResourceDefinitionConditionType, V1JobConditionType,
-  V1PodStatusPhase, V1WatchEventType,
+  V1PodStatusPhase, V1WatchEventType, V1DeletePropagation,
 } from '@/utils/api';
 import { fetchBase64Data } from '@/utils/lang';
 import { PresentedError } from '@/utils/PresentedError';
@@ -418,7 +418,11 @@ const applyDifference = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery
 
     try {
       // body has a different meaning on delete (V1DeleteOptions)
-      step.op == 'delete' ? anyApi[`delete${kindInfo.scope}CustomObject`](common) :
+      step.op == 'delete' ?
+        anyApi[`delete${kindInfo.scope}CustomObject`]({
+          ...common,
+          propagationPolicy: V1DeletePropagation.BACKGROUND,
+        }) :
         anyApi[`${step.op}${kindInfo.scope}CustomObject`]({
           ...common,
           body: step.resource,

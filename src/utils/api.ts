@@ -23,6 +23,12 @@ export enum V1IncludeObjectPolicy {
   OBJECT = 'Object',
 }
 
+export enum V1DeletePropagation {
+  ORPHAN = 'Orphan',
+  BACKGROUND = 'Background',
+  FOREGROUND = 'Foreground',
+}
+
 // XXX kubernetes does not really use type alias on meta/v1 yet, but has
 // k8s.io/apimachinery/pkg/watch.EventType on watch.Event
 // is ERROR used on-wire?
