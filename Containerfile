@@ -13,7 +13,7 @@ RUN cp "$SPARKLES_ENV" .env
 RUN npm run build
 RUN find dist -type f \( -name '*.css' -or -name '*.js' -or -name '*.wasm' \) -exec gzip -9k {} \;
 # RUN find dist -type f \( -name '*.css' -or -name '*.js' -or -name '*.wasm' \) -exec brotli -k -q 11 {} \;
-RUN [ "$SPARKLES_BASE" == / ] || (mv dist _dist && mkdir dist && cp _dist/index.html dist && mv _dist dist/"$SPARKLES_BASE")
+RUN [ "$SPARKLES_BASE" = / ] || (mv dist _dist && mkdir dist && cp _dist/index.html dist && mv _dist dist/"$SPARKLES_BASE")
 RUN chmod -R a-w dist
 
 FROM alpine:3.20
