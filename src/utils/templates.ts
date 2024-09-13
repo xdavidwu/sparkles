@@ -1,6 +1,7 @@
 import type {
   V1ConfigMap, V1Secret, V1Pod, V1PersistentVolume, V1PersistentVolumeClaim,
   V1ResourceQuota, V1Service,
+  V1DaemonSet, V1Deployment, V1StatefulSet,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 
 const ConfigMap: V1ConfigMap = {
@@ -14,6 +15,9 @@ const Secret: V1Secret = {
 };
 
 const Pod: V1Pod = {
+  metadata: {
+    labels: {}, // for selectors, as V1PodTemplateSpec
+  },
   spec: {
     containers: [{
       name: 'name',
@@ -56,9 +60,36 @@ const Service: V1Service = {
   },
 };
 
+const DaemonSet: V1DaemonSet = {
+  spec: {
+    selector: {},
+    template: Pod,
+  },
+};
+
+const Deployment: V1Deployment = {
+  spec: {
+    replicas: 1,
+    selector: {},
+    template: Pod,
+  },
+};
+
+const StatefulSet: V1StatefulSet = {
+  spec: {
+    replicas: 1,
+    selector: {},
+    template: Pod,
+    serviceName: '',
+  },
+};
+
 export const templates: { [gv: string]: { [k: string]: object } } = {
   v1: {
     ConfigMap, Secret, Pod, PersistentVolume, PersistentVolumeClaim,
     ResourceQuota, Service,
+  },
+  'apps/v1': {
+    DaemonSet, Deployment, StatefulSet,
   },
 };
