@@ -51,6 +51,7 @@ import { nonNullableRef } from '@/utils/reactivity';
 import { PresentedError } from '@/utils/PresentedError';
 import { notifyListingWatchErrors } from '@/utils/errors';
 import type { JSONSchema4 } from 'json-schema';
+import { templates } from '@/utils/templates';
 import { stringify } from '@/utils/yaml';
 import { parse } from 'yaml';
 import { real } from '@ragnarpa/quantity';
@@ -354,16 +355,21 @@ const _delete = async (r: ObjectRecord, key: string) => {
 
 const newDraft = async () => {
   const gv = targetGroupVersion.value, type = targetType.value;
-  const template: KubernetesObject = {
+  const name = createNameId();
+  const metaTemplate: KubernetesObject = {
     apiVersion: gv.groupVersion,
     kind: type.responseKind.kind,
     metadata: {
       namespace: type.scope === V2ResourceScope.Namespaced ? selectedNamespace.value : undefined,
+      labels: {},
+      annotations: {},
       // make it order last to be friendlier
-      name: createNameId(),
+      name,
     },
   };
-  const doc = stringify(template);
+  const contentTemplate = templates[metaTemplate.apiVersion!]?.[metaTemplate.kind!] ?? {};
+  const doc = stringify({ ...metaTemplate, ...contentTemplate });
+  const namePos = doc.indexOf(name);
   const r: ObjectRecord = {
     object: doc,
     metadata: {
@@ -373,7 +379,7 @@ const newDraft = async () => {
     type,
     editing: true,
     unsaved: true,
-    selection: { anchor: doc.length - 1, head: doc.length - 1 - template.metadata!.name!.length},
+    selection: { anchor: namePos + name.length, head: namePos },
   };
 
   r.schema = await maybeGetSchema(r) ?? undefined;
