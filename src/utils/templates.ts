@@ -6,6 +6,7 @@ import type {
   V1Job, V1CronJob,
   V1Ingress, V1NetworkPolicy,
   V1PodDisruptionBudget,
+  V1Role, V1ClusterRole, V1RoleBinding, V1ClusterRoleBinding,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 
 const ConfigMap: V1ConfigMap = {
@@ -143,6 +144,36 @@ const PodDisruptionBudget: V1PodDisruptionBudget = {
   },
 };
 
+const Role: V1Role = {
+  rules: [{
+    apiGroups: [''],
+    resources: ['*'],
+    verbs: ['*'],
+  }],
+};
+
+const ClusterRole: V1ClusterRole = Role;
+
+const RoleBinding: V1RoleBinding = {
+  roleRef: {
+    apiGroup: 'rbac.authorization.k8s.io',
+    kind: 'Role',
+    name: 'TODO',
+  },
+  subjects: [{
+    kind: 'TODO',
+    name: 'TODO',
+  }],
+};
+
+const ClusterRoleBinding: V1ClusterRoleBinding = {
+  ...RoleBinding,
+  roleRef: {
+    ...RoleBinding.roleRef,
+    kind: 'ClusterRole',
+  },
+};
+
 export const templates: { [gv: string]: { [k: string]: object } } = {
   v1: {
     ConfigMap, Secret, Pod, PersistentVolume, PersistentVolumeClaim,
@@ -162,5 +193,8 @@ export const templates: { [gv: string]: { [k: string]: object } } = {
   },
   'policy/v1': {
     PodDisruptionBudget,
+  },
+  'rbac.authorization.k8s.io/v1': {
+    Role, ClusterRole, RoleBinding, ClusterRoleBinding,
   },
 };
