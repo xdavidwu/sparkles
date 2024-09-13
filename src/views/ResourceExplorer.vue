@@ -41,6 +41,7 @@ import {
 import {
   asYAML, fromYAML, chainOverrideFunction,
   setTableIncludeObjectPolicy, V1IncludeObjectPolicy,
+  V1DeletePropagation,
 } from '@/utils/api';
 import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscovery } from '@/utils/discoveryV2';
 import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
@@ -349,6 +350,7 @@ const _delete = async (r: ObjectRecord, key: string) => {
     plural: r.type.resource,
     name: r.metadata.name!,
     namespace: r.metadata.namespace!,
+    propagationPolicy: V1DeletePropagation.BACKGROUND,
   });
   closeTab(key);
 };
