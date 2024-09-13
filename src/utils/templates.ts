@@ -2,6 +2,7 @@ import type {
   V1ConfigMap, V1Secret, V1Pod, V1PersistentVolume, V1PersistentVolumeClaim,
   V1ResourceQuota, V1Service,
   V1DaemonSet, V1Deployment, V1StatefulSet,
+  V2HorizontalPodAutoscaler,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 
 const ConfigMap: V1ConfigMap = {
@@ -84,6 +85,17 @@ const StatefulSet: V1StatefulSet = {
   },
 };
 
+const HorizontalPodAutoscaler: V2HorizontalPodAutoscaler = {
+  spec: {
+    maxReplicas: 2,
+    minReplicas: 1,
+    scaleTargetRef: {
+      kind: 'TODO',
+      name: 'TODO',
+    },
+  },
+};
+
 export const templates: { [gv: string]: { [k: string]: object } } = {
   v1: {
     ConfigMap, Secret, Pod, PersistentVolume, PersistentVolumeClaim,
@@ -91,5 +103,8 @@ export const templates: { [gv: string]: { [k: string]: object } } = {
   },
   'apps/v1': {
     DaemonSet, Deployment, StatefulSet,
+  },
+  'autoscaling/v2': {
+    HorizontalPodAutoscaler,
   },
 };

@@ -367,6 +367,7 @@ const newDraft = async () => {
       name,
     },
   };
+  // TODO generate skeleton from openapi types as fallback?
   const contentTemplate = templates[metaTemplate.apiVersion!]?.[metaTemplate.kind!] ?? {};
   const doc = stringify({ ...metaTemplate, ...contentTemplate });
   const namePos = doc.indexOf(name);
