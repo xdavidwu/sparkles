@@ -5,6 +5,7 @@ import type {
   V2HorizontalPodAutoscaler,
   V1Job, V1CronJob,
   V1Ingress, V1NetworkPolicy,
+  V1PodDisruptionBudget,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 
 const ConfigMap: V1ConfigMap = {
@@ -136,6 +137,12 @@ const NetworkPolicy: V1NetworkPolicy = {
   },
 };
 
+const PodDisruptionBudget: V1PodDisruptionBudget = {
+  spec: {
+    selector: {},
+  },
+};
+
 export const templates: { [gv: string]: { [k: string]: object } } = {
   v1: {
     ConfigMap, Secret, Pod, PersistentVolume, PersistentVolumeClaim,
@@ -152,5 +159,8 @@ export const templates: { [gv: string]: { [k: string]: object } } = {
   },
   'networking.k8s.io/v1': {
     Ingress, NetworkPolicy,
+  },
+  'policy/v1': {
+    PodDisruptionBudget,
   },
 };
