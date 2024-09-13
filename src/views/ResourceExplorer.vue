@@ -313,6 +313,8 @@ const save = async (r: ObjectRecord, key: string) => {
     } catch (e) {
       throw new PresentedError(`Invalid YAML input:\n${e}`, { cause: e });
     }
+    // hack: v-data-table-virtual does not seems to update properly when off-screen
+    tab.value = 'explore';
   }
 
   r.object = await (await anyApi[
