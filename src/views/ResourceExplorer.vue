@@ -134,11 +134,11 @@ const tableRef = ref<InstanceType<typeof VDataTableVirtual> | null>(null);
 const runTableLayoutAlgorithm = () => {
   const table = tableRef.value?.$el as HTMLDivElement | undefined;
   table?.querySelectorAll('th').forEach((th) => th.removeAttribute('width'));
-  table?.setAttribute('style', 'table-layout: auto');
+  table?.querySelector('table')?.setAttribute('style', 'table-layout: auto');
   requestAnimationFrame(() => {
     table?.querySelectorAll('th').forEach((th) =>
       th.setAttribute('width', `${th.getBoundingClientRect().width}`));
-    table?.setAttribute('style', 'table-layout: fixed');
+    table?.querySelector('table')?.setAttribute('style', 'table-layout: fixed');
   });
 };
 
