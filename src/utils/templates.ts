@@ -3,6 +3,7 @@ import type {
   V1ResourceQuota, V1Service,
   V1DaemonSet, V1Deployment, V1StatefulSet,
   V2HorizontalPodAutoscaler,
+  V1Job, V1CronJob,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 
 const ConfigMap: V1ConfigMap = {
@@ -96,6 +97,24 @@ const HorizontalPodAutoscaler: V2HorizontalPodAutoscaler = {
   },
 };
 
+const Job: V1Job = {
+  spec: {
+    template: {
+      spec: {
+        ...Pod.spec!,
+        restartPolicy: 'OnFailure',
+      },
+    },
+  },
+};
+
+const CronJob: V1CronJob = {
+  spec: {
+    schedule: 'TODO',
+    jobTemplate: Job,
+  },
+};
+
 export const templates: { [gv: string]: { [k: string]: object } } = {
   v1: {
     ConfigMap, Secret, Pod, PersistentVolume, PersistentVolumeClaim,
@@ -106,5 +125,8 @@ export const templates: { [gv: string]: { [k: string]: object } } = {
   },
   'autoscaling/v2': {
     HorizontalPodAutoscaler,
+  },
+  'batch/v1': {
+    Job, CronJob,
   },
 };
