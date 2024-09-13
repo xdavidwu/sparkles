@@ -22,7 +22,7 @@ import TabsWindow from '@/components/TabsWindow.vue';
 import WindowItem from '@/components/WindowItem.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
 import { vResizeObserver } from '@vueuse/components';
-import { computed, watch, ref, nextTick } from 'vue';
+import { computed, watch, ref, nextTick, triggerRef } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDisplay } from 'vuetify';
 import { timestamp, useLastChanged } from '@vueuse/core';
@@ -313,8 +313,6 @@ const save = async (r: ObjectRecord, key: string) => {
     } catch (e) {
       throw new PresentedError(`Invalid YAML input:\n${e}`, { cause: e });
     }
-    // hack: v-data-table-virtual does not seems to update properly when off-screen
-    tab.value = 'explore';
   }
 
   r.object = await (await anyApi[
@@ -410,6 +408,13 @@ watch(targetGroupVersion, () => targetType.value = defaultTargetType());
 watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true });
 watch(verbose, runTableLayoutAlgorithm);
 watch([targetType, verbose], () => order.value = []);
+watch(tab, (v) => {
+  if (v === 'explore') {
+    // hack: v-data-table-virtual does not update properly when display: none
+    // (0 height), force rendering range calculation when back
+    requestAnimationFrame(() => triggerRef(objects));
+  }
+})
 </script>
 
 <template>
