@@ -4,6 +4,7 @@ import type {
   V1DaemonSet, V1Deployment, V1StatefulSet,
   V2HorizontalPodAutoscaler,
   V1Job, V1CronJob,
+  V1Ingress, V1NetworkPolicy,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 
 const ConfigMap: V1ConfigMap = {
@@ -115,6 +116,26 @@ const CronJob: V1CronJob = {
   },
 };
 
+const Ingress: V1Ingress = {
+  spec: {
+    rules: [{
+      http: {
+        paths: [{
+          path: '/',
+          pathType: 'Prefix',
+          backend: {},
+        }],
+      },
+    }],
+  },
+};
+
+const NetworkPolicy: V1NetworkPolicy = {
+  spec: {
+    podSelector: {},
+  },
+};
+
 export const templates: { [gv: string]: { [k: string]: object } } = {
   v1: {
     ConfigMap, Secret, Pod, PersistentVolume, PersistentVolumeClaim,
@@ -128,5 +149,8 @@ export const templates: { [gv: string]: { [k: string]: object } } = {
   },
   'batch/v1': {
     Job, CronJob,
+  },
+  'networking.k8s.io/v1': {
+    Ingress, NetworkPolicy,
   },
 };
