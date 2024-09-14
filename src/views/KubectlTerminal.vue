@@ -39,10 +39,10 @@ const progressMessage = ref('');
 const progressing = ref(false);
 
 const name = 'sparkles-kubectl-shell';
-const SUPPORTING_POD_PREFIX = `${name}-`;
-const SUPPORTING_CONTAINER_NAME = 'kubectl';
-const SUPPORTING_SERVICEACCOUNT_NAME = name;
-const SUPPORTING_ROLEBINDING_NAME = name;
+const POD_PREFIX = `${name}-`;
+const CONTAINER_NAME = 'kubectl';
+const SERVICEACCOUNT_NAME = name;
+const ROLEBINDING_NAME = name;
 
 const load = async () => {
   podName.value = '';
@@ -63,7 +63,7 @@ const create = async () => {
     apiVersion: 'v1',
     kind: 'ServiceAccount',
     metadata: {
-      name: SUPPORTING_SERVICEACCOUNT_NAME,
+      name: SERVICEACCOUNT_NAME,
       labels: managedByLabel,
       annotations: {
         [descriptionAnnotaion]: `Used for kubectl shell functionality in ${brand}.`,
@@ -74,7 +74,7 @@ const create = async () => {
     apiVersion: 'rbac.authorization.k8s.io/v1',
     kind: 'RoleBinding',
     metadata: {
-      name: SUPPORTING_ROLEBINDING_NAME,
+      name: ROLEBINDING_NAME,
       labels: managedByLabel,
       annotations: {
         [descriptionAnnotaion]: `Used for kubectl shell functionality in ${brand}.`,
@@ -88,14 +88,14 @@ const create = async () => {
     subjects: [{
       kind: 'ServiceAccount',
       namespace: selectedNamespace.value,
-      name: SUPPORTING_SERVICEACCOUNT_NAME,
+      name: SERVICEACCOUNT_NAME,
     }],
   };
   const pod: V1Pod = {
     apiVersion: 'v1',
     kind: 'Pod',
     metadata: {
-      generateName: SUPPORTING_POD_PREFIX,
+      generateName: POD_PREFIX,
       labels: managedByLabel,
       annotations: {
         [descriptionAnnotaion]: `Pod that implements kubectl shell funtionality in ${brand}. ` +
@@ -107,7 +107,7 @@ const create = async () => {
     },
     spec: {
       containers: [{
-        name: SUPPORTING_CONTAINER_NAME,
+        name: CONTAINER_NAME,
         // TODO find a better one with completion, helm, match version with cluster
         image: 'bitnami/kubectl',
         // fork and wait to get rid of pid 1 signal quirks
@@ -124,14 +124,14 @@ const create = async () => {
           },
         },
       }],
-      serviceAccountName: SUPPORTING_SERVICEACCOUNT_NAME,
+      serviceAccountName: SERVICEACCOUNT_NAME,
       restartPolicy: 'Never',
     },
   };
 
   await api.patchNamespacedServiceAccount({
     namespace: selectedNamespace.value,
-    name: SUPPORTING_SERVICEACCOUNT_NAME,
+    name: SERVICEACCOUNT_NAME,
     force: true,
     body: encodeBlob(serviceAccount),
   }, fromYAMLSSA);
@@ -143,7 +143,7 @@ const create = async () => {
     }).then((pod) => podName.value = pod.metadata!.name!),
     rbacApi.patchNamespacedRoleBinding({
       namespace: selectedNamespace.value,
-      name: SUPPORTING_ROLEBINDING_NAME,
+      name: ROLEBINDING_NAME,
       force: true,
       body: encodeBlob(roleBinding),
     }, fromYAMLSSA),
@@ -167,7 +167,7 @@ const waitForReady = async () => {
       if (ev.type === V1WatchEventType.ADDED ||
           ev.type === V1WatchEventType.MODIFIED) {
         return ev.object.status?.containerStatuses?.find(
-          (s) => s.name === SUPPORTING_CONTAINER_NAME)?.ready ?? false;
+          (s) => s.name === CONTAINER_NAME)?.ready ?? false;
       } else if (ev.type === V1WatchEventType.DELETED) {
         throw new PresentedError('Supporting pod deleted on cluster');
       }
@@ -235,7 +235,7 @@ useEventListener(window, 'beforeunload', () => {
       style="height: calc(100dvh - 64px - 32px)"
       :command="['/bin/sh', '-c', '/bin/bash; kill 2']"
       :container-spec="{ namespace: selectedNamespace,
-        pod: podName, container: SUPPORTING_CONTAINER_NAME }"
+        pod: podName, container: CONTAINER_NAME }"
       @closed="cleanup(selectedNamespace)" />
     <template v-if="state === State.USER_CANCELED">
       This feature requires supporting pod.
