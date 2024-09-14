@@ -1,6 +1,6 @@
 import type {
-  V1ConfigMap, V1Secret, V1Pod, V1PersistentVolume, V1PersistentVolumeClaim,
-  V1ResourceQuota, V1Service,
+  V1ConfigMap, V1Secret, V1Pod, V1PodTemplateSpec,
+  V1PersistentVolume, V1PersistentVolumeClaim, V1ResourceQuota, V1Service,
   V1DaemonSet, V1Deployment, V1StatefulSet,
   V2HorizontalPodAutoscaler,
   V1Job, V1CronJob,
@@ -20,15 +20,19 @@ const Secret: V1Secret = {
 };
 
 const Pod: V1Pod = {
-  metadata: {
-    labels: {}, // for selectors, as V1PodTemplateSpec
-  },
   spec: {
     containers: [{
       name: 'name',
       image: 'TODO',
     }],
   },
+};
+
+const PodTemplateSpec: V1PodTemplateSpec = {
+  metadata: {
+    labels: {}, // for selectors
+  },
+  ...Pod,
 };
 
 const PersistentVolume: V1PersistentVolume = {
@@ -68,7 +72,7 @@ const Service: V1Service = {
 const DaemonSet: V1DaemonSet = {
   spec: {
     selector: {},
-    template: Pod,
+    template: PodTemplateSpec,
   },
 };
 
@@ -76,7 +80,7 @@ const Deployment: V1Deployment = {
   spec: {
     replicas: 1,
     selector: {},
-    template: Pod,
+    template: PodTemplateSpec,
   },
 };
 
@@ -84,7 +88,7 @@ const StatefulSet: V1StatefulSet = {
   spec: {
     replicas: 1,
     selector: {},
-    template: Pod,
+    template: PodTemplateSpec,
     serviceName: '',
   },
 };
