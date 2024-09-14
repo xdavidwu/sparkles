@@ -18,7 +18,7 @@ import {
   hasCondition, V1ConditionStatus, V1CustomResourceDefinitionConditionType, V1JobConditionType,
   V1PodStatusPhase, V1WatchEventType, V1DeletePropagation,
 } from '@/utils/api';
-import { fetchBase64Data } from '@/utils/lang';
+import { fetchBase64Data, ignore } from '@/utils/lang';
 import { PresentedError } from '@/utils/PresentedError';
 import {
   secretName, releaseSecretType,
@@ -402,7 +402,6 @@ const applyDifference = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery
       plural: kindInfo.resource,
       namespace: step.resource.metadata!.namespace!,
       name: step.resource.metadata!.name!,
-      fieldManager,
     };
     if (step.op == 'replace') {
       try {
@@ -416,21 +415,18 @@ const applyDifference = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery
       }
     }
 
-    try {
+    if (step.op == 'delete') {
       // body has a different meaning on delete (V1DeleteOptions)
-      step.op == 'delete' ?
-        anyApi[`delete${kindInfo.scope}CustomObject`]({
-          ...common,
-          propagationPolicy: V1DeletePropagation.BACKGROUND,
-        }) :
-        anyApi[`${step.op}${kindInfo.scope}CustomObject`]({
-          ...common,
-          body: step.resource,
-        });
-    } catch (e) {
-      if (!(step.op == 'delete' && await errorIsResourceNotFound(e))) {
-        throw e;
-      }
+      await ignore(anyApi[`delete${kindInfo.scope}CustomObject`]({
+        ...common,
+        propagationPolicy: V1DeletePropagation.BACKGROUND,
+      }), errorIsResourceNotFound);
+    } else {
+      await anyApi[`${step.op}${kindInfo.scope}CustomObject`]({
+        ...common,
+        fieldManager,
+        body: step.resource,
+      });
     }
   }, Promise.resolve());
 };
@@ -449,19 +445,13 @@ const execHooks = (
       // if empty, defaults to BEFORE_HOOK_CREATION
       if (!h.delete_policies?.includes(p) &&
           !(p == DeletePolicy.BEFORE_HOOK_CREATION && !h.delete_policies?.length)) {
-        try {
-          await anyApi[`delete${kindInfo.scope}CustomObject`]({
-            group: kindInfo.group,
-            version: kindInfo.version,
-            plural: kindInfo.resource,
-            namespace: obj.metadata!.namespace!,
-            name: obj.metadata!.name!,
-          });
-        } catch (e) {
-          if (!await errorIsResourceNotFound(e)) {
-            throw e;
-          }
-        }
+        await ignore(anyApi[`delete${kindInfo.scope}CustomObject`]({
+          group: kindInfo.group,
+          version: kindInfo.version,
+          plural: kindInfo.resource,
+          namespace: obj.metadata!.namespace!,
+          name: obj.metadata!.name!,
+        }), errorIsResourceNotFound);
       }
     };
 
@@ -684,17 +674,10 @@ const fns = {
     });
 
     await Promise.all(defs.map(async (d) => {
-      try {
-        await extensionsApi.createCustomResourceDefinition({
-          body: d,
-          fieldManager,
-        });
-      } catch (e) {
-        if (!await errorIsAlreadyExists(e)) {
-          throw e;
-        }
-        // helm does not wait in this case, but probably should
-      }
+      await ignore(extensionsApi.createCustomResourceDefinition({
+        body: d,
+        fieldManager,
+      }), errorIsAlreadyExists);
       await watchUntil(
         (opt) => extensionsApi.listCustomResourceDefinitionRaw({
           fieldSelector: `metadata.name=${d.metadata!.name}`,

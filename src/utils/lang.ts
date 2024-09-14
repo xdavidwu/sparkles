@@ -25,3 +25,15 @@ export async function* streamToGenerator<T>(r: ReadableStream<T>) {
     });
   }
 }
+
+export const ignore = async <T>(
+  op: T, condition: (e: unknown) => Promise<boolean> | boolean,
+): Promise<Awaited<T> | undefined> => {
+  try {
+    return await op;
+  } catch (e) {
+    if (!await condition(e)) {
+      throw e;
+    }
+  }
+};

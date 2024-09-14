@@ -13,6 +13,7 @@ import {
 } from '@/utils/api';
 import { brand } from '@/utils/config';
 import { managedByLabel } from '@/utils/contracts';
+import { ignore } from '@/utils/lang';
 import { watchUntil } from '@/utils/watch';
 import { PresentedError } from '@/utils/PresentedError';
 import {
@@ -181,19 +182,11 @@ const waitForReady = async () => {
 
 await load();
 
-const cleanup = async (namespace: string) => {
-  if (!podName.value) {
-    return;
-  }
-
-  try {
-    await api.deleteNamespacedPod({ namespace, name: podName.value });
-  } catch (e) {
-    if (!await errorIsResourceNotFound(e)) {
-      throw e;
-    }
-  }
-};
+const cleanup = async (namespace: string) =>
+  podName.value && await ignore(
+    api.deleteNamespacedPod({ namespace, name: podName.value }),
+    errorIsResourceNotFound
+  );
 
 watch(selectedNamespace, (to: string, from: string) => Promise.all([
   load,
