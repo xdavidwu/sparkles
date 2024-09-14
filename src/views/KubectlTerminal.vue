@@ -8,7 +8,7 @@ import { useEventListener } from '@vueuse/core';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
 import {
-  descriptionAnnotaion, errorIsResourceNotFound, fromYAMLSSA,
+  descriptionAnnotaion, errorIsResourceNotFound, bySSA,
   V1WatchEventType,
 } from '@/utils/api';
 import { brand } from '@/utils/config';
@@ -47,7 +47,6 @@ const ROLEBINDING_NAME = name;
 
 const cancelCreate = () => state.value = State.USER_CANCELED;
 
-const encodeBlob = (o: object) => new Blob([JSON.stringify(o)]);
 const create = async () => {
   state.value = State.CREATING;
   progressMessage.value = 'Creating supporting pod';
@@ -128,8 +127,8 @@ const create = async () => {
     namespace: selectedNamespace.value,
     name: SERVICEACCOUNT_NAME,
     force: true,
-    body: encodeBlob(serviceAccount),
-  }, fromYAMLSSA);
+    body: serviceAccount,
+  }, bySSA);
 
   await Promise.all([
     api.createNamespacedPod({
@@ -140,8 +139,8 @@ const create = async () => {
       namespace: selectedNamespace.value,
       name: ROLEBINDING_NAME,
       force: true,
-      body: encodeBlob(roleBinding),
-    }, fromYAMLSSA),
+      body: roleBinding,
+    }, bySSA),
   ]);
 
   progressMessage.value = 'Waiting for supporting pod to become ready';

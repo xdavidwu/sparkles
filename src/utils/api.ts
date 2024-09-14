@@ -107,6 +107,18 @@ export const descriptionAnnotaion = 'kubernetes.io/description';
 export type ChainableInitOverrideFunction = (...p: Parameters<InitOverrideFunction>) =>
   (Promise<Awaited<ReturnType<InitOverrideFunction>> & HTTPRequestInit & { headers: HTTPHeaders }>);
 
+const identityOverrideFn: InitOverrideFunction = async ({ init }) => init;
+
+export const chainOverrideFunction = (
+  a: ChainableInitOverrideFunction,
+  b?: RequestInit | InitOverrideFunction,
+): InitOverrideFunction =>
+  async (c) => {
+    const fn = b === undefined ? identityOverrideFn : (
+      typeof b === 'function' ? b : async () => b);
+    return await fn({ init: await a(c), context: c.context });
+  };
+
 const overrideHeader = (key: string, value: string): ChainableInitOverrideFunction =>
   async (context) => {
     const overridden = {
@@ -118,8 +130,20 @@ const overrideHeader = (key: string, value: string): ChainableInitOverrideFuncti
   };
 
 export const asYAML = overrideHeader('Accept', 'application/yaml');
-export const fromYAML = overrideHeader('Content-Type', 'application/yaml');
-export const fromYAMLSSA = overrideHeader('Content-Type', 'application/apply-patch+yaml');
+export const byYAML: ChainableInitOverrideFunction = async (context) => {
+  const c = await overrideHeader('Content-Type', 'application/yaml')(context);
+  return {
+    ...c,
+    body: new Blob([c.body], { type: 'application/yaml' }),
+  };
+};
+export const bySSA: ChainableInitOverrideFunction = async (context) => {
+  const c = await overrideHeader('Content-Type', 'application/apply-patch+yaml')(context);
+  return {
+    ...c,
+    body: new Blob([JSON.stringify(c.body)]),
+  };
+};
 
 interface ConditionConvention {
   type: string;
@@ -135,18 +159,6 @@ export const hasCondition = (
   object: { status?: { conditions?: Array<ConditionConvention> }},
   condition: string, status: V1ConditionStatus,
 ): boolean => matchCondition(object.status?.conditions, condition, status);
-
-const identityOverrideFn: InitOverrideFunction = async ({ init }) => init;
-
-export const chainOverrideFunction = (
-  a: ChainableInitOverrideFunction,
-  b?: RequestInit | InitOverrideFunction,
-): InitOverrideFunction =>
-  async (c) => {
-    const fn = b === undefined ? identityOverrideFn : (
-      typeof b === 'function' ? b : async () => b);
-    return await fn({ init: await a(c), context: c.context });
-  };
 
 export class ExtractedRequestContext {
   constructor(public context: RequestContext) {}

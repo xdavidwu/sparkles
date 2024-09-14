@@ -39,7 +39,7 @@ import {
   type V1Table, type V1PartialObjectMetadata, type V1TableColumnDefinition, type V1TableRow,
 } from '@/utils/AnyApi';
 import {
-  asYAML, fromYAML, chainOverrideFunction,
+  asYAML, byYAML, chainOverrideFunction,
   setTableIncludeObjectPolicy, V1IncludeObjectPolicy,
   V1DeletePropagation,
 } from '@/utils/api';
@@ -325,8 +325,8 @@ const save = async (r: ObjectRecord, key: string) => {
     name: method === 'create' ? createMeta?.name : r.metadata.name!,
     namespace: method === 'create' ? createMeta?.namespace : r.metadata.namespace!,
     fieldValidation: 'Strict',
-    body: new Blob([r.object], { type: 'application/yaml' }),
-  }, chainOverrideFunction(fromYAML, asYAML))).raw.text();
+    body: new Blob([r.object]),
+  }, chainOverrideFunction(byYAML, asYAML))).raw.text();
 
   r.unsaved = false;
   r.editing = false;

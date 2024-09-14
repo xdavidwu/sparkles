@@ -7,7 +7,7 @@ import { storeToRefs } from 'pinia';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiLoader } from '@/composables/apiLoader';
-import { descriptionAnnotaion, fromYAMLSSA } from '@/utils/api';
+import { descriptionAnnotaion, bySSA } from '@/utils/api';
 import { brand } from '@/utils/config';
 import {
   managedByLabel,
@@ -127,7 +127,6 @@ const { load, loading } = useApiLoader(async (signal) => {
 
 watch(selectedNamespace, load, { immediate: true });
 
-const encodeBlob = (o: object) => new Blob([JSON.stringify(o)]);
 const create = async () => {
   creatingExpiresAt.value.setHours(0);
   creatingExpiresAt.value.setMinutes(0);
@@ -188,8 +187,8 @@ const create = async () => {
     namespace: selectedNamespace.value,
     name: SERVICEACCOUNT_NAME,
     force: true,
-    body: encodeBlob(serviceAccount),
-  }, fromYAMLSSA);
+    body: serviceAccount,
+  }, bySSA);
 
 
   let secretName = '';
@@ -198,8 +197,8 @@ const create = async () => {
       namespace: selectedNamespace.value,
       name: ROLEBINDING_NAME,
       force: true,
-      body: encodeBlob(roleBinding),
-    }, fromYAMLSSA),
+      body: roleBinding,
+    }, bySSA),
     api.createNamespacedSecret({
       namespace: selectedNamespace.value,
       body: secret,
@@ -231,8 +230,8 @@ const create = async () => {
   await api.patchNamespacedSecret({
     namespace: selectedNamespace.value,
     name: secretName,
-    body: encodeBlob(secret),
-  }, fromYAMLSSA);
+    body: secret,
+  }, bySSA);
 
   token.value = result.status!.token;
   creatingToken.value = false;
