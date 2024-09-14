@@ -45,14 +45,7 @@ const CONTAINER_NAME = 'kubectl';
 const SERVICEACCOUNT_NAME = name;
 const ROLEBINDING_NAME = name;
 
-const load = async () => {
-  podName.value = '';
-  state.value = State.ASK_FOR_CREATING;
-};
-
-const cancelCreate = () => {
-  state.value = State.USER_CANCELED;
-};
+const cancelCreate = () => state.value = State.USER_CANCELED;
 
 const encodeBlob = (o: object) => new Blob([JSON.stringify(o)]);
 const create = async () => {
@@ -151,12 +144,7 @@ const create = async () => {
     }, fromYAMLSSA),
   ]);
 
-  await waitForReady();
-};
-
-const waitForReady = async () => {
   progressMessage.value = 'Waiting for supporting pod to become ready';
-  progressing.value = true;
   // TODO timeout?
   await watchUntil(
     (opt) => api.listNamespacedPodRaw({
@@ -176,28 +164,30 @@ const waitForReady = async () => {
       return false;
     }
   );
+
   progressing.value = false;
   state.value = State.READY;
 };
 
-await load();
-
-const cleanup = async (namespace: string) =>
+const cleanup = async (namespace?: string) =>
   podName.value && await ignore(
-    api.deleteNamespacedPod({ namespace, name: podName.value }),
+    api.deleteNamespacedPod({
+      namespace: namespace ?? selectedNamespace.value,
+      name: podName.value,
+    }),
     errorIsResourceNotFound
   );
 
-watch(selectedNamespace, (to: string, from: string) => Promise.all([
-  load,
-  cleanup(from),
-]));
-
-onUnmounted(() => cleanup(selectedNamespace.value));
-
-useEventListener(window, 'beforeunload', () => {
-  cleanup(selectedNamespace.value);
+watch(selectedNamespace, async (to: string, from: string) => {
+  const p = cleanup(from);
+  podName.value = '';
+  state.value = State.ASK_FOR_CREATING;
+  await p;
 });
+
+onUnmounted(() => cleanup());
+
+useEventListener(window, 'beforeunload', () => cleanup());
 </script>
 
 <template>
@@ -229,7 +219,7 @@ useEventListener(window, 'beforeunload', () => {
       style="height: calc(100dvh - 64px - 32px)"
       :container-spec="{ namespace: selectedNamespace,
         pod: podName, container: CONTAINER_NAME }"
-      @closed="cleanup(selectedNamespace)" shell />
+      @closed="cleanup()" shell />
     <template v-if="state === State.USER_CANCELED">
       This feature requires supporting pod.
     </template>
