@@ -1,5 +1,5 @@
 import {
-  AuthenticationV1Api, AuthenticationV1beta1Api,
+  AuthenticationV1Api, AuthenticationV1beta1Api, type BaseAPI,
   V1StatusFromJSON,
   type V1SelfSubjectReview,
   Configuration, FetchError, ResponseError,
@@ -154,6 +154,20 @@ export class ExtractedRequestContext {
 
 export const extractRequestContext: Middleware['pre'] = (context) => {
   throw new ExtractedRequestContext(context);
+};
+
+export const extractUrl = async <T extends BaseAPI>(
+    api: T, op: (api: T) => Promise<unknown>): Promise<string> => {
+  try {
+    await op(api.withPreMiddleware(extractRequestContext));
+  } catch (e) {
+    if (e instanceof ExtractedRequestContext) {
+      return e.context.url;
+    } else {
+      throw e;
+    }
+  }
+  throw new Error('unreachable code');
 };
 
 // setting UA does not work on chromium, thus explicit setting is needed

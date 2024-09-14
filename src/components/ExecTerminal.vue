@@ -2,7 +2,7 @@
 import WSTerminal from '@/components/WSTerminal.vue';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api } from '@xdavidwu/kubernetes-client-typescript-fetch';
-import { ExtractedRequestContext, extractRequestContext } from '@/utils/api';
+import { extractUrl } from '@/utils/api';
 
 const props = defineProps<{
   containerSpec: {
@@ -19,25 +19,14 @@ const commandOpts = (props.command ?? ['/bin/sh', '-c', findShell]).reduce(
 
 const configStore = useApiConfig();
 const api = new CoreV1Api(await configStore.getConfig());
-
-let url = '';
-try {
-  // XXX naming?
-  await api.withPreMiddleware(extractRequestContext).connectGetNamespacedPodExec({
-    namespace: props.containerSpec.namespace,
-    name: props.containerSpec.pod,
-    container: props.containerSpec.container,
-    stdin: true,
-    stdout: true,
-    tty: true,
-  });
-} catch (e) {
-  if (e instanceof ExtractedRequestContext) {
-    url = `${e.context.url}${commandOpts}`.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
-  } else {
-    throw e;
-  }
-}
+const url = `${(await extractUrl(api, (api) => api.connectGetNamespacedPodExec({
+  namespace: props.containerSpec.namespace,
+  name: props.containerSpec.pod,
+  container: props.containerSpec.container,
+  stdin: true,
+  stdout: true,
+  tty: true,
+})))}${commandOpts}`.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
 </script>
 
 <template>
