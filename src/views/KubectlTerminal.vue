@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { VBtn, VCard, VDialog } from 'vuetify/components';
-import ExecTerminal from '@/components/ExecTerminal.vue';
+import AttachTerminal from '@/components/AttachTerminal.vue';
 import ProgressDialog from '@/components/ProgressDialog.vue';
 import { ref, watch, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
@@ -110,9 +110,10 @@ const create = async () => {
         name: CONTAINER_NAME,
         // TODO find a better one with completion, helm, match version with cluster
         image: 'bitnami/kubectl',
-        // fork and wait to get rid of pid 1 signal quirks
-        command: ['/bin/sh', '-c'],
-        args: ['sleep infinity; true'],
+        command: ['/bin/bash'],
+        stdin: true,
+        stdinOnce: true,
+        tty: true,
         securityContext: {
           allowPrivilegeEscalation: false,
           capabilities: {
@@ -231,12 +232,11 @@ useEventListener(window, 'beforeunload', () => {
     </VDialog>
     <ProgressDialog :model-value="progressing"
       title="Setting up kubectl shell" :text="progressMessage" />
-    <ExecTerminal v-if="state === State.READY"
+    <AttachTerminal v-if="state === State.READY"
       style="height: calc(100dvh - 64px - 32px)"
-      :command="['/bin/sh', '-c', '/bin/bash; kill 2']"
       :container-spec="{ namespace: selectedNamespace,
         pod: podName, container: CONTAINER_NAME }"
-      @closed="cleanup(selectedNamespace)" />
+      @closed="cleanup(selectedNamespace)" shell />
     <template v-if="state === State.USER_CANCELED">
       This feature requires supporting pod.
     </template>

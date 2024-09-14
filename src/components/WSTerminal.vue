@@ -10,6 +10,9 @@ import { useErrorPresentation } from '@/stores/errorPresentation';
 
 const props = defineProps<{
   url: string,
+  initialMessage?: Uint8Array,
+  // XXX? attach exit seems not to reflect status on cri-o
+  noExitStatus?: boolean,
 }>();
 
 const emit = defineEmits<{
@@ -62,6 +65,9 @@ const display = async (terminal: Terminal) => {
   socket.onopen = () => {
     resize(terminal);
     terminal.write(`${CSI}2J${CSI}H`); // clear all, reset cursor
+    if (props.initialMessage) {
+      socket.send(new Uint8Array([Streams.STDIN, ...props.initialMessage]));
+    }
     terminal.onData((data) => {
       socket.send(new Uint8Array([Streams.STDIN, ...encoder.encode(data)]));
     });
@@ -80,8 +86,11 @@ const display = async (terminal: Terminal) => {
 
       terminal.write(`${CSI}0m`); // SGR reset
       if (status.status === V1StatusStatus.SUCCESS) {
-        // SGR: fg: green
-        terminal.write(`${CSI}32mcommand terminated normally`);
+        terminal.write(props.noExitStatus ?
+          // SGR: fg: cyan
+          `${CSI}36mcommand terminated` :
+          // SGR: fg: green
+          `${CSI}32mcommand terminated normally`);
       } else {
         terminal.write(`${CSI}31m`); // SGR: fg: red
         terminal.write(status.message ?? status.reason!);
