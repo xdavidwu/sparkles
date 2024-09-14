@@ -22,7 +22,6 @@ import {
   type V1Secret, type V1ServiceAccount, type V1RoleBinding, type AuthenticationV1TokenRequest,
   V1SecretFromJSON,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
-import { createNameId } from 'mnemonic-id';
 
 const config = await useApiConfig().getConfig();
 const { authScheme } = storeToRefs(useApiConfig());
@@ -171,7 +170,7 @@ const create = async () => {
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: {
-      name: `${SECRET_PREFIX}${createNameId()}`,
+      generateName: SECRET_PREFIX,
       labels: managedByLabel,
       annotations: {
         [tokenNoteAnnotation]: creatingNote.value,
@@ -185,20 +184,6 @@ const create = async () => {
     type: tokenHandleSecretType,
   };
 
-  const tokenRequest: AuthenticationV1TokenRequest = {
-    apiVersion: 'authentication.k8s.io/v1',
-    kind: 'TokenRequest',
-    spec: {
-      audiences: [],
-      boundObjectRef: {
-        apiVersion: 'v1',
-        kind: 'Secret',
-        name: secret.metadata!.name,
-      },
-      expirationSeconds: Math.round((creatingExpiresAt.value.valueOf() - (new Date()).valueOf()) / 1000),
-    },
-  };
-
   await api.patchNamespacedServiceAccount({
     namespace: selectedNamespace.value,
     name: SERVICEACCOUNT_NAME,
@@ -207,6 +192,7 @@ const create = async () => {
   }, fromYAMLSSA);
 
 
+  let secretName = '';
   await Promise.all([
     rbacApi.patchNamespacedRoleBinding({
       namespace: selectedNamespace.value,
@@ -217,8 +203,22 @@ const create = async () => {
     api.createNamespacedSecret({
       namespace: selectedNamespace.value,
       body: secret,
-    }),
+    }).then((secret) => secretName = secret.metadata!.name!),
   ]);
+
+  const tokenRequest: AuthenticationV1TokenRequest = {
+    apiVersion: 'authentication.k8s.io/v1',
+    kind: 'TokenRequest',
+    spec: {
+      audiences: [],
+      boundObjectRef: {
+        apiVersion: 'v1',
+        kind: 'Secret',
+        name: secretName,
+      },
+      expirationSeconds: Math.round((creatingExpiresAt.value.valueOf() - (new Date()).valueOf()) / 1000),
+    },
+  };
 
   const result = await api.createNamespacedServiceAccountToken({
     namespace: selectedNamespace.value,
@@ -230,7 +230,7 @@ const create = async () => {
 
   await api.patchNamespacedSecret({
     namespace: selectedNamespace.value,
-    name: secret.metadata!.name!,
+    name: secretName,
     body: encodeBlob(secret),
   }, fromYAMLSSA);
 
