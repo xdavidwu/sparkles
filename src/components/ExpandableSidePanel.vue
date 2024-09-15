@@ -36,11 +36,12 @@ defineProps<{
   position: absolute;
   top: 8px;
   z-index: 1000;
-  background-color: rgba(var(--v-theme-surface-light), var(--v-medium-emphasis-opacity));
+  background-color: rgba(54, 54, 54, var(--v-medium-emphasis-opacity));
 }
 
 .panel.expanded {
-  background-color: rgb(var(--v-theme-surface-light));
+  /* stolen from v-text-field solo-filled, focused state */
+  background-color: rgb(54, 54, 54);
 }
 
 .text-vertical {

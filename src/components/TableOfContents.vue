@@ -78,7 +78,7 @@ const navigate = (ids: unknown) => {
 }
 
 .light {
-  background-color: rgb(var(--v-theme-surface-light));
+  background-color: rgb(54, 54, 54);
 }
 
 .mx {
