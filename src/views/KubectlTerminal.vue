@@ -119,6 +119,7 @@ const create = async () => {
         },
       }],
       serviceAccountName: SERVICEACCOUNT_NAME,
+      terminationGracePeriodSeconds: 0,
       restartPolicy: 'Never',
     },
   };
