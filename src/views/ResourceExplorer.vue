@@ -22,7 +22,7 @@ import TabsWindow from '@/components/TabsWindow.vue';
 import WindowItem from '@/components/WindowItem.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
 import { vResizeObserver } from '@vueuse/components';
-import { computed, watch, ref, nextTick, triggerRef } from 'vue';
+import { computed, watch, ref, nextTick, triggerRef, useTemplateRef } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDisplay } from 'vuetify';
 import { timestamp, useLastChanged } from '@vueuse/core';
@@ -130,7 +130,7 @@ const inspectedObjects = ref<Map<string, ObjectRecord>>(new Map());
 const { smAndDown, xlAndUp } = useDisplay();
 const verbose = ref(xlAndUp.value);
 const { appBarHeightPX } = useAppTabs();
-const tableRef = ref<InstanceType<typeof VDataTableVirtual> | null>(null);
+const tableRef = useTemplateRef('table');
 
 const runTableLayoutAlgorithm = () => {
   const table = tableRef.value?.$el as HTMLDivElement | undefined;
@@ -176,13 +176,18 @@ const isHumanDuration = (c: V1TableColumnDefinition) =>
   (c.name === 'Last Schedule' && c.description === 'Information when was the last time the job was successfully scheduled.') || // batch/cronjobs
   (c.name === 'RequestedDuration' && c.description.startsWith('expirationSeconds')) || // certificates.k8s.io/certificatesigningrequests
   c.type === 'date'; // k8s.io/apiextensions-apiserver/pkg/registry/customresource/tableconvertor.cellForJSONValue
+const isQuantity = (c: V1TableColumnDefinition) => c.format === 'quantity';
+        // k8s.io/kubernetes/pkg/printers/internalversion.printPod
+const isRestarts = (c: V1TableColumnDefinition) => c.name === 'Restarts' &&
+  c.description === 'The number of times the containers in this pod have been restarted and when the last container in this pod has restarted.';
+
 // for where exact ts is not interesting enough for us to get from full object
 // TODO store estimated timestamp (need update ts tracking) and present from it?
 const sortHumanDuration = (a: string, b: string) =>
   (humanDurationToS(a) ?? 0) - (humanDurationToS(b) ?? 0);
 // metrics.k8s.io/v1beta1 uses this (k8s.io/apimachinery/pkg/api/resource.Quantity)
-const isQuantity = (c: V1TableColumnDefinition) => c.format === 'quantity';
 const sortQuantity = (a: string, b: string) => (real(a) ?? 0) - (real(b) ?? 0);
+const sortInteger = (a: string, b: string) => parseInt(a, 10) - parseInt(b, 10);
 
 const columns = computed<Array<{
   title: string,
@@ -193,71 +198,61 @@ const columns = computed<Array<{
     title: 'Namespace',
     key: 'object.metadata.namespace',
     description: `Namespace defines the space within which each name must be unique. An empty namespace is equivalent to the "default" namespace, but "default" is the canonical representation. Not all objects are required to be scoped to a namespace - the value of this field for those objects will be empty.\n\nMust be a DNS_LABEL. Cannot be updated. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces`,
-  }] : []).concat(
-    objects.value.columnDefinitions
-      .map((c, i) => {
-        const meta = {
-          title: c.name,
-          description: c.description,
-          priority: c.priority,
-        };
+  }] : []).concat(objects.value.columnDefinitions.map((c, i) => {
+    const meta = {
+      title: c.name,
+      description: c.description,
+      priority: c.priority,
+    };
 
-        if (isCreationTimestamp(c)){
-          return {
-            ...meta,
-            key: TimestampColumns.CREATION_TIMESTAMP,
-            value: (r: V1TableRow<V1PartialObjectMetadata>) => r.object.metadata!.creationTimestamp,
-            // reverse (time-to-timestamp from timestamp)
-            // optional chaining to avoid crash on column def change (more a vuetify bug?)
-            sort: (a: string, b: string) => b?.localeCompare(a),
-          };
-        } else if (isImages(c)) {
-          return {
-            ...meta,
-            key: ImageColumns.IMAGES,
-            value: (r: V1TableRow<V1PartialObjectMetadata>) => r.cells[i],
-          };
-        } else if (isEvents.value) {
-          // k8s.io/kubernetes/pkg/printers/internalversion.printEvent()
-          if (c.name === 'Last Seen') {
-            const coreGetLastTimestamp = (r: V1TableRow<CoreV1Event>) =>
-              r.object.lastTimestamp ?? r.object.firstTimestamp ?? r.object.eventTime;
-            const eventsGetLastTimestamp = (r: V1TableRow<EventsV1Event>) =>
-              r.object.deprecatedLastTimestamp ?? r.object.deprecatedFirstTimestamp ?? r.object.eventTime;
-            return {
-              ...meta,
-              key: TimestampColumns.LAST_SEEN,
-              value: targetGroupVersion.value.group ? eventsGetLastTimestamp : coreGetLastTimestamp,
-            };
-          } else if (c.name === 'First Seen') {
-            const coreGetFirstTimestamp = (r: V1TableRow<CoreV1Event>) =>
-              r.object.firstTimestamp ?? r.object.eventTime;
-            const eventsGetFirstTimestamp = (r: V1TableRow<EventsV1Event>) =>
-              r.object.deprecatedFirstTimestamp ?? r.object.eventTime;
-            return {
-              ...meta,
-              key: TimestampColumns.FIRST_SEEN,
-              value: targetGroupVersion.value.group ? eventsGetFirstTimestamp : coreGetFirstTimestamp,
-            };
-          }
-        }
-
-        const column = {
+    if (isEvents.value) {
+      // k8s.io/kubernetes/pkg/printers/internalversion.printEvent()
+      if (c.name === 'Last Seen') {
+        const coreGetLastTimestamp = (r: V1TableRow<CoreV1Event>) =>
+          r.object.lastTimestamp ?? r.object.firstTimestamp ?? r.object.eventTime;
+        const eventsGetLastTimestamp = (r: V1TableRow<EventsV1Event>) =>
+          r.object.deprecatedLastTimestamp ?? r.object.deprecatedFirstTimestamp ?? r.object.eventTime;
+        return {
           ...meta,
-          key: `cells.${i}`,
-          sort: isHumanDuration(c) ? sortHumanDuration : isQuantity(c) ? sortQuantity : undefined,
+          key: TimestampColumns.LAST_SEEN,
+          value: targetGroupVersion.value.group ? eventsGetLastTimestamp : coreGetLastTimestamp,
         };
-        // k8s.io/kubernetes/pkg/printers/internalversion.printPod
-        if (c.name === 'Restarts' && c.description === 'The number of times the containers in this pod have been restarted and when the last container in this pod has restarted.') {
-          return {
-            ...column,
-            sort: (a: string, b: string) => parseInt(a, 10) - parseInt(b, 10),
-          };
-        }
-        return column;
-      })
-      .filter((c) => verbose.value || c.priority === 0)
-  ),
+      } else if (c.name === 'First Seen') {
+        const coreGetFirstTimestamp = (r: V1TableRow<CoreV1Event>) =>
+          r.object.firstTimestamp ?? r.object.eventTime;
+        const eventsGetFirstTimestamp = (r: V1TableRow<EventsV1Event>) =>
+          r.object.deprecatedFirstTimestamp ?? r.object.eventTime;
+        return {
+          ...meta,
+          key: TimestampColumns.FIRST_SEEN,
+          value: targetGroupVersion.value.group ? eventsGetFirstTimestamp : coreGetFirstTimestamp,
+        };
+      }
+    }
+
+    if (isCreationTimestamp(c)){
+      return {
+        ...meta,
+        key: TimestampColumns.CREATION_TIMESTAMP,
+        value: (r: V1TableRow<V1PartialObjectMetadata>) => r.object.metadata!.creationTimestamp,
+        // reverse (time-to-timestamp from timestamp)
+        // optional chaining to avoid crash on column def change (more a vuetify bug?)
+        sort: (a: string, b: string) => b?.localeCompare(a),
+      };
+    } else if (isImages(c)) {
+      return {
+        ...meta,
+        key: ImageColumns.IMAGES,
+        value: (r: V1TableRow<V1PartialObjectMetadata>) => r.cells[i],
+      };
+    }
+
+    return {
+      ...meta,
+      key: `cells.${i}`,
+      sort: isHumanDuration(c) ? sortHumanDuration : isQuantity(c) ? sortQuantity : isRestarts(c) ? sortInteger : undefined,
+    };
+  }).filter((c) => verbose.value || c.priority === 0)),
 );
 
 const order = ref([]);
@@ -276,8 +271,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     kind: type.responseKind.kind,
     metadata: obj.metadata,
   });
-  const entry = inspectedObjects.value.get(key);
-  if (entry) {
+  if (inspectedObjects.value.has(key)) {
     tab.value = key;
     return;
   }
@@ -307,10 +301,10 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
 
 const save = async (r: ObjectRecord, key: string) => {
   const method = r.metadata.name === NAME_NEW ? 'create' : 'replace';
-  let createMeta;
+  let metadata = r.metadata;
   if (method === 'create') {
     try {
-      createMeta = parse(r.object)?.metadata;
+      metadata = parse(r.object)?.metadata;
     } catch (e) {
       throw new PresentedError(`Invalid YAML input:\n${e}`, { cause: e });
     }
@@ -322,19 +316,19 @@ const save = async (r: ObjectRecord, key: string) => {
     group: r.gv.group,
     version: r.gv.version,
     plural: r.type.resource,
-    name: method === 'create' ? createMeta?.name : r.metadata.name!,
-    namespace: method === 'create' ? createMeta?.namespace : r.metadata.namespace!,
+    name: metadata.name!,
+    namespace: metadata.namespace!,
     fieldValidation: 'Strict',
     body: new Blob([r.object]),
   }, chainOverrideFunction(byYAML, asYAML))).raw.text();
 
   r.unsaved = false;
   r.editing = false;
+  r.selection = undefined;
   const parsedObject = parse(r.object);
   r.metadata = parsedObject.metadata;
 
   if (method === 'create') {
-    r.selection = undefined;
     const newKey = uniqueKeyForObject(parsedObject);
     inspectedObjects.value.set(newKey, r);
     tab.value = newKey;
@@ -411,13 +405,10 @@ watch(targetGroupVersion, () => targetType.value = defaultTargetType());
 watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true });
 watch(verbose, runTableLayoutAlgorithm);
 watch([targetType, verbose], () => order.value = []);
-watch(tab, (v) => {
-  if (v === 'explore') {
-    // hack: v-data-table-virtual does not update properly when display: none
-    // (0 height), force rendering range calculation when back
-    requestAnimationFrame(() => triggerRef(objects));
-  }
-})
+// hack: v-data-table-virtual does not update properly when display: none
+// (0 height), force rendering range calculation when back
+watch(tab, (v) => v === 'explore' &&
+  requestAnimationFrame(() => triggerRef(objects)));
 </script>
 
 <template>
@@ -425,7 +416,7 @@ watch(tab, (v) => {
     <VTab value="explore">Explore</VTab>
     <DynamicTab v-for="[key, r] in inspectedObjects" :key="key"
       :value="key" :description="`${r.type.responseKind.kind}: ${nsName(r.metadata)}`"
-      :title="title(r)" :alerting="r.unsaved" @close="() => closeTab(key)" />
+      :title="title(r)" :alerting="r.unsaved" @close="closeTab(key)" />
   </AppTabs>
   <TabsWindow v-model="tab">
     <WindowItem value="explore">
@@ -460,7 +451,7 @@ watch(tab, (v) => {
           <HumanDurationSince class="font-weight-bold" :since="new Date(lastUpdatedAt)" ago />
           <VBtn variant="text" size="x-small" color="primary" @click="load">refresh</VBtn>
         </div>
-        <VDataTableVirtual class="flex-shrink-1" style="min-height: 0" ref="tableRef"
+        <VDataTableVirtual class="flex-shrink-1" style="min-height: 0" ref="table"
           v-resize-observer="runTableLayoutAlgorithm"
           :items="objects.rows ?? []" :headers="columns" :loading="loading" :sort-by="order"
           hover fixed-header>
@@ -496,16 +487,16 @@ watch(tab, (v) => {
     <WindowItem v-for="[key, r] in inspectedObjects" :key="key" :value="key">
       <YAMLEditor :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
         v-model="r.object" :schema="r.schema" :disabled="!r.editing"
-        :selection="r.selection" :key="r.metadata.resourceVersion" @change="() => r.unsaved = true" />
+        :selection="r.selection" :key="r.metadata.resourceVersion" @change="r.unsaved = true" />
 
-      <FixedFab v-if="r.editing" icon="mdi-content-save" @click="() => save(r, key)" />
-      <SpeedDialFab v-else-if="(targetType.verbs.includes('delete') || targetType.verbs.includes('update'))">
+      <FixedFab v-if="r.editing" icon="mdi-content-save" @click="save(r, key)" />
+      <SpeedDialFab v-else-if="targetType.verbs.includes('delete') || targetType.verbs.includes('update')">
         <SpeedDialBtn key="1" label="Delete" icon="mdi-delete"
           :disabled="!targetType.verbs.includes('delete')"
-          @click="() => _delete(r, key)" />
+          @click="_delete(r, key)" />
         <SpeedDialBtn key="2" label="Edit" icon="$edit"
           :disabled="!targetType.verbs.includes('update')"
-          @click="() => r.editing = true" />
+          @click="r.editing = true" />
       </SpeedDialFab>
     </WindowItem>
   </TabsWindow>
