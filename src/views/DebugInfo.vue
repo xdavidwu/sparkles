@@ -4,7 +4,7 @@ import { ref, computed } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
 import { useApisDiscovery } from '@/stores/apisDiscovery';
-import { doSelfSubjectReview, errorIsTypeUnsupported } from '@/utils/api';
+import { doSelfSubjectReview, errorIsKindUnsupported } from '@/utils/api';
 import { brand } from '@/utils/config';
 
 const configStore = useApiConfig();
@@ -37,7 +37,7 @@ const review = computedAsync(async () => {
   try {
     return await doSelfSubjectReview(config);
   } catch (err) {
-    if (await errorIsTypeUnsupported(err)) {
+    if (await errorIsKindUnsupported(err)) {
       console.log('No SelfSubjectReview support, cannot identify ourselves');
     } else {
       throw err;

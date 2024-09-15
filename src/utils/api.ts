@@ -236,7 +236,7 @@ export const errorIsAlreadyExists = async (err: unknown) => {
   return false;
 };
 
-export const errorIsTypeUnsupported = async (err: unknown) => {
+export const errorIsKindUnsupported = async (err: unknown) => {
   if (err instanceof ResponseError && err.response.status === 404) {
     const status = V1StatusFromJSON(await err.response.json());
     if (status.status === V1StatusStatus.FAILURE && status.reason === V1StatusReason.NOT_FOUND &&
@@ -259,7 +259,7 @@ export const doSelfSubjectReview = async (config: Configuration): Promise<V1Self
   try {
     return await v1Api.createSelfSubjectReview({ body: {} });
   } catch (err) {
-    if (await errorIsTypeUnsupported(err)) {
+    if (await errorIsKindUnsupported(err)) {
       const v1beta1Api = new AuthenticationV1beta1Api(config);
       return await v1beta1Api.createSelfSubjectReview({ body: {} });
     } else {

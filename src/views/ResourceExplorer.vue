@@ -65,7 +65,7 @@ interface ObjectRecord {
   object: string,
   metadata: V1ObjectMeta,
   gv: GroupVersion,
-  type: V2APIResourceDiscovery,
+  kind: V2APIResourceDiscovery,
   editing: boolean,
   unsaved: boolean,
   selection?: { anchor: number, head: number },
@@ -112,11 +112,11 @@ const groupVersions: Array<GroupVersion> =
   }))).flat();
 const targetGroupVersion = nonNullableRef(groupVersions[0]);
 
-const types = computed(() => targetGroupVersion.value.resources);
-const defaultTargetType = () =>
-  types.value.find((v) => v.verbs.includes('watch')) ?? types.value[0];
-const targetType = nonNullableRef(defaultTargetType());
-const isEvents = computed(() => targetType.value.resource === 'events' &&
+const kinds = computed(() => targetGroupVersion.value.resources);
+const defaultTargetKind = () =>
+  kinds.value.find((v) => v.verbs.includes('watch')) ?? kinds.value[0];
+const targetKind = nonNullableRef(defaultTargetKind());
+const isEvents = computed(() => targetKind.value.resource === 'events' &&
   (targetGroupVersion.value.groupVersion === 'v1' ||
   targetGroupVersion.value.groupVersion === 'events.k8s.io/v1'));
 
@@ -148,12 +148,12 @@ const { loading, load } = useApiLoader(async (signal) => {
   const options = {
     group: targetGroupVersion.value.group,
     version: targetGroupVersion.value.version,
-    plural: targetType.value.resource,
+    plural: targetKind.value.resource,
     namespace: selectedNamespace.value,
   };
-  const listType = allNamespaces.value ? 'Cluster' : targetType.value.scope;
+  const listType = allNamespaces.value ? 'Cluster' : targetKind.value.scope;
   const api = isEvents.value ? anyApi.withPreMiddleware(includeObject) : anyApi;
-  if (targetType.value.verbs.includes('watch')) {
+  if (targetKind.value.verbs.includes('watch')) {
     await listAndUnwaitedWatchTable(
       objects,
       (opt) => api[`list${listType}CustomObjectAsTableRaw`]({ ...opt, ...options }, { signal }),
@@ -194,7 +194,7 @@ const columns = computed<Array<{
   key: string,
   description?: string,
 }>>(() =>
-  ((targetType.value.scope === V2ResourceScope.Namespaced && allNamespaces.value) ? [{
+  ((targetKind.value.scope === V2ResourceScope.Namespaced && allNamespaces.value) ? [{
     title: 'Namespace',
     key: 'object.metadata.namespace',
     description: `Namespace defines the space within which each name must be unique. An empty namespace is equivalent to the "default" namespace, but "default" is the canonical representation. Not all objects are required to be scoped to a namespace - the value of this field for those objects will be empty.\n\nMust be a DNS_LABEL. Cannot be updated. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces`,
@@ -261,14 +261,14 @@ const maybeGetSchema = (r: ObjectRecord) =>
   openAPISchemaDiscovery.getJSONSchema({
     group: r.gv.group,
     version: r.gv.version,
-    type: r.type,
+    type: r.kind,
   }).catch((e) => console.log('Failed to get schema', e));
 
 const inspectObject = async (obj: V1PartialObjectMetadata) => {
-  const gv = targetGroupVersion.value, type = targetType.value;
+  const gv = targetGroupVersion.value, kind = targetKind.value;
   const key = uniqueKeyForObject({
     apiVersion: gv.groupVersion,
-    kind: type.responseKind.kind,
+    kind: kind.responseKind.kind,
     metadata: obj.metadata,
   });
   if (inspectedObjects.value.has(key)) {
@@ -278,17 +278,17 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
 
   const r: ObjectRecord = {
     object: await (await anyApi[
-      `get${type.scope}CustomObjectRaw`
+      `get${kind.scope}CustomObjectRaw`
       ]({
         group: gv.group,
         version: gv.version,
-        plural: type.resource,
+        plural: kind.resource,
         name: obj.metadata!.name!,
         namespace: obj.metadata!.namespace!,
       }, asYAML)).raw.text(),
     metadata: obj.metadata!,
     gv,
-    type,
+    kind,
     editing: false,
     unsaved: false,
   };
@@ -311,11 +311,11 @@ const save = async (r: ObjectRecord, key: string) => {
   }
 
   r.object = await (await anyApi[
-    `${method}${r.type.scope}CustomObjectRaw`
+    `${method}${r.kind.scope}CustomObjectRaw`
   ]({
     group: r.gv.group,
     version: r.gv.version,
-    plural: r.type.resource,
+    plural: r.kind.resource,
     name: metadata.name!,
     namespace: metadata.namespace!,
     fieldValidation: 'Strict',
@@ -338,10 +338,10 @@ const save = async (r: ObjectRecord, key: string) => {
 };
 
 const _delete = async (r: ObjectRecord, key: string) => {
-  await anyApi[`delete${r.type.scope}CustomObject`]({
+  await anyApi[`delete${r.kind.scope}CustomObject`]({
     group: r.gv.group,
     version: r.gv.version,
-    plural: r.type.resource,
+    plural: r.kind.resource,
     name: r.metadata.name!,
     namespace: r.metadata.namespace!,
     propagationPolicy: V1DeletePropagation.BACKGROUND,
@@ -350,13 +350,13 @@ const _delete = async (r: ObjectRecord, key: string) => {
 };
 
 const newDraft = async () => {
-  const gv = targetGroupVersion.value, type = targetType.value;
+  const gv = targetGroupVersion.value, kind = targetKind.value;
   const name = createNameId();
   const metaTemplate: KubernetesObject = {
     apiVersion: gv.groupVersion,
-    kind: type.responseKind.kind,
+    kind: kind.responseKind.kind,
     metadata: {
-      namespace: type.scope === V2ResourceScope.Namespaced ? selectedNamespace.value : undefined,
+      namespace: kind.scope === V2ResourceScope.Namespaced ? selectedNamespace.value : undefined,
       labels: {},
       annotations: {},
       // make it order last to be friendlier
@@ -373,7 +373,7 @@ const newDraft = async () => {
       name: NAME_NEW,
     },
     gv,
-    type,
+    kind,
     editing: true,
     unsaved: true,
     selection: { anchor: namePos + name.length, head: namePos },
@@ -399,12 +399,12 @@ const nsNameShort = (m: V1ObjectMeta) =>
   truncate(m.name!, 17);
 
 const title = (o: ObjectRecord) =>
-  `${o.type.shortNames ? o.type.shortNames[0] : o.type.responseKind.kind}: ${nsNameShort(o.metadata)}`;
+  `${o.kind.shortNames ? o.kind.shortNames[0] : o.kind.responseKind.kind}: ${nsNameShort(o.metadata)}`;
 
-watch(targetGroupVersion, () => targetType.value = defaultTargetType());
-watch([targetType, allNamespaces, selectedNamespace], load, { immediate: true });
+watch(targetGroupVersion, () => targetKind.value = defaultTargetKind());
+watch([targetKind, allNamespaces, selectedNamespace], load, { immediate: true });
 watch(verbose, runTableLayoutAlgorithm);
-watch([targetType, verbose], () => order.value = []);
+watch([targetKind, verbose], () => order.value = []);
 // hack: v-data-table-virtual does not update properly when display: none
 // (0 height), force rendering range calculation when back
 watch(tab, (v) => v === 'explore' &&
@@ -415,7 +415,7 @@ watch(tab, (v) => v === 'explore' &&
   <AppTabs v-model="tab">
     <VTab value="explore">Explore</VTab>
     <DynamicTab v-for="[key, r] in inspectedObjects" :key="key"
-      :value="key" :description="`${r.type.responseKind.kind}: ${nsName(r.metadata)}`"
+      :value="key" :description="`${r.kind.responseKind.kind}: ${nsName(r.metadata)}`"
       :title="title(r)" :alerting="r.unsaved" @close="closeTab(key)" />
   </AppTabs>
   <TabsWindow v-model="tab">
@@ -429,23 +429,23 @@ watch(tab, (v) => v === 'explore' &&
               item-title="groupVersion" auto-select-first />
           </VCol>
           <VCol cols="6" sm="">
-            <VAutocomplete label="Type" v-model="targetType" :items="types"
+            <VAutocomplete label="Kind" v-model="targetKind" :items="kinds"
               return-object hide-details item-title="responseKind.kind"
               auto-select-first />
           </VCol>
           <VCol md="3" sm="4">
             <div>
-              <VCheckbox :disabled="targetType.scope === V2ResourceScope.Cluster"
+              <VCheckbox :disabled="targetKind.scope === V2ResourceScope.Cluster"
                 class="checkbox-intense" label="All namespaces"
                 v-model="allNamespaces" hide-details density="compact" />
-              <LinkedTooltip v-if="targetType.scope === V2ResourceScope.Cluster"
+              <LinkedTooltip v-if="targetKind.scope === V2ResourceScope.Cluster"
                 activator="parent" text="Selected type is not namespaced" />
             </div>
             <VCheckbox class="checkbox-intense" label="Verbose" v-model="verbose"
               hide-details density="compact" />
           </VCol>
         </VRow>
-        <div v-if="!targetType.verbs.includes('watch')"
+        <div v-if="!targetKind.verbs.includes('watch')"
           class="flex-grow-0 text-caption text-medium-emphasis mb-2">
           This type does not support watch operation, last updated
           <HumanDurationSince class="font-weight-bold" :since="new Date(lastUpdatedAt)" ago />
@@ -481,7 +481,7 @@ watch(tab, (v) => v === 'explore' &&
           </template>
         </VDataTableVirtual>
         <!-- TODO we should show info for type somewhere -->
-        <FixedFab v-if="targetType.verbs.includes('create')" icon="$plus" @click="newDraft" />
+        <FixedFab v-if="targetKind.verbs.includes('create')" icon="$plus" @click="newDraft" />
       </div>
     </WindowItem>
     <WindowItem v-for="[key, r] in inspectedObjects" :key="key" :value="key">
@@ -490,12 +490,12 @@ watch(tab, (v) => v === 'explore' &&
         :selection="r.selection" :key="r.metadata.resourceVersion" @change="r.unsaved = true" />
 
       <FixedFab v-if="r.editing" icon="mdi-content-save" @click="save(r, key)" />
-      <SpeedDialFab v-else-if="targetType.verbs.includes('delete') || targetType.verbs.includes('update')">
+      <SpeedDialFab v-else-if="targetKind.verbs.includes('delete') || targetKind.verbs.includes('update')">
         <SpeedDialBtn key="1" label="Delete" icon="mdi-delete"
-          :disabled="!targetType.verbs.includes('delete')"
+          :disabled="!targetKind.verbs.includes('delete')"
           @click="_delete(r, key)" />
         <SpeedDialBtn key="2" label="Edit" icon="$edit"
-          :disabled="!targetType.verbs.includes('update')"
+          :disabled="!targetKind.verbs.includes('update')"
           @click="r.editing = true" />
       </SpeedDialFab>
     </WindowItem>
