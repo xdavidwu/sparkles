@@ -9,9 +9,7 @@ import {
   type Chart, type ChartVersion,
   extractValuesSchema, parseTarball, loadChartsFromFiles,
 } from '@/utils/helm';
-import { PresentedError } from '@/utils/PresentedError';
-import { stringify } from '@/utils/yaml';
-import { parse } from 'yaml';
+import { parseInput, stringify } from '@/utils/yaml';
 import { createNameId } from 'mnemonic-id';
 
 const emit = defineEmits<{
@@ -92,11 +90,7 @@ const proceed = async (next: () => void) => {
     }
     break;
   case Step.SET_VALUES:
-    try {
-      parsedValues.value = parse(values.value);
-    } catch (e) {
-      throw new PresentedError(`Invalid YAML input:\n${e}`, { cause: e });
-    }
+    parsedValues.value = parseInput(values.value);
     break;
   case Step.SET_NAME:
     emit('apply', parsedChart.value!, parsedValues.value, name.value.trim());

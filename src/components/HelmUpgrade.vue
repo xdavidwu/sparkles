@@ -2,13 +2,11 @@
 import { ref } from 'vue';
 import { VBtn, VCard } from 'vuetify/components';
 import HelmValues from '@/components/HelmValues.vue';
-import { stringify } from '@/utils/yaml';
-import { parse } from 'yaml';
+import { parseInput, stringify } from '@/utils/yaml';
 import {
   type Release, type Chart, type ChartVersion,
   extractValuesSchema, loadChartsFromFiles, parseTarball,
 } from '@/utils/helm';
-import { PresentedError } from '@/utils/PresentedError';
 
 const emit = defineEmits<{
   (e: 'cancel'): void;
@@ -29,15 +27,8 @@ const chart = await loadChartsFromFiles(files);
 const defaults = files['values.yaml'] ? await files['values.yaml'].text() : '';
 const schema = extractValuesSchema(chart);
 
-const upgrade = () => {
-  let parsedValues;
-  try {
-    parsedValues = parse(values.value);
-  } catch (e) {
-    throw new PresentedError(`Invalid YAML input:\n${e}`, { cause: e });
-  }
-  emit('upgrade', chart, parsedValues, props.from);
-};
+const upgrade = () =>
+  emit('upgrade', chart, parseInput(values.value), props.from);
 </script>
 
 <template>

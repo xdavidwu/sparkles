@@ -49,11 +49,10 @@ import { listAndUnwaitedWatchTable } from '@/utils/watch';
 import { truncate, truncateStart } from '@/utils/text';
 import { humanDurationToS } from '@/utils/duration';
 import { nonNullableRef } from '@/utils/reactivity';
-import { PresentedError } from '@/utils/PresentedError';
 import { notifyListingWatchErrors } from '@/utils/errors';
 import type { JSONSchema4 } from 'json-schema';
 import { templates } from '@/utils/templates';
-import { stringify } from '@/utils/yaml';
+import { parseInput, stringify } from '@/utils/yaml';
 import { parse } from 'yaml';
 import { real } from '@ragnarpa/quantity';
 import { createNameId } from 'mnemonic-id';
@@ -301,14 +300,7 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
 
 const save = async (r: ObjectRecord, key: string) => {
   const method = r.metadata.name === NAME_NEW ? 'create' : 'replace';
-  let metadata = r.metadata;
-  if (method === 'create') {
-    try {
-      metadata = parse(r.object)?.metadata;
-    } catch (e) {
-      throw new PresentedError(`Invalid YAML input:\n${e}`, { cause: e });
-    }
-  }
+  const metadata = method === 'create' ? parseInput(r.object)?.metadata : r.metadata;
 
   r.object = await (await anyApi[
     `${method}${r.kind.scope}CustomObjectRaw`
@@ -316,8 +308,8 @@ const save = async (r: ObjectRecord, key: string) => {
     group: r.gv.group,
     version: r.gv.version,
     plural: r.kind.resource,
-    name: metadata.name!,
-    namespace: metadata.namespace!,
+    name: metadata?.name ?? '',
+    namespace: metadata?.namespace ?? '',
     fieldValidation: 'Strict',
     body: new Blob([r.object]),
   }, chainOverrideFunction(byYAML, asYAML))).raw.text();
