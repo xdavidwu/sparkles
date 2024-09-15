@@ -19,7 +19,7 @@ declare module '*.md' {
   const VueComponentWith: (components: Record<string, Component>) => ComponentOptions;
 
   // Modify below per your usage
-  export { toc, VueComponent, VueComponentWith };
+  export { VueComponent, VueComponentWith };
 }
 
 interface ImportMetaEnv {

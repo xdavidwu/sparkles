@@ -19,7 +19,7 @@ export default defineConfig({
   plugins: [
     vue(),
     markdown({
-      mode: [Mode.TOC, Mode.VUE],
+      mode: [Mode.VUE],
       markdownIt: markdownit({ html: true }).use(anchor),
     }),
     {
