@@ -15,7 +15,7 @@ defineProps<{
   <VCard class="panel" :class="{ expanded }"
     :style='`right: ${offset ?? 0}px`'>
     <div class="d-flex align-center">
-      <div class="d-flex flex-column align-center justify-center py-2 align-self-stretch"
+      <div class="d-flex flex-column align-center justify-center py-2 align-self-stretch cursor-pointer"
         :class="{ 'text-medium-emphasis': !expanded }"
         v-ripple @click="expanded = !expanded">
         <VIcon :icon="`mdi-chevron-${expanded ? 'right' : 'left'}`"
