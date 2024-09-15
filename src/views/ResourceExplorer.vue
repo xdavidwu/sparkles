@@ -63,7 +63,11 @@ interface ObjectRecord {
   schema?: JSONSchema4,
   object: string,
   metadata: V1ObjectMeta,
-  gv: GroupVersion,
+  api: {
+    group?: string,
+    version: string,
+    plural: string,
+  },
   kind: V2APIResourceDiscovery,
   editing: boolean,
   unsaved: boolean,
@@ -258,8 +262,8 @@ const order = ref([]);
 
 const maybeGetSchema = (r: ObjectRecord) =>
   openAPISchemaDiscovery.getJSONSchema({
-    group: r.gv.group,
-    version: r.gv.version,
+    group: r.api.group,
+    version: r.api.version,
     type: r.kind,
   }).catch((e) => console.log('Failed to get schema', e));
 
@@ -275,18 +279,21 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     return;
   }
 
+  const api = {
+    group: gv.group,
+    version: gv.version,
+    plural: kind.resource,
+  };
   const r: ObjectRecord = {
     object: await (await anyApi[
       `get${kind.scope}CustomObjectRaw`
       ]({
-        group: gv.group,
-        version: gv.version,
-        plural: kind.resource,
+        ...api,
         name: obj.metadata!.name!,
         namespace: obj.metadata!.namespace!,
       }, asYAML)).raw.text(),
     metadata: obj.metadata!,
-    gv,
+    api,
     kind,
     editing: false,
     unsaved: false,
@@ -305,9 +312,7 @@ const save = async (r: ObjectRecord, key: string) => {
   r.object = await (await anyApi[
     `${method}${r.kind.scope}CustomObjectRaw`
   ]({
-    group: r.gv.group,
-    version: r.gv.version,
-    plural: r.kind.resource,
+    ...r.api,
     name: metadata?.name ?? '',
     namespace: metadata?.namespace ?? '',
     fieldValidation: 'Strict',
@@ -331,9 +336,7 @@ const save = async (r: ObjectRecord, key: string) => {
 
 const _delete = async (r: ObjectRecord, key: string) => {
   await anyApi[`delete${r.kind.scope}CustomObject`]({
-    group: r.gv.group,
-    version: r.gv.version,
-    plural: r.kind.resource,
+    ...r.api,
     name: r.metadata.name!,
     namespace: r.metadata.namespace!,
     propagationPolicy: V1DeletePropagation.BACKGROUND,
@@ -364,7 +367,11 @@ const newDraft = async () => {
     metadata: {
       name: NAME_NEW,
     },
-    gv,
+    api: {
+      group: gv.group,
+      version: gv.version,
+      plural: kind.resource,
+    },
     kind,
     editing: true,
     unsaved: true,
