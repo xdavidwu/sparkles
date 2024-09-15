@@ -1,7 +1,6 @@
 <script setup lang="ts">
+import WithTOC from '@/components/WithTOC.vue';
 import { computed, ref, watch, onMounted } from 'vue';
-import TableOfContents from '@/components/TableOfContents.vue';
-import { useResizeObserver } from '@vueuse/core';
 import markdownit from 'markdown-it';
 import anchor from 'markdown-it-anchor';
 import DOMPurify from 'dompurify';
@@ -43,24 +42,12 @@ const renderer = markdownit('commonmark', {
 }).enable(['table']).use(anchor);
 
 const div = ref<HTMLDivElement>();
-const toc = ref<Array<{ level: number, id: string, title: string }>>([]);
 const rendered = computed(() => DOMPurify.sanitize(renderer.render(props.markdown)));
-const tocOffset = ref(0);
-
-useResizeObserver(div, () => {
-  tocOffset.value = div.value!.offsetWidth - div.value!.clientWidth;
-});
 
 onMounted(() => {
   StyleModule.mount(document, oneDarkHighlightStyle.module!);
 
   watch(rendered, () => {
-    toc.value = Array.from(div.value?.querySelectorAll('h1, h2, h3, h4, h5, h6') as NodeListOf<HTMLElement> ?? []).map((h) => ({
-      level: Number(h.tagName.substring(1)),
-      id: h.getAttribute('id')!,
-      title: h.innerText,
-    }));
-
     // anchors
     div.value?.querySelectorAll('a[href^="#"]').forEach((a) => {
       a.addEventListener('click', (e) => {
@@ -87,8 +74,7 @@ const navigate = (id: string) => div.value?.querySelector(`#${CSS.escape(id)}`)?
 </script>
 
 <template>
-  <div>
-    <div ref="div" class="overflow-y-auto h-100 pe-4 markdown" v-html="rendered" />
-    <TableOfContents :toc="toc" :offset="tocOffset" @navigate="navigate" />
-  </div>
+  <WithTOC @navigate="navigate">
+    <div ref="div" class="pe-4 markdown" v-html="rendered" />
+  </WithTOC>
 </template>
