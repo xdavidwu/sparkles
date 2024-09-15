@@ -12,10 +12,11 @@ defineProps<{
 </script>
 
 <template>
-  <VCard class="panel" :class="{ expanded, 'text-medium-emphasis': !expanded }"
+  <VCard class="panel" :class="{ expanded }"
     :style='`right: ${offset ?? 0}px`'>
     <div class="d-flex align-center">
       <div class="d-flex flex-column align-center justify-center py-2 align-self-stretch"
+        :class="{ 'text-medium-emphasis': !expanded }"
         v-ripple @click="expanded = !expanded">
         <VIcon :icon="`mdi-chevron-${expanded ? 'right' : 'left'}`"
           variant="plain" size="x-small" />
@@ -23,7 +24,7 @@ defineProps<{
           {{ title }}
         </div>
       </div>
-      <div v-if="expanded" class="pa-1">
+      <div v-show="expanded" class="ps-1">
         <slot />
       </div>
     </div>
