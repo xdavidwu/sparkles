@@ -9,6 +9,7 @@ const props = defineProps<{
     id: string;
     title: string;
   }>;
+  pos?: string;
 }>();
 
 const emit = defineEmits<{
@@ -67,6 +68,7 @@ const navigate = (ids: unknown) => {
   <ExpandableSidePanel title="table of contents">
     <VTreeview class="mx overflow-y-auto light smaller"
       :items="tree" item-value="id" density="compact"
+      :activated="[pos]"
       open-all activatable mandatory
       @update:activated="navigate" />
   </ExpandableSidePanel>
