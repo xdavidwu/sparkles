@@ -279,27 +279,29 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
     return;
   }
 
-  const api = {
-    group: gv.group,
-    version: gv.version,
-    plural: kind.resource,
-  };
   const r: ObjectRecord = {
-    object: await (await anyApi[
-      `get${kind.scope}CustomObjectRaw`
-      ]({
-        ...api,
-        name: obj.metadata!.name!,
-        namespace: obj.metadata!.namespace!,
-      }, asYAML)).raw.text(),
+    object: '',
     metadata: obj.metadata!,
-    api,
+    api: {
+      group: gv.group,
+      version: gv.version,
+      plural: kind.resource,
+    },
     kind,
     editing: false,
     unsaved: false,
   };
 
-  r.schema = await maybeGetSchema(r) ?? undefined;
+  await Promise.all([
+    (async () => r.object = await (await anyApi[
+      `get${kind.scope}CustomObjectRaw`
+      ]({
+        ...r.api,
+        name: obj.metadata!.name!,
+        namespace: obj.metadata!.namespace!,
+      }, asYAML)).raw.text())(),
+    (async () => r.schema = await maybeGetSchema(r) ?? undefined)(),
+  ]);
 
   inspectedObjects.value.set(key, r);
   tab.value = key;
