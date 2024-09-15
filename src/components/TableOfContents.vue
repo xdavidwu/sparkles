@@ -22,12 +22,12 @@ interface TreeItem {
 }
 
 const tree = computed(() => {
-  const stack: Array<Array<TreeItem>> = [[]];
+  const stack: Array<Array<TreeItem & { missing?: boolean }>> = [[]];
   props.toc.forEach((t) => {
     let level = Number(t.level);
     const expected = stack.length;
     while (level > expected) {
-      const item = { id: '', title: 'Unknown', children: [] };
+      const item = { id: '', title: 'Unknown', children: [], missing: true };
       stack[stack.length - 1].push(item);
       stack.push(item.children);
       level--;
@@ -49,7 +49,12 @@ const tree = computed(() => {
     }
   };
   stack[0].forEach(trim);
-  return stack[0];
+
+  let rebased = stack[0];
+  while (rebased.length == 1 && rebased[0].missing && rebased[0].children) {
+    rebased = rebased[0].children;
+  }
+  return rebased;
 });
 
 const navigate = (ids: unknown) => {
