@@ -125,7 +125,7 @@ const { load, loading } = useApiLoader(async (signal) => {
     (opt) => api.listNamespacedPodRaw({ ...opt, namespace: selectedNamespace.value }, { signal }),
     notifyListingWatchErrors,
   );
-  toggleExpandAll(true); // TODO what about new pods from watch?
+  toggleExpandAll(false);
 });
 
 watch(selectedNamespace, load, { immediate: true });
@@ -180,9 +180,8 @@ const bell = (index: number) => {
   }, 1000);
 };
 
-const toggleExpandAll = (expand: boolean) => expand ?
-  (expanded.value = pods.value.map((p) => p.metadata!.name!)) :
-  (expanded.value = []);
+const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
+  pods.value.map((p) => p.metadata!.name!) : [];
 </script>
 
 <template>
