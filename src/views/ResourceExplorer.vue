@@ -47,7 +47,7 @@ import {
 import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscovery } from '@/utils/discoveryV2';
 import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
-import { truncate, truncateStart } from '@/utils/text';
+import { truncate } from '@/utils/text';
 import { humanDurationToS } from '@/utils/duration';
 import { nonNullableRef } from '@/utils/reactivity';
 import { notifyListingWatchErrors } from '@/utils/errors';
@@ -409,12 +409,8 @@ const closeTab = (key: string) => {
 const nsName = (m: V1ObjectMeta) =>
   m.namespace ? `${m.namespace}/${m.name}` : m.name!;
 
-const nsNameShort = (m: V1ObjectMeta) =>
-  m.namespace ? `${truncate(m.namespace, 8)}/${truncateStart(m.name!, 8)}` :
-  truncate(m.name!, 17);
-
 const title = (o: ObjectRecord) =>
-  `${o.kind.shortNames?.[0] ?? o.kind.responseKind.kind}: ${nsNameShort(o.metadata)}`;
+  `${o.kind.shortNames?.[0] ?? o.kind.responseKind.kind}: ${truncate(o.metadata.name!, 16)}`;
 
 watch(targetGroupVersion, () => targetKind.value = defaultTargetKind());
 watch([targetKind, allNamespaces, selectedNamespace], load, { immediate: true });
