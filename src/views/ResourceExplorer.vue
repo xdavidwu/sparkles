@@ -141,7 +141,6 @@ const runTableLayoutAlgorithm = () => {
   table?.querySelectorAll('th').forEach((th) => th.removeAttribute('width'));
   table?.querySelector('table')?.setAttribute('style', 'table-layout: auto');
   requestAnimationFrame(() => {
-    // TODO find a way to persist with data change?
     table?.querySelectorAll('th').forEach((th) =>
       th.setAttribute('width', `${th.getBoundingClientRect().width}`));
     table?.querySelector('table')?.setAttribute('style', 'table-layout: fixed');
@@ -432,6 +431,7 @@ watch(tab, (v) => v === 'explore' &&
   <TabsWindow v-model="tab">
     <WindowItem value="explore">
       <div class="d-flex flex-column"
+        v-resize-observer="runTableLayoutAlgorithm"
         :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`">
         <VRow class="flex-grow-0 mb-1" :dense="smAndDown">
           <VCol cols="6" sm="">
@@ -464,7 +464,6 @@ watch(tab, (v) => v === 'explore' &&
         </div>
         <VDataTableVirtual class="flex-shrink-1 position-relative"
           style="min-height: 0" ref="table"
-          v-resize-observer="runTableLayoutAlgorithm"
           :items="objects.rows ?? []" :headers="columns" :loading="loading"
           :search="searching ? search : undefined" :sort-by="order"
           hover fixed-header>
