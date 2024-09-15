@@ -305,7 +305,7 @@ const upgrade = (chart: Array<Chart>, values: object, target: Release) => {
             :prepend-tabs="[{ text: 'Notes', value: 'notes' }]" disabled>
             <template #notes="{ style }">
               <LinkedDocument :style="style"
-                class="text-pre-wrap pt-2 overflow-y-auto bg-black"
+                class="text-pre-wrap pa-2 overflow-y-auto bg-black"
                 :text="inspectedRelease.info.notes ?? '(none)'" />
             </template>
           </HelmValues>
