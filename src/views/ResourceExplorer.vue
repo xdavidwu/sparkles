@@ -400,7 +400,7 @@ const nsNameShort = (m: V1ObjectMeta) =>
   truncate(m.name!, 17);
 
 const title = (o: ObjectRecord) =>
-  `${o.kind.shortNames ? o.kind.shortNames[0] : o.kind.responseKind.kind}: ${nsNameShort(o.metadata)}`;
+  `${o.kind.shortNames?.[0] ?? o.kind.responseKind.kind}: ${nsNameShort(o.metadata)}`;
 
 watch(targetGroupVersion, () => targetKind.value = defaultTargetKind());
 watch([targetKind, allNamespaces, selectedNamespace], load, { immediate: true });
