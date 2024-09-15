@@ -9,6 +9,7 @@ import {
   VIcon,
   VRow,
   VTab,
+  VTextField,
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
@@ -25,7 +26,7 @@ import { vResizeObserver } from '@vueuse/components';
 import { computed, watch, ref, nextTick, triggerRef, useTemplateRef } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDisplay } from 'vuetify';
-import { timestamp, useLastChanged } from '@vueuse/core';
+import { timestamp, useLastChanged, useEventListener } from '@vueuse/core';
 import { useApiLoader } from '@/composables/apiLoader';
 import { useAppTabs } from '@/composables/appTabs';
 import { useNamespaces } from '@/stores/namespaces';
@@ -140,6 +141,7 @@ const runTableLayoutAlgorithm = () => {
   table?.querySelectorAll('th').forEach((th) => th.removeAttribute('width'));
   table?.querySelector('table')?.setAttribute('style', 'table-layout: auto');
   requestAnimationFrame(() => {
+    // TODO find a way to persist with data change?
     table?.querySelectorAll('th').forEach((th) =>
       th.setAttribute('width', `${th.getBoundingClientRect().width}`));
     table?.querySelector('table')?.setAttribute('style', 'table-layout: fixed');
@@ -148,6 +150,8 @@ const runTableLayoutAlgorithm = () => {
 
 const includeObject = setTableIncludeObjectPolicy(V1IncludeObjectPolicy.OBJECT);
 const { loading, load } = useApiLoader(async (signal) => {
+  searching.value = false;
+
   const options = {
     group: targetGroupVersion.value.group,
     version: targetGroupVersion.value.version,
@@ -259,6 +263,16 @@ const columns = computed<Array<{
 );
 
 const order = ref([]);
+const search = ref('');
+const searching = ref(false);
+
+// TODO a way to trigger search without keyboard
+useEventListener(window, 'keydown', (e) => {
+  if (e.ctrlKey && e.key == 'f') {
+    searching.value = !searching.value;
+    e.preventDefault();
+  }
+});
 
 const maybeGetSchema = (r: ObjectRecord) =>
   openAPISchemaDiscovery.getJSONSchema({
@@ -452,10 +466,23 @@ watch(tab, (v) => v === 'explore' &&
           <HumanDurationSince class="font-weight-bold" :since="new Date(lastUpdatedAt)" ago />
           <VBtn variant="text" size="x-small" color="primary" @click="load">refresh</VBtn>
         </div>
-        <VDataTableVirtual class="flex-shrink-1" style="min-height: 0" ref="table"
+        <VDataTableVirtual class="flex-shrink-1 position-relative"
+          style="min-height: 0" ref="table"
           v-resize-observer="runTableLayoutAlgorithm"
-          :items="objects.rows ?? []" :headers="columns" :loading="loading" :sort-by="order"
+          :items="objects.rows ?? []" :headers="columns" :loading="loading"
+          :search="searching ? search : undefined" :sort-by="order"
           hover fixed-header>
+          <template #[`body.prepend`]>
+            <div v-if="searching" class="position-absolute top-0 right-0 ma-2"
+              style="z-index: 2">
+              <VTextField style="min-width: 20em" v-model="search"
+                placeholder="Search" prepend-inner-icon="mdi-magnify"
+                variant="solo-filled" density="compact"
+                autofocus clearable hide-details persistent-clear
+                @keydown.esc="searching = false"
+                @click:clear="searching = false" />
+            </div>
+          </template>
           <!-- TODO: ask vuetify to open up VDataTableHeaderCell -->
           <template v-for="(c, i) in columns" #[`header.${c.key}`]="{ column, getSortIcon }" :key="i">
             <div class="v-data-table-header__content">
