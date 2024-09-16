@@ -7,6 +7,7 @@ import {
 } from 'vuetify/components';
 import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
+import AttachTerminal from '@/components/AttachTerminal.vue';
 import ExecTerminal from '@/components/ExecTerminal.vue';
 import HumanDurationSince from '@/components/HumanDurationSince.vue';
 import KeyValueBadge from '@/components/KeyValueBadge.vue';
@@ -25,9 +26,13 @@ import {
   CoreV1Api,
   type V1Pod, V1PodFromJSON, type V1Container, type V1ContainerStatus, type V1EphemeralContainer,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
+import { bySSA, V1WatchEventType } from '@/utils/api';
 import { truncateStart } from '@/utils/text';
-import { listAndUnwaitedWatch } from '@/utils/watch';
+import { listAndUnwaitedWatch, watchUntil } from '@/utils/watch';
 import { notifyListingWatchErrors } from '@/utils/errors';
+import { PresentedError } from '@/utils/PresentedError';
+import { withProgress } from '@/utils/progressReport';
+import { createNameId } from 'mnemonic-id';
 
 interface ContainerSpec {
   pod: string,
@@ -35,7 +40,7 @@ interface ContainerSpec {
 }
 
 interface Tab {
-  type: 'exec' | 'log',
+  type: 'exec' | 'log' | 'attach',
   id: string,
   spec: ContainerSpec,
   title?: string,
@@ -166,6 +171,71 @@ const createTab = (type: 'exec' | 'log', target: ContainerData, pod: V1Pod) => {
   tab.value = id;
 };
 
+const debug = (target: ContainerData, pod: V1Pod) =>
+  withProgress('Setting up ephemeral container', async (progress) => {
+    progress('Creating ephemeral container');
+    const name = createNameId();
+    const update: V1Pod = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      spec: {
+        containers: [], // for types
+        ephemeralContainers: [{
+          name,
+          image: 'alpine:3.20',
+          stdin: true,
+          stdinOnce: true,
+          tty: true,
+          targetContainerName: target.name,
+          securityContext: {
+            capabilities: {
+              add: ['SYS_PTRACE'], // TODO avoid
+            },
+          },
+        }],
+      }
+    };
+    await api.patchNamespacedPodEphemeralcontainers({
+      namespace: pod.metadata!.namespace!,
+      name: pod.metadata!.name!,
+      body: update,
+    }, bySSA);
+
+    progress('Waiting for ephemeral container to run');
+    // TODO timeout?
+    await watchUntil(
+      (opt) => api.listNamespacedPodRaw({
+        namespace: pod.metadata!.namespace!,
+        fieldSelector: `metadata.name=${pod.metadata!.name}`,
+        ...opt
+      }),
+      V1PodFromJSON,
+      (ev) => {
+        if (ev.type === V1WatchEventType.ADDED ||
+            ev.type === V1WatchEventType.MODIFIED) {
+          // does not seems to populate .ready
+          return !!ev.object.status?.ephemeralContainerStatuses?.find(
+            (s) => s.name === name)?.state?.running;
+        } else if (ev.type === V1WatchEventType.DELETED) {
+          throw new PresentedError('Pod deleted on cluster while waiting');
+        }
+        return false;
+      }
+    );
+
+    const podName = pod.metadata!.name!;
+    const id = crypto.randomUUID();
+    const tabName = `${truncateStart(podName, 8)}/${name}`;
+    const fullName = `${podName}/${name}`;
+    tabs.value.push({
+      type: 'attach', id, spec: { pod: podName, container: name }, alerting: false,
+      defaultTitle: `Debug: ${tabName}`,
+      description: `Debug: ${fullName}`,
+    });
+    tab.value = id;
+    // TODO find a way to make sure it terminates or gc
+  });
+
 const bell = (index: number) => {
   const bellingTab = tabs.value[index];
   if (bellingTab.bellTimeoutID) {
@@ -249,13 +319,18 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
                 </template>
                 <template #[`item.actions`]="{ item }">
                   <!-- TODO bring permission check back? -->
+                  <TippedBtn size="small" icon="mdi-file-document"
+                    tooltip="Log" variant="text"
+                    @click="createTab('log', item, pod)" />
                   <TippedBtn size="small" icon="mdi-console-line"
                     tooltip="Shell" variant="text"
                     :disabled="!item.state?.running"
                     @click="createTab('exec', item, pod)" />
-                  <TippedBtn size="small" icon="mdi-file-document"
-                    tooltip="Log" variant="text"
-                    @click="createTab('log', item, pod)" />
+                  <!-- TODO does not work on another ephemeral container, disable -->
+                  <TippedBtn size="small" icon="mdi-bug"
+                    tooltip="Debug with ephemeral container" variant="text"
+                    :disabled="!item.state?.running"
+                    @click="debug(item, pod)" />
                 </template>
               </VDataTable>
             </td>
@@ -265,7 +340,8 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
     </WindowItem>
     <WindowItem v-for="(tab, index) in tabs" :key="tab.id"
       :value="tab.id">
-      <component :is="tab.type === 'exec' ? ExecTerminal : LogViewer"
+      <component
+        :is="tab.type === 'exec' ? ExecTerminal : tab.type === 'attach' ? AttachTerminal : LogViewer"
         :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
         @title-changed="(title: string) => tab.title = title"
         @bell="() => bell(index)"
