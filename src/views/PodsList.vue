@@ -329,12 +329,11 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
                     tooltip="Shell" variant="text"
                     :disabled="!item.state?.running"
                     @click="createTab('exec', item, pod)" />
-                  <!-- TODO does not work on another ephemeral container, disable -->
                   <TippedBtn
                     size="small" icon="mdi-bug"
                     tooltip="Debug with ephemeral container" variant="text"
                     :disabled="pod.metadata!.annotations?.[mirrorPodAnnotation] ||
-                      !item.state?.running"
+                      item.type?.startsWith('ephemeral') || !item.state?.running"
                     @click="debug(item, pod)" />
                 </template>
               </VDataTable>
