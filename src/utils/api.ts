@@ -103,6 +103,7 @@ export enum V1CustomResourceDefinitionConditionType {
 }
 
 export const descriptionAnnotation = 'kubernetes.io/description';
+export const mirrorPodAnnotation = 'kubernetes.io/config.mirror';
 
 export type ChainableInitOverrideFunction = (...p: Parameters<InitOverrideFunction>) =>
   (Promise<Awaited<ReturnType<InitOverrideFunction>> & HTTPRequestInit & { headers: HTTPHeaders }>);

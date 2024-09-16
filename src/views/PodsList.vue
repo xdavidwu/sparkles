@@ -26,7 +26,7 @@ import {
   CoreV1Api,
   type V1Pod, V1PodFromJSON, type V1Container, type V1ContainerStatus, type V1EphemeralContainer,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
-import { bySSA, V1WatchEventType } from '@/utils/api';
+import { bySSA, mirrorPodAnnotation, V1WatchEventType } from '@/utils/api';
 import { truncateStart } from '@/utils/text';
 import { listAndUnwaitedWatch, watchUntil } from '@/utils/watch';
 import { notifyListingWatchErrors } from '@/utils/errors';
@@ -283,6 +283,9 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
         <template #[`item.metadata.name`]="{ item: pod, value }">
           <div class="my-2">
             {{ value }}
+            <template v-if="pod.metadata!.annotations?.[mirrorPodAnnotation]">
+              (static)
+            </template>
             <template v-if="pod.metadata!.deletionTimestamp">
               (deleting)
             </template>
@@ -327,9 +330,11 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
                     :disabled="!item.state?.running"
                     @click="createTab('exec', item, pod)" />
                   <!-- TODO does not work on another ephemeral container, disable -->
-                  <TippedBtn size="small" icon="mdi-bug"
+                  <TippedBtn
+                    size="small" icon="mdi-bug"
                     tooltip="Debug with ephemeral container" variant="text"
-                    :disabled="!item.state?.running"
+                    :disabled="pod.metadata!.annotations?.[mirrorPodAnnotation] ||
+                      !item.state?.running"
                     @click="debug(item, pod)" />
                 </template>
               </VDataTable>
