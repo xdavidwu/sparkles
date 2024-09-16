@@ -7,7 +7,7 @@ import { useEventListener } from '@vueuse/core';
 import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
 import {
-  descriptionAnnotaion, errorIsResourceNotFound, bySSA,
+  descriptionAnnotation, errorIsResourceNotFound, bySSA,
   V1WatchEventType,
 } from '@/utils/api';
 import { brand } from '@/utils/config';
@@ -56,7 +56,7 @@ const create = () => withProgress('Setting up kubectl shell', async (progress) =
       name: SERVICEACCOUNT_NAME,
       labels: managedByLabel,
       annotations: {
-        [descriptionAnnotaion]: `Used for kubectl shell functionality in ${brand}.`,
+        [descriptionAnnotation]: `Used for kubectl shell functionality in ${brand}.`,
       },
     },
   };
@@ -67,7 +67,7 @@ const create = () => withProgress('Setting up kubectl shell', async (progress) =
       name: ROLEBINDING_NAME,
       labels: managedByLabel,
       annotations: {
-        [descriptionAnnotaion]: `Used for kubectl shell functionality in ${brand}.`,
+        [descriptionAnnotation]: `Used for kubectl shell functionality in ${brand}.`,
       },
     },
     roleRef: {
@@ -88,7 +88,7 @@ const create = () => withProgress('Setting up kubectl shell', async (progress) =
       generateName: POD_PREFIX,
       labels: managedByLabel,
       annotations: {
-        [descriptionAnnotaion]: `Pod that implements kubectl shell funtionality in ${brand}. ` +
+        [descriptionAnnotation]: `Pod that implements kubectl shell funtionality in ${brand}. ` +
           'A pod is used per kubectl shell session, with ServiceAccount of admin role under the same namespace. ' +
           'Will be deleted automatically when user exit the session, ' +
           'but may still be left running if the browser crashes. ' +

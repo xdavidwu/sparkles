@@ -7,7 +7,7 @@ import { storeToRefs } from 'pinia';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiLoader } from '@/composables/apiLoader';
-import { descriptionAnnotaion, bySSA } from '@/utils/api';
+import { descriptionAnnotation, bySSA } from '@/utils/api';
 import { brand } from '@/utils/config';
 import {
   managedByLabel,
@@ -139,7 +139,7 @@ const create = async () => {
       name: SERVICEACCOUNT_NAME,
       labels: managedByLabel,
       annotations: {
-        [descriptionAnnotaion]: `Used by tokens functionality in ${brand}.`,
+        [descriptionAnnotation]: `Used by tokens functionality in ${brand}.`,
       },
     },
   };
@@ -150,7 +150,7 @@ const create = async () => {
       name: ROLEBINDING_NAME,
       labels: managedByLabel,
       annotations: {
-        [descriptionAnnotaion]: `Used by tokens functionality in ${brand}.`,
+        [descriptionAnnotation]: `Used by tokens functionality in ${brand}.`,
       },
     },
     // FIXME includes serviceaccounts/token create, which can get more tokens
@@ -173,7 +173,7 @@ const create = async () => {
       labels: managedByLabel,
       annotations: {
         [tokenNoteAnnotation]: creatingNote.value,
-        [descriptionAnnotaion]: `Used by tokens functionality in ${brand}, ` +
+        [descriptionAnnotation]: `Used by tokens functionality in ${brand}, ` +
           'to represent a issued token of a ServiceAccount with edit role in the same namespace. ' +
           'This does not store the issued token. ' +
           'The token is bound to this object, and can be revoked by deleting this. ' +

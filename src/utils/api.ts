@@ -102,7 +102,7 @@ export enum V1CustomResourceDefinitionConditionType {
   KUBERNETES_API_APPROVAL_POLICY_CONFORMANT = 'KubernetesAPIApprovalPolicyConformant',
 }
 
-export const descriptionAnnotaion = 'kubernetes.io/description';
+export const descriptionAnnotation = 'kubernetes.io/description';
 
 export type ChainableInitOverrideFunction = (...p: Parameters<InitOverrideFunction>) =>
   (Promise<Awaited<ReturnType<InitOverrideFunction>> & HTTPRequestInit & { headers: HTTPHeaders }>);
