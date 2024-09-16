@@ -50,7 +50,7 @@ interface Tab {
   bellTimeoutID?: ReturnType<typeof setTimeout>,
 }
 
-type ContainerData = (V1Container | V1EphemeralContainer) & Partial<V1ContainerStatus>;
+type ContainerData = (V1Container | V1EphemeralContainer) & Partial<V1ContainerStatus> & { type?: string };
 
 const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces;
@@ -105,7 +105,7 @@ const innerColumns = [
     key: `state`,
     value: (c: ContainerData) =>
       c.state?.waiting ? `Waiting: ${c.state.waiting.reason}` :
-      c.state?.running ? `Running: ${c.ready ? 'Ready' : 'Unready'}` :
+      c.state?.running ? (c.type?.startsWith('ephemeral') ? 'Running' : `Running: ${c.ready ? 'Ready' : 'Unready'}`) :
       c.state?.terminated ? `Terminated: Status ${c.state.terminated.exitCode}` : 'Unknown',
   },
   {
@@ -135,7 +135,7 @@ const { load, loading } = useApiLoader(async (signal) => {
 
 watch(selectedNamespace, load, { immediate: true });
 
-const mergeContainerSpecStatus = (pod: V1Pod): Array<ContainerData & { type?: string }> =>
+const mergeContainerSpecStatus = (pod: V1Pod): Array<ContainerData> =>
   pod.spec!.containers.map((c) => ({
     ...c,
     ...pod.status?.containerStatuses?.find((s) => s.name == c.name),
@@ -213,7 +213,6 @@ const debug = (target: ContainerData, pod: V1Pod) =>
       (ev) => {
         if (ev.type === V1WatchEventType.ADDED ||
             ev.type === V1WatchEventType.MODIFIED) {
-          // does not seems to populate .ready
           return !!ev.object.status?.ephemeralContainerStatuses?.find(
             (s) => s.name === name)?.state?.running;
         } else if (ev.type === V1WatchEventType.DELETED) {
