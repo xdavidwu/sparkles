@@ -843,6 +843,8 @@ const fns = {
 
     release.info.status = Status.DEPLOYED;
     await updateRelease(api, release);
+
+    return secretName(release);
   },
 };
 

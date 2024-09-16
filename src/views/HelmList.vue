@@ -7,7 +7,6 @@ import HelmUpgrade from '@/components/HelmUpgrade.vue';
 import HelmValues from '@/components/HelmValues.vue';
 import LinkedDocument from '@/components/LinkedDocument.vue';
 import LoadingSuspense from '@/components/LoadingSuspense.vue';
-import ProgressDialog from '@/components/ProgressDialog.vue';
 import { computed, ref, watch, toRaw } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
@@ -20,6 +19,7 @@ import { stringify } from '@/utils/yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { listAndUnwaitedWatch } from '@/utils/watch';
 import { notifyListingWatchErrors } from '@/utils/errors';
+import { withProgress } from '@/utils/progressReport';
 import {
   type Chart, type Metadata, type Release,
   parseSecret, secretsFieldSelector, secretsLabelSelector, secretName,
@@ -46,10 +46,6 @@ const creating = ref(false);
 const upgrading = ref(false);
 const inspecting = ref(false);
 
-const operation = ref('');
-const progressMessage = ref('');
-const progressCompleted = ref(true);
-const installedSecret = ref<string | undefined>();
 const inspectedRelease = ref<Release | undefined>();
 const upgradeIntent = ref<'values' | 'upgrade'>('values');
 const upgradingRelease = ref<Release | undefined>();
@@ -148,67 +144,56 @@ const latestChart = (release: Release) =>
 
 let worker: Worker | undefined;
 
-const prepareWorker = () => {
+const workerOp = (progress: (p: string) => unknown, msg: InboundMessage,
+    transfer?: Transferable[]): Promise<string | undefined> => {
   if (!worker) {
     worker = new HelmWorker();
   }
-  const handlers = [
-    handleDataRequestMessages(worker),
-    handleErrorMessages,
-    handleToastMessages,
-    handleProgressMessages(progressMessage, progressCompleted, installedSecret),
-  ];
-  worker.onmessage = async (e) => {
-    for (const handler of handlers) {
-      if (await handler(e)) {
-        return;
+  return new Promise((resolve, reject) => {
+    const handlers = [
+      handleDataRequestMessages(worker!),
+      handleErrorMessages(reject),
+      handleToastMessages,
+      handleProgressMessages(progress, resolve),
+    ];
+    worker!.onmessage = async (e) => {
+      for (const handler of handlers) {
+        if (await handler(e)) {
+          return;
+        }
       }
+    };
+    if (transfer) {
+      worker!.postMessage(msg, transfer);
+    } else {
+      worker!.postMessage(msg);
     }
-  };
-  return worker;
+  });
 };
-
-watch(progressCompleted, () => {
-  if (progressCompleted.value && installedSecret.value?.length) {
-    // may race with watch, but extremely unlikely
-    // since it is at least persisted once early before resources creation
-    const r = releases.value.find((r) => secretName(r) == installedSecret.value);
-    if (r) {
-      view(r);
-    }
-  }
-});
 
 const view = (target: Release) => {
   inspectedRelease.value = target;
   inspecting.value = true;
 };
 
-const uninstall = (target: Release) => {
-  const worker = prepareWorker();
-  operation.value = `Uninstalling release ${target.name}`;
-  progressMessage.value = 'Uninstalling release';
-  progressCompleted.value = false;
-  const op: InboundMessage = {
+const uninstall = (target: Release) => withProgress(
+  `Uninstalling release ${target.name}`,
+  (progress) => workerOp(progress, {
     type: 'call',
     func: 'uninstall',
     args: [toRaw(target)],
-  };
-  worker.postMessage(op);
-};
+  }),
+);
 
-const rollback = (target: Release) => {
-  const worker = prepareWorker();
-  operation.value = `Rolling back release ${target.name} to ${target.version}`;
-  progressMessage.value = 'Rolling back release';
-  progressCompleted.value = false;
-  const op: InboundMessage = {
+const rollback = (target: Release) => withProgress(
+  `Rolling back release ${target.name} to ${target.version}`,
+  (progress) => workerOp(progress, {
     type: 'call',
     func: 'rollback',
     args: [toRaw(target), toRaw(releases.value.filter((r) => r.name == target.name))],
-  };
-  worker.postMessage(op);
-};
+  }),
+);
+
 
 const findBuffers = (o: unknown): Array<ArrayBuffer> => {
   if (o instanceof ArrayBuffer) {
@@ -221,19 +206,25 @@ const findBuffers = (o: unknown): Array<ArrayBuffer> => {
   return [];
 }
 
-const install = (chart: Array<Chart>, values: object, name: string) => {
-  const worker = prepareWorker();
-  operation.value = `Installing release ${name}`;
-  progressMessage.value = 'Installing release';
-  progressCompleted.value = false;
-  const op: InboundMessage = {
-    type: 'call',
-    func: 'install',
-    args: [toRaw(chart), toRaw(values), toRaw(name), toRaw(selectedNamespace.value)],
-  };
-  worker.postMessage(op, findBuffers(chart));
-  creating.value = false;
-};
+const install = (chart: Array<Chart>, values: object, name: string) =>
+  withProgress(`Installing release ${name}`, async (progress) => {
+    const secret = await workerOp(progress, {
+      type: 'call',
+      func: 'install',
+      args: [
+        toRaw(chart), toRaw(values), toRaw(name),
+        toRaw(selectedNamespace.value),
+      ],
+    }, findBuffers(chart));
+    creating.value = false;
+
+    // may race with watch, but extremely unlikely
+    // since it is at least persisted once early before resources creation
+    const r = releases.value.find((r) => secretName(r) == secret);
+    if (r) {
+      view(r);
+    }
+  });
 
 const purge = (name: string) => Promise.all(
   releases.value.filter((r) => r.name == name).map(
@@ -250,19 +241,26 @@ const prepareUpgrade = async (intent: 'values' | 'upgrade', target: Release) => 
   upgrading.value = true;
 };
 
-const upgrade = (chart: Array<Chart>, values: object, target: Release) => {
-  const worker = prepareWorker();
-  operation.value = `Upgrade release ${target.name} to chart ${chart[0].metadata.version}`;
-  progressMessage.value = 'Upgrading release';
-  progressCompleted.value = false;
-  const op: InboundMessage = {
-    type: 'call',
-    func: 'upgrade',
-    args: [toRaw(chart), toRaw(values), toRaw(target), toRaw(releases.value.filter((r) => r.name == target.name))],
-  };
-  worker.postMessage(op);
-  upgrading.value = false;
-};
+const upgrade = (chart: Array<Chart>, values: object, target: Release) =>
+  withProgress(
+    `Upgrade release ${target.name} to chart ${chart[0].metadata.version}`,
+    async (progress) => {
+      const secret = await workerOp(progress, {
+        type: 'call',
+        func: 'upgrade',
+        args: [toRaw(chart), toRaw(values), toRaw(target),
+          toRaw(releases.value.filter((r) => r.name == target.name))],
+      });
+      upgrading.value = false;
+
+      // may race with watch, but extremely unlikely
+      // since it is at least persisted once early before resources creation
+      const r = releases.value.find((r) => secretName(r) == secret);
+      if (r) {
+        view(r);
+      }
+    },
+  );
 </script>
 
 <template>
@@ -293,7 +291,6 @@ const upgrade = (chart: Array<Chart>, values: object, target: Release) => {
   <VDialog v-model="creating">
     <HelmCreate :used-names="names" @apply="install" @cancel="creating = false" />
   </VDialog>
-  <ProgressDialog :model-value="!progressCompleted" :title="operation" :text="progressMessage" />
   <VDialog v-model="inspecting">
     <VCard v-if="inspectedRelease"
       :title="`Details for release ${inspectedRelease.name}, revision ${inspectedRelease.version}`">

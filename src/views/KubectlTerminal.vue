@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { VBtn, VCard, VDialog } from 'vuetify/components';
 import AttachTerminal from '@/components/AttachTerminal.vue';
-import ProgressDialog from '@/components/ProgressDialog.vue';
 import { ref, watch, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useEventListener } from '@vueuse/core';
@@ -14,6 +13,7 @@ import {
 import { brand } from '@/utils/config';
 import { managedByLabel } from '@/utils/contracts';
 import { ignore } from '@/utils/lang';
+import { withProgress } from '@/utils/progressReport';
 import { watchUntil } from '@/utils/watch';
 import { PresentedError } from '@/utils/PresentedError';
 import {
@@ -36,8 +36,6 @@ enum State {
 
 const state = ref(State.ASK_FOR_CREATING);
 const podName = ref('');
-const progressMessage = ref('');
-const progressing = ref(false);
 
 const name = 'sparkles-kubectl-shell';
 const POD_PREFIX = `${name}-`;
@@ -47,10 +45,9 @@ const ROLEBINDING_NAME = name;
 
 const cancelCreate = () => state.value = State.USER_CANCELED;
 
-const create = async () => {
+const create = () => withProgress('Setting up kubectl shell', async (progress) => {
   state.value = State.CREATING;
-  progressMessage.value = 'Creating supporting pod';
-  progressing.value = true;
+  progress('Creating supporting pod');
 
   const serviceAccount: V1ServiceAccount = {
     apiVersion: 'v1',
@@ -144,7 +141,7 @@ const create = async () => {
     }, bySSA),
   ]);
 
-  progressMessage.value = 'Waiting for supporting pod to become ready';
+  progress('Waiting for supporting pod to become ready');
   // TODO timeout?
   await watchUntil(
     (opt) => api.listNamespacedPodRaw({
@@ -165,9 +162,8 @@ const create = async () => {
     }
   );
 
-  progressing.value = false;
   state.value = State.READY;
-};
+});
 
 const cleanup = async (namespace?: string) =>
   podName.value && await ignore(
@@ -213,8 +209,6 @@ useEventListener(window, 'beforeunload', () => cleanup());
         </template>
       </VCard>
     </VDialog>
-    <ProgressDialog :model-value="progressing"
-      title="Setting up kubectl shell" :text="progressMessage" />
     <AttachTerminal v-if="state === State.READY"
       style="height: calc(100dvh - 64px - 32px)"
       :container-spec="{ namespace: selectedNamespace,

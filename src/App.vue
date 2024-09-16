@@ -20,6 +20,7 @@ import {
 } from 'vuetify/components';
 import IdentityIndicator from '@/components/IdentityIndicator.vue';
 import LoadingSuspense from '@/components/LoadingSuspense.vue';
+import ProgressDialog from '@/components/ProgressDialog.vue';
 import { useNamespaces } from '@/stores/namespaces';
 import { storeToRefs } from 'pinia';
 import { computed, ref, onErrorCaptured, watch } from 'vue';
@@ -27,6 +28,7 @@ import { ResponseError, FetchError, V1StatusFromJSON } from '@xdavidwu/kubernete
 import { PresentedError } from '@/utils/PresentedError';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useApiConfig, AuthScheme } from '@/stores/apiConfig';
+import { useProgress } from '@/stores/progress';
 import { renderAppTabs } from '@/composables/appTabs';
 import { useRouter } from 'vue-router';
 import { Category } from '@/router';
@@ -40,6 +42,11 @@ const { pendingError, pendingToast } = storeToRefs(useErrorPresentation());
 const configStore = useApiConfig();
 const { authScheme } = storeToRefs(configStore);
 const { normalizePath } = configStore;
+const {
+  active: progressActive,
+  title: progressTitle,
+  text: progressText,
+} = storeToRefs(useProgress());
 
 const drawer = ref<boolean | undefined>();
 const { expandAppBar, appBarHeightPX, appTabsUsed } = renderAppTabs();
@@ -187,6 +194,8 @@ watch(pendingToast, (toast) => {
         </template>
       </VCard>
     </VDialog>
+    <ProgressDialog :model-value="progressActive"
+      :title="progressTitle" :text="progressText" />
     <VMain>
       <VContainer fluid class="overflow-y-auto h-0"
         :style="`min-height: calc(100dvh - ${appBarHeightPX}px)`">

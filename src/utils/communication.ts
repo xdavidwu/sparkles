@@ -1,4 +1,3 @@
-import type { Ref } from 'vue';
 import type {
   RequestDataInboundMessage,
   RequestDataOutboundMessage,
@@ -64,7 +63,8 @@ export const handleDataRequestMessages = (worker: Worker) => {
   };
 };
 
-export const handleErrorMessages = (e: MessageEvent): boolean => {
+export const handleErrorMessages = (reject: (e: unknown) => unknown) =>
+    (e: MessageEvent): boolean => {
   const data: ErrorMessage = e.data;
   if (data.type == 'error') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -80,7 +80,7 @@ export const handleErrorMessages = (e: MessageEvent): boolean => {
       e = deserializeResponseError(e);
       break;
     }
-    useErrorPresentation().pendingError = e;
+    reject(e);
     return true;
   }
   return false;
@@ -96,18 +96,15 @@ export const handleToastMessages = (e: MessageEvent): boolean => {
 };
 
 export const handleProgressMessages =
-  (message: Ref<string>, completed: Ref<boolean>, completedMessage?: Ref<string | undefined>) =>
+  (progress: (message: string) => unknown, complete: (message?: string) => unknown) =>
     (e: MessageEvent): boolean => {
       const data: ProgressMessage | CompletedMessage = e.data;
       switch (data.type) {
       case 'progress':
-        message.value = data.message;
+        progress(data.message);
         return true;
       case 'completed':
-        completed.value = true;
-        if (completedMessage) {
-          completedMessage.value = data.message;
-        }
+        complete(data.message);
         return true;
       default:
         return false;
