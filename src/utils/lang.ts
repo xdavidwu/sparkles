@@ -19,7 +19,7 @@ export async function* streamToGenerator<T>(r: ReadableStream<T>) {
     }
   } finally {
     reader.cancel().catch((e) => {
-      if (!rawErrorIsAborted) {
+      if (!rawErrorIsAborted(e)) {
         throw e;
       }
     });
