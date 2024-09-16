@@ -8,11 +8,8 @@ export const withProgress = async <T>(
   active.value = true;
   title.value = t;
   try {
-    const res = await op((p) => text.value = p);
+    return await op((p) => text.value = p);
+  } finally {
     active.value = false;
-    return res;
-  } catch (e) {
-    active.value = false;
-    throw e;
   }
 };
