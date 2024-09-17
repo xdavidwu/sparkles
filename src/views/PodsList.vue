@@ -323,6 +323,7 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
                   <!-- TODO bring permission check back? -->
                   <TippedBtn size="small" icon="mdi-file-document"
                     tooltip="Log" variant="text"
+                    :disabled="item.state?.waiting"
                     @click="createTab('log', item, pod)" />
                   <TippedBtn size="small" icon="mdi-console-line"
                     tooltip="Shell" variant="text"
