@@ -32,7 +32,6 @@ import { listAndUnwaitedWatch, watchUntil } from '@/utils/watch';
 import { notifyListingWatchErrors } from '@/utils/errors';
 import { PresentedError } from '@/utils/PresentedError';
 import { withProgress } from '@/utils/progressReport';
-import { createNameId } from 'mnemonic-id';
 
 interface ContainerSpec {
   pod: string,
@@ -200,7 +199,7 @@ const createTab = (type: TabType, target: string, pod: V1Pod, overrides?: Partia
 const debug = (target: string, pod: V1Pod) =>
   withProgress('Setting up ephemeral container', async (progress) => {
     progress('Creating ephemeral container');
-    const name = createNameId();
+    const name = `spk-dbg-${crypto.randomUUID().split('-')[1]}`;
     const update: V1Pod = {
       apiVersion: 'v1',
       kind: 'Pod',
