@@ -69,6 +69,10 @@ const columns = [
   {
     title: 'Name',
     key: 'metadata.name',
+    value: (pod: V1Pod) =>
+      `${pod.metadata!.name}${
+        pod.metadata!.annotations?.[mirrorPodAnnotation] ? ' (static)' : ''}${
+        pod.metadata!.deletionTimestamp ? ' (deleting)' : ''}`,
   },
   {
     title: 'Owned by',
@@ -95,6 +99,7 @@ const innerColumns = [
   {
     title: 'Container',
     key: 'name',
+    value: (c: ContainerData) => `${c.name}${c.type ? ` (${c.type})` : ''}`,
   },
   {
     title: 'Image',
@@ -282,12 +287,6 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
         <template #[`item.metadata.name`]="{ item: pod, value }">
           <div class="my-2">
             {{ value }}
-            <template v-if="pod.metadata!.annotations?.[mirrorPodAnnotation]">
-              (static)
-            </template>
-            <template v-if="pod.metadata!.deletionTimestamp">
-              (deleting)
-            </template>
             <br />
             <KeyValueBadge v-for="(value, key) in pod.metadata!.annotations"
               class="mr-1 mb-1"
@@ -304,12 +303,6 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
               <VDataTable class="bg-transparent"
                 :items="mergeContainerSpecStatus(pod)"
                 :headers="innerColumns" density="compact">
-                <template #[`item.name`]="{ item, value }">
-                  {{ value }}
-                  <template v-if="item.type">
-                    ({{ item.type }})
-                  </template>
-                </template>
                 <template #[`item.image`]="{ item, value }">
                   <LinkedImage :image="value" :id="item.imageID" />
                 </template>
