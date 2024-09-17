@@ -39,8 +39,14 @@ interface ContainerSpec {
   container: string,
 }
 
+enum TabType {
+  EXEC,
+  LOG,
+  ATTACH,
+}
+
 interface Tab {
-  type: 'exec' | 'log' | 'attach',
+  type: TabType,
   id: string,
   spec: ContainerSpec,
   title?: string,
@@ -120,7 +126,7 @@ const innerColumns = [
   {
     title: 'Actions',
     key: 'actions',
-    value: () => '',
+    value: 'name',
     sortable: false,
     nowrap: true,
     width: 0,
@@ -159,24 +165,35 @@ const closeTab = (index: number) => {
   tabs.value.splice(index, 1);
 };
 
-const createTab = (type: 'exec' | 'log', target: ContainerData, pod: V1Pod) => {
+const titlePrefix = {
+  [TabType.LOG]: 'Log',
+  [TabType.EXEC]: 'Shell',
+  [TabType.ATTACH]: 'Debug',
+};
+
+const components = {
+  [TabType.LOG]: LogViewer,
+  [TabType.EXEC]: ExecTerminal,
+  [TabType.ATTACH]: AttachTerminal,
+};
+
+const createTab = (type: TabType, target: string, pod: V1Pod) => {
   const podName = pod.metadata!.name!;
-  const containerName = target.name;
-  const id = type === 'log' ? `${podName}/${containerName}` : crypto.randomUUID();
+  const id = type === TabType.LOG ? `${podName}/${target}` : crypto.randomUUID();
   if (!tabs.value.some((t) => t.id === id)) {
     const isOnlyContainer = pod.status?.containerStatuses!.length === 1;
-    const name = isOnlyContainer ? truncateStart(podName, 8) : `${truncateStart(podName, 8)}/${containerName}`;
-    const fullName = `${podName}/${containerName}`;
+    const name = isOnlyContainer ? truncateStart(podName, 8) : `${truncateStart(podName, 8)}/${target}`;
+    const fullName = `${podName}/${target}`;
     tabs.value.push({
-      type, id, spec: { pod: podName, container: containerName }, alerting: false,
-      defaultTitle: `${type === 'exec' ? 'Shell' : 'Log'}: ${name}`,
-      description: `${type === 'exec' ? 'Shell' : 'Log'}: ${fullName}`,
+      type, id, spec: { pod: podName, container: target }, alerting: false,
+      defaultTitle: `${titlePrefix[type]}: ${name}`,
+      description: `${titlePrefix[type]}: ${fullName}`,
     });
   }
   tab.value = id;
 };
 
-const debug = (target: ContainerData, pod: V1Pod) =>
+const debug = (target: string, pod: V1Pod) =>
   withProgress('Setting up ephemeral container', async (progress) => {
     progress('Creating ephemeral container');
     const name = createNameId();
@@ -191,7 +208,7 @@ const debug = (target: ContainerData, pod: V1Pod) =>
           stdin: true,
           stdinOnce: true,
           tty: true,
-          targetContainerName: target.name,
+          targetContainerName: target,
           securityContext: {
             capabilities: {
               add: ['SYS_PTRACE'], // TODO avoid
@@ -227,16 +244,7 @@ const debug = (target: ContainerData, pod: V1Pod) =>
       }
     );
 
-    const podName = pod.metadata!.name!;
-    const id = crypto.randomUUID();
-    const tabName = `${truncateStart(podName, 8)}/${name}`;
-    const fullName = `${podName}/${name}`;
-    tabs.value.push({
-      type: 'attach', id, spec: { pod: podName, container: name }, alerting: false,
-      defaultTitle: `Debug: ${tabName}`,
-      description: `Debug: ${fullName}`,
-    });
-    tab.value = id;
+    createTab(TabType.ATTACH, name, pod);
     // TODO find a way to make sure it terminates or gc
   });
 
@@ -312,22 +320,22 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
                     (<HumanDurationSince :since="item.lastState.terminated.finishedAt" ago />)
                   </template>
                 </template>
-                <template #[`item.actions`]="{ item }">
+                <template #[`item.actions`]="{ item, value }">
                   <!-- TODO bring permission check back? -->
                   <TippedBtn size="small" icon="mdi-file-document"
                     tooltip="Log" variant="text"
                     :disabled="item.state?.waiting"
-                    @click="createTab('log', item, pod)" />
+                    @click="createTab(TabType.LOG, value, pod)" />
                   <TippedBtn size="small" icon="mdi-console-line"
                     tooltip="Shell" variant="text"
                     :disabled="!item.state?.running"
-                    @click="createTab('exec', item, pod)" />
+                    @click="createTab(TabType.EXEC, value, pod)" />
                   <TippedBtn
                     size="small" icon="mdi-bug"
                     tooltip="Debug with ephemeral container" variant="text"
                     :disabled="pod.metadata!.annotations?.[mirrorPodAnnotation] ||
                       item.type?.startsWith('ephemeral') || !item.state?.running"
-                    @click="debug(item, pod)" />
+                    @click="debug(value, pod)" />
                 </template>
               </VDataTable>
             </td>
@@ -337,12 +345,11 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
     </WindowItem>
     <WindowItem v-for="(tab, index) in tabs" :key="tab.id"
       :value="tab.id">
-      <component
-        :is="tab.type === 'exec' ? ExecTerminal : tab.type === 'attach' ? AttachTerminal : LogViewer"
+      <component :is="components[tab.type]"
         :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
+        :container-spec="{ namespace: selectedNamespace, ...tab.spec}"
         @title-changed="(title: string) => tab.title = title"
-        @bell="() => bell(index)"
-        :container-spec="{ namespace: selectedNamespace, ...tab.spec}" />
+        @bell="() => bell(index)" />
     </WindowItem>
   </TabsWindow>
 </template>
