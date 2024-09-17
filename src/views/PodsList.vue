@@ -180,7 +180,7 @@ const components = {
 
 const createTab = (type: TabType, target: string, pod: V1Pod, overrides?: Partial<Tab>) => {
   const podName = pod.metadata!.name!;
-  const id = type === TabType.LOG ? `${podName}/${target}` : crypto.randomUUID();
+  const id = type === TabType.LOG ? `${podName}/${target}/${overrides?.previous}` : crypto.randomUUID();
   if (!tabs.value.some((t) => t.id === id)) {
     const isOnlyContainer = (pod.status?.containerStatuses!.length ?? 0) +
       (pod.status?.initContainerStatuses?.length ?? 0) +
@@ -189,8 +189,8 @@ const createTab = (type: TabType, target: string, pod: V1Pod, overrides?: Partia
     const fullName = `${podName}/${target}`;
     tabs.value.push({
       type, id, spec: { pod: podName, container: target }, alerting: false,
-      defaultTitle: `${titlePrefix[type]}: ${name}`,
-      description: `${titlePrefix[type]}: ${fullName}`,
+      defaultTitle: `${titlePrefix[type]}${overrides?.previous ? '*' : ''}: ${name}`,
+      description: `${titlePrefix[type]}: ${fullName}${overrides?.previous ? ' (previous)' : ''}`,
       ...overrides,
     });
   }
