@@ -248,7 +248,9 @@ const debug = (target: string, pod: V1Pod) =>
       }
     );
 
-    createTab(TabType.ATTACH, name, pod);
+    createTab(TabType.ATTACH, name, pod, {
+      description: `Debug: ${pod.metadata!.name}/${name} (for ${target})`,
+    });
     // TODO find a way to make sure it terminates or gc
   });
 
