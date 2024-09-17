@@ -182,7 +182,9 @@ const createTab = (type: TabType, target: string, pod: V1Pod, overrides?: Partia
   const podName = pod.metadata!.name!;
   const id = type === TabType.LOG ? `${podName}/${target}` : crypto.randomUUID();
   if (!tabs.value.some((t) => t.id === id)) {
-    const isOnlyContainer = pod.status?.containerStatuses!.length === 1;
+    const isOnlyContainer = (pod.status?.containerStatuses!.length ?? 0) +
+      (pod.status?.initContainerStatuses?.length ?? 0) +
+      (pod.status?.ephemeralContainerStatuses?.length ?? 0) === 1;
     const name = isOnlyContainer ? truncateStart(podName, 8) : `${truncateStart(podName, 8)}/${target}`;
     const fullName = `${podName}/${target}`;
     tabs.value.push({
