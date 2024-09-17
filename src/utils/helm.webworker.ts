@@ -12,6 +12,7 @@ import {
   type V1Secret, type V1CustomResourceDefinition, type VersionInfo,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { parse, parseAllDocuments } from 'yaml';
+import { createPatch } from 'rfc6902';
 import { AnyApi } from '@/utils/AnyApi';
 import {
   errorIsResourceNotFound, errorIsAborted, errorIsAlreadyExists, rawErrorIsAborted,
@@ -376,14 +377,20 @@ const addManagedMetadata = (resource: KubernetesObject, release: Release): Kuber
 const applyDifference = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery>,
     from: Array<KubernetesObject>, to: Array<KubernetesObject>) => {
   interface op {
-    op: 'create' | 'replace' | 'delete';
+    op: 'create' | 'patch' | 'delete';
     resource: KubernetesObject;
+    old?: KubernetesObject;
   }
 
-  const createsAndUpdates = to.sort(installOrderCompare).map((r): op => ({
-    op: from.some((t) => isSameKubernetesObject(r, t)) ? 'replace' : 'create',
-    resource: r,
-  }));
+  const createsAndUpdates = to.sort(installOrderCompare).map((r): op => {
+    const old = from.find((t) => isSameKubernetesObject(r, t));
+
+    return {
+      op: old ? 'patch' : 'create',
+      resource: r,
+      old,
+    };
+  });
   const deletes = from.filter(
     (r) => !shouldKeepResource(r) && !to.some((t) => isSameKubernetesObject(r, t)),
   ).sort(uninstallOrderCompare).map((r): op => ({
@@ -403,19 +410,15 @@ const applyDifference = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery
       namespace: step.resource.metadata!.namespace!,
       name: step.resource.metadata!.name!,
     };
-    if (step.op == 'replace') {
-      try {
-        const current = await anyApi[`get${kindInfo.scope}CustomObject`](common) as KubernetesObject;
-        step.resource.metadata!.resourceVersion = current.metadata!.resourceVersion;
-      } catch (e) {
-        if (!await errorIsResourceNotFound(e)) {
-          throw e;
-        }
-        step.op = 'create';
-      }
-    }
-
-    if (step.op == 'delete') {
+    if (step.op == 'patch') {
+      // TODO do we want to implement --force? (replace, not patch)
+      const jsonPatch = createPatch(step.old, step.resource);
+      await anyApi[`patch${kindInfo.scope}CustomObject`]({
+        ...common,
+        fieldManager,
+        body: jsonPatch,
+      });
+    } else if (step.op == 'delete') {
       // body has a different meaning on delete (V1DeleteOptions)
       await ignore(anyApi[`delete${kindInfo.scope}CustomObject`]({
         ...common,

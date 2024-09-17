@@ -11,6 +11,8 @@ import {
   type CustomObjectsApiGetNamespacedCustomObjectRequest,
   type CustomObjectsApiListClusterCustomObjectRequest,
   type CustomObjectsApiListNamespacedCustomObjectRequest,
+  type CustomObjectsApiPatchClusterCustomObjectRequest,
+  type CustomObjectsApiPatchNamespacedCustomObjectRequest,
   type CustomObjectsApiReplaceClusterCustomObjectRequest,
   type CustomObjectsApiReplaceNamespacedCustomObjectRequest,
   type V1APIResourceList,
@@ -52,6 +54,12 @@ export type AnyApiReplaceClusterCustomObjectRequest =
 
 export type AnyApiReplaceNamespacedCustomObjectRequest =
   MakePartial<CustomObjectsApiReplaceNamespacedCustomObjectRequest, 'group'>;
+
+export type AnyApiPatchClusterCustomObjectRequest =
+  MakePartial<CustomObjectsApiPatchClusterCustomObjectRequest, 'group'>;
+
+export type AnyApiPatchNamespacedCustomObjectRequest =
+  MakePartial<CustomObjectsApiPatchNamespacedCustomObjectRequest, 'group'>;
 
 export type AnyApiCreateClusterCustomObjectRequest =
   MakePartial<CustomObjectsApiCreateClusterCustomObjectRequest, 'group'>;
@@ -286,6 +294,36 @@ export class AnyApi extends CustomObjectsApi {
     initOverrides?: RequestInit | InitOverrideFunction,
   ): Promise<object> {
     const response = await this.replaceNamespacedCustomObjectRaw(requestParameters, initOverrides);
+    return await response.value();
+  }
+
+  async patchClusterCustomObjectRaw(
+    requestParameters: AnyApiPatchClusterCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<ApiResponse<object>> {
+    return super.patchClusterCustomObjectRaw(armCoreParam(requestParameters), initOverrides);
+  }
+
+  async patchNamespacedCustomObjectRaw(
+    requestParameters: AnyApiPatchNamespacedCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<ApiResponse<object>> {
+    return super.patchNamespacedCustomObjectRaw(armCoreParam(requestParameters), initOverrides);
+  }
+
+  async patchClusterCustomObject(
+    requestParameters: AnyApiPatchClusterCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<object> {
+    const response = await this.patchClusterCustomObjectRaw(requestParameters, initOverrides);
+    return await response.value();
+  }
+
+  async patchNamespacedCustomObject(
+    requestParameters: AnyApiPatchNamespacedCustomObjectRequest,
+    initOverrides?: RequestInit | InitOverrideFunction,
+  ): Promise<object> {
+    const response = await this.patchNamespacedCustomObjectRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
