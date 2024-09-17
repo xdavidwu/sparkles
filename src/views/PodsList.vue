@@ -53,6 +53,7 @@ interface Tab {
   defaultTitle: string,
   description: string,
   alerting: boolean,
+  previous?: boolean,
   bellTimeoutID?: ReturnType<typeof setTimeout>,
 }
 
@@ -177,7 +178,7 @@ const components = {
   [TabType.ATTACH]: AttachTerminal,
 };
 
-const createTab = (type: TabType, target: string, pod: V1Pod) => {
+const createTab = (type: TabType, target: string, pod: V1Pod, overrides?: Partial<Tab>) => {
   const podName = pod.metadata!.name!;
   const id = type === TabType.LOG ? `${podName}/${target}` : crypto.randomUUID();
   if (!tabs.value.some((t) => t.id === id)) {
@@ -188,6 +189,7 @@ const createTab = (type: TabType, target: string, pod: V1Pod) => {
       type, id, spec: { pod: podName, container: target }, alerting: false,
       defaultTitle: `${titlePrefix[type]}: ${name}`,
       description: `${titlePrefix[type]}: ${fullName}`,
+      ...overrides,
     });
   }
   tab.value = id;
@@ -326,6 +328,10 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
                     tooltip="Log" variant="text"
                     :disabled="item.state?.waiting"
                     @click="createTab(TabType.LOG, value, pod)" />
+                  <TippedBtn size="small" icon="mdi-file-document-minus"
+                    tooltip="Log of previous instance" variant="text"
+                    :disabled="!item.lastState?.terminated"
+                    @click="createTab(TabType.LOG, value, pod, { previous: true })" />
                   <TippedBtn size="small" icon="mdi-console-line"
                     tooltip="Shell" variant="text"
                     :disabled="!item.state?.running"
@@ -345,7 +351,7 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
     </WindowItem>
     <WindowItem v-for="(tab, index) in tabs" :key="tab.id"
       :value="tab.id">
-      <component :is="components[tab.type]"
+      <component :is="components[tab.type]" :previous="tab.previous"
         :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
         :container-spec="{ namespace: selectedNamespace, ...tab.spec}"
         @title-changed="(title: string) => tab.title = title"

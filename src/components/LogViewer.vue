@@ -15,6 +15,7 @@ const props = defineProps<{
     pod: string,
     container: string,
   },
+  previous?: boolean,
 }>();
 
 const opts = {
@@ -37,6 +38,7 @@ const display = async (terminal: Terminal) => {
       name: props.containerSpec.pod,
       container: props.containerSpec.container,
       follow: true,
+      previous: props.previous,
     }, {
       signal: signal.value,
     })).raw.body!.pipeThrough(new TextDecoderStream());
