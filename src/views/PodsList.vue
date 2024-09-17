@@ -146,7 +146,7 @@ const mergeContainerSpecStatus = (pod: V1Pod): Array<ContainerData> =>
   })) ?? []).concat(pod.spec!.ephemeralContainers?.map((c) => ({
     ...c,
     ...pod.status?.ephemeralContainerStatuses?.find((s) => s.name == c.name),
-    type: c.targetContainerName ? `ephemeral, targeting ${c.targetContainerName}` : 'ephemeral',
+    type: c.targetContainerName ? `ephemeral, for ${c.targetContainerName}` : 'ephemeral',
   })) ?? []);
 
 const closeTab = (index: number) => {
