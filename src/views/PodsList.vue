@@ -26,7 +26,9 @@ import {
   CoreV1Api,
   type V1Pod, V1PodFromJSON, type V1Container, type V1ContainerStatus, type V1EphemeralContainer,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
-import { bySSA, mirrorPodAnnotation, V1WatchEventType } from '@/utils/api';
+import {
+  bySSA, mirrorPodAnnotation, restrictedSecurityContext, V1WatchEventType,
+} from '@/utils/api';
 import { truncateStart } from '@/utils/text';
 import { listAndUnwaitedWatch, watchUntil } from '@/utils/watch';
 import { notifyListingWatchErrors } from '@/utils/errors';
@@ -196,10 +198,83 @@ const createTab = (type: TabType, target: string, pod: V1Pod, overrides?: Partia
   tab.value = id;
 };
 
-const debug = (target: string, pod: V1Pod) =>
+const reducePrivilege = import.meta.env.VITE_DEBUG_PRIVILEGED == 'false';
+const debug = (target: ContainerData, pod: V1Pod) =>
   withProgress('Setting up ephemeral container', async (progress) => {
     progress('Creating ephemeral container');
-    const name = `spk-dbg-${crypto.randomUUID().split('-')[1]}`;
+    const id = crypto.randomUUID().split('-')[1];
+    const name = `spk-dbg-${id}`;
+    // fs[ug]id
+    let uid = 65535, gid = 65535, fscredKnown = false;
+
+    // assuming they don't switch if not from root
+    // XXX: is it safe enough?
+    if (target.securityContext?.runAsUser && target.securityContext?.runAsGroup) {
+      fscredKnown = true;
+      uid = target.securityContext.runAsUser;
+      gid = target.securityContext.runAsGroup;
+    }
+
+    if (reducePrivilege && !fscredKnown) {
+      progress('Finding out uid/gid of running container');
+
+      const inspectName = `spk-uid-${id}`; // keep length the same for ui
+      const inspect: V1Pod = {
+        apiVersion: 'v1',
+        kind: 'Pod',
+        spec: {
+          containers: [], // for types
+          ephemeralContainers: [{
+            name: inspectName,
+            image: 'alpine:3.20',
+            command: ['/bin/sh', '-c'],
+            args: ['grep ^[UG]id: /proc/1/status | cut -f 5'],
+            targetContainerName: target.name,
+            securityContext: {
+              ...restrictedSecurityContext,
+              runAsUser: uid,
+              runAsGroup: gid,
+            },
+          }],
+        },
+      };
+
+      await api.patchNamespacedPodEphemeralcontainers({
+        namespace: pod.metadata!.namespace!,
+        name: pod.metadata!.name!,
+        body: inspect,
+      }, bySSA);
+
+      await watchUntil(
+        (opt) => api.listNamespacedPodRaw({
+          namespace: pod.metadata!.namespace!,
+          fieldSelector: `metadata.name=${pod.metadata!.name}`,
+          ...opt
+        }),
+        V1PodFromJSON,
+        (ev) => {
+          if (ev.type === V1WatchEventType.ADDED ||
+              ev.type === V1WatchEventType.MODIFIED) {
+            return !!ev.object.status?.ephemeralContainerStatuses?.find(
+              (s) => s.name === inspectName)?.state?.terminated;
+          } else if (ev.type === V1WatchEventType.DELETED) {
+            throw new PresentedError('Pod deleted on cluster while waiting');
+          }
+          return false;
+        }
+      );
+
+      const log = await api.readNamespacedPodLog({
+        namespace: pod.metadata!.namespace!,
+        name: pod.metadata!.name!,
+        container: inspectName,
+      });
+
+      const rows = log.split('\n');
+      uid = parseInt(rows[0], 10);
+      gid = parseInt(rows[1], 10);
+    }
+
     const update: V1Pod = {
       apiVersion: 'v1',
       kind: 'Pod',
@@ -208,13 +283,20 @@ const debug = (target: string, pod: V1Pod) =>
         ephemeralContainers: [{
           name,
           image: 'alpine:3.20',
+          command: ['/bin/sh', '-c'],
+          args: ['cd /proc/1/root; exec /bin/sh'],
           stdin: true,
           stdinOnce: true,
           tty: true,
-          targetContainerName: target,
-          securityContext: {
+          targetContainerName: target.name,
+          securityContext: reducePrivilege ? {
+            ...restrictedSecurityContext,
+            runAsUser: uid,
+            runAsGroup: gid,
+          } : {
+            privileged: true,
             capabilities: {
-              add: ['SYS_PTRACE'], // TODO avoid
+              add: ['SYS_PTRACE'], // for /proc/1/root, left for reference
             },
           },
         }],
@@ -248,7 +330,7 @@ const debug = (target: string, pod: V1Pod) =>
     );
 
     createTab(TabType.ATTACH, name, pod, {
-      description: `Debug: ${pod.metadata!.name}/${name} (for ${target})`,
+      description: `Debug: ${pod.metadata!.name}/${name} (for ${target.name})`,
     });
     // TODO find a way to make sure it terminates or gc
   });
@@ -329,7 +411,7 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
                   <!-- TODO bring permission check back? -->
                   <TippedBtn size="small" icon="mdi-file-document"
                     tooltip="Log" variant="text"
-                    :disabled="item.state?.waiting"
+                    :disabled="!!item.state?.waiting"
                     @click="createTab(TabType.LOG, value, pod)" />
                   <TippedBtn size="small" icon="mdi-file-document-minus"
                     tooltip="Log of previous instance" variant="text"
@@ -344,7 +426,7 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
                     tooltip="Debug with ephemeral container" variant="text"
                     :disabled="pod.metadata!.annotations?.[mirrorPodAnnotation] ||
                       item.type?.startsWith('ephemeral') || !item.state?.running"
-                    @click="debug(value, pod)" />
+                    @click="debug(item, pod)" />
                 </template>
               </VDataTable>
             </td>

@@ -30,6 +30,9 @@ interface ImportMetaEnv {
   readonly VITE_OIDC_CLIENT_ID: string,
   readonly VITE_OIDC_CLIENT_SECRET: string,
   readonly VITE_OIDC_SCOPES: string, // space seperated list
+
+  // if false, use ephemeral containers under pss:restricted
+  readonly VITE_DEBUG_PRIVILEGED: 'true' | 'false',
 }
 
 interface ImportMeta {

@@ -8,7 +8,7 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { useNamespaces } from '@/stores/namespaces';
 import {
   descriptionAnnotation, errorIsResourceNotFound, bySSA,
-  V1WatchEventType,
+  restrictedSecurityContext, V1WatchEventType,
 } from '@/utils/api';
 import { brand } from '@/utils/config';
 import { managedByLabel } from '@/utils/contracts';
@@ -104,16 +104,7 @@ const create = () => withProgress('Setting up kubectl shell', async (progress) =
         stdin: true,
         stdinOnce: true,
         tty: true,
-        securityContext: {
-          allowPrivilegeEscalation: false,
-          capabilities: {
-            drop: ['ALL'],
-          },
-          runAsNonRoot: true,
-          seccompProfile: {
-            type: 'RuntimeDefault',
-          },
-        },
+        securityContext: restrictedSecurityContext,
       }],
       serviceAccountName: SERVICEACCOUNT_NAME,
       terminationGracePeriodSeconds: 0,

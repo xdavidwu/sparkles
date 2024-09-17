@@ -1,7 +1,7 @@
 import {
   AuthenticationV1Api, AuthenticationV1beta1Api, type BaseAPI,
   V1StatusFromJSON,
-  type V1SelfSubjectReview,
+  type V1SelfSubjectReview, type V1SecurityContext,
   Configuration, FetchError, ResponseError,
   type InitOverrideFunction, type HTTPRequestInit, type HTTPHeaders, type RequestContext, type Middleware,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
@@ -104,6 +104,17 @@ export enum V1CustomResourceDefinitionConditionType {
 
 export const descriptionAnnotation = 'kubernetes.io/description';
 export const mirrorPodAnnotation = 'kubernetes.io/config.mirror';
+
+export const restrictedSecurityContext: V1SecurityContext = {
+  allowPrivilegeEscalation: false,
+  capabilities: {
+    drop: ['ALL'],
+  },
+  runAsNonRoot: true,
+  seccompProfile: {
+    type: 'RuntimeDefault',
+  },
+};
 
 export type ChainableInitOverrideFunction = (...p: Parameters<InitOverrideFunction>) =>
   (Promise<Awaited<ReturnType<InitOverrideFunction>> & HTTPRequestInit & { headers: HTTPHeaders }>);
