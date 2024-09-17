@@ -99,7 +99,7 @@ const create = () => withProgress('Setting up kubectl shell', async (progress) =
       containers: [{
         name: CONTAINER_NAME,
         // TODO find a better one with completion, helm, match version with cluster
-        image: 'bitnami/kubectl',
+        image: 'public.ecr.aws/bitnami/kubectl',
         command: ['/bin/bash'],
         stdin: true,
         stdinOnce: true,

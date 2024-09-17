@@ -226,7 +226,7 @@ const debug = (target: ContainerData, pod: V1Pod) =>
           containers: [], // for types
           ephemeralContainers: [{
             name: inspectName,
-            image: 'alpine:3.20',
+            image: 'public.ecr.aws/docker/library/alpine:3.20',
             command: ['/bin/sh', '-c'],
             args: ['grep ^[UG]id: /proc/1/status | cut -f 5'],
             targetContainerName: target.name,
@@ -282,7 +282,7 @@ const debug = (target: ContainerData, pod: V1Pod) =>
         containers: [], // for types
         ephemeralContainers: [{
           name,
-          image: 'alpine:3.20',
+          image: 'public.ecr.aws/docker/library/alpine:3.20',
           command: ['/bin/sh', '-c'],
           args: ['cd /proc/1/root; exec /bin/sh'],
           stdin: true,
