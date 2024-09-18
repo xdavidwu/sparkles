@@ -12,12 +12,12 @@ import {
   type V1Secret, type V1CustomResourceDefinition, type VersionInfo,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { parse, parseAllDocuments } from 'yaml';
-import { createPatch } from 'rfc6902';
 import { AnyApi } from '@/utils/AnyApi';
 import {
   errorIsResourceNotFound, errorIsAborted, errorIsAlreadyExists, rawErrorIsAborted,
   hasCondition, V1ConditionStatus, V1CustomResourceDefinitionConditionType, V1JobConditionType,
   V1PodStatusPhase, V1WatchEventType, V1DeletePropagation,
+  bySSA,
 } from '@/utils/api';
 import { fetchBase64Data, ignore } from '@/utils/lang';
 import { PresentedError } from '@/utils/PresentedError';
@@ -376,61 +376,36 @@ const addManagedMetadata = (resource: KubernetesObject, release: Release): Kuber
 // TODO move resolving out, handle unresolved
 const applyDifference = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery>,
     from: Array<KubernetesObject>, to: Array<KubernetesObject>) => {
-  interface op {
-    op: 'create' | 'patch' | 'delete';
-    resource: KubernetesObject;
-    old?: KubernetesObject;
-  }
-
-  const createsAndUpdates = to.sort(installOrderCompare).map((r): op => {
-    const old = from.find((t) => isSameKubernetesObject(r, t));
-
-    return {
-      op: old ? 'patch' : 'create',
-      resource: r,
-      old,
-    };
-  });
-  const deletes = from.filter(
-    (r) => !shouldKeepResource(r) && !to.some((t) => isSameKubernetesObject(r, t)),
-  ).sort(uninstallOrderCompare).map((r): op => ({
-    op: 'delete',
-    resource: r,
-  }));
-
-  // create/update first, then delete
-  await createsAndUpdates.concat(deletes).reduce(async (a, step) => {
+  await to.sort(installOrderCompare).reduce(async (a, r) => {
     await a;
 
-    const kindInfo = resolveObject(groups, step.resource)!;
-    const common = {
+    const kindInfo = resolveObject(groups, r)!;
+    await anyApi[`patch${kindInfo.scope}CustomObject`]({
       group: kindInfo.group,
       version: kindInfo.version,
       plural: kindInfo.resource,
-      namespace: step.resource.metadata!.namespace!,
-      name: step.resource.metadata!.name!,
-    };
-    if (step.op == 'patch') {
-      // TODO do we want to implement --force? (replace, not patch)
-      const jsonPatch = createPatch(step.old, step.resource);
-      await anyApi[`patch${kindInfo.scope}CustomObject`]({
-        ...common,
-        fieldManager,
-        body: jsonPatch,
-      });
-    } else if (step.op == 'delete') {
-      // body has a different meaning on delete (V1DeleteOptions)
-      await ignore(anyApi[`delete${kindInfo.scope}CustomObject`]({
-        ...common,
-        propagationPolicy: V1DeletePropagation.BACKGROUND,
-      }), errorIsResourceNotFound);
-    } else {
-      await anyApi[`${step.op}${kindInfo.scope}CustomObject`]({
-        ...common,
-        fieldManager,
-        body: step.resource,
-      });
-    }
+      namespace: r.metadata!.namespace!,
+      name: r.metadata!.name!,
+      fieldManager,
+      force: true,
+      body: r,
+    }, bySSA);
+  }, Promise.resolve());
+
+  await from.filter(
+    (r) => !shouldKeepResource(r) && !to.some((t) => isSameKubernetesObject(r, t)),
+  ).sort(uninstallOrderCompare).reduce(async (a, r) => {
+    await a;
+
+    const kindInfo = resolveObject(groups, r)!;
+    await ignore(anyApi[`delete${kindInfo.scope}CustomObject`]({
+      group: kindInfo.group,
+      version: kindInfo.version,
+      plural: kindInfo.resource,
+      namespace: r.metadata!.namespace!,
+      name: r.metadata!.name!,
+      propagationPolicy: V1DeletePropagation.BACKGROUND,
+    }), errorIsResourceNotFound);
   }, Promise.resolve());
 };
 
