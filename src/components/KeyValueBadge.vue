@@ -36,8 +36,8 @@ const vColor = computedAsync(async () => colorToClass(await hashColor(props.v, b
 
 <template>
   <div class="d-inline-block text-sm">
-    <span class="bg-brown-darken-4 text-medium-emphasis px-1"
-      :class="`rounded-s-${pill ? 'pill' : 'sm'}`">
+    <span class="text-medium-emphasis px-1"
+      :class="`rounded-s-${pill ? 'pill' : 'sm'} bg-${pill ? 'brown' : 'teal'}-darken-4`">
       {{ shortK }}
     </span>
     <span :class="[`text-${vColor}`, 'position-relative', 'px-1']">
