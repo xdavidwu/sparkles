@@ -511,7 +511,9 @@ watch(tab, (v) => v === 'explore' &&
           </template>
         </VDataTableVirtual>
         <!-- TODO we should show info for type somewhere -->
-        <FixedFab v-if="targetKind.verbs.includes('create')" icon="$plus" @click="newDraft" />
+        <FixedFab v-if="targetKind.verbs.includes('create')" icon="$plus"
+          :disabled="!permissionsStore.mayAllows(loadedNamespace, targetGroupVersion.group ?? '', targetKind.resource, '*', 'create')"
+          @click="newDraft" />
       </div>
     </WindowItem>
     <WindowItem v-for="[key, r] in inspectedObjects" :key="key" :value="key">
@@ -521,11 +523,13 @@ watch(tab, (v) => v === 'explore' &&
 
       <FixedFab v-if="r.editing" icon="mdi-content-save" @click="save(r, key)" />
       <SpeedDialFab v-else-if="targetKind.verbs.includes('delete') || targetKind.verbs.includes('update')">
-        <SpeedDialBtn key="1" label="Delete" icon="mdi-delete"
-          :disabled="!targetKind.verbs.includes('delete')"
+        <SpeedDialBtn v-if="targetKind.verbs.includes('delete')"
+          key="1" label="Delete" icon="mdi-delete"
+          :disabled="!permissionsStore.mayAllows(loadedNamespace, targetGroupVersion.group ?? '', targetKind.resource, r.metadata.name!, 'delete')"
           @click="_delete(r, key)" />
-        <SpeedDialBtn key="2" label="Edit" icon="$edit"
-          :disabled="!targetKind.verbs.includes('update')"
+        <SpeedDialBtn v-if="targetKind.verbs.includes('update')"
+          key="2" label="Edit" icon="$edit"
+          :disabled="!permissionsStore.mayAllows(loadedNamespace, targetGroupVersion.group ?? '', targetKind.resource, r.metadata.name!, 'delete')"
           @click="r.editing = true" />
       </SpeedDialFab>
     </WindowItem>
