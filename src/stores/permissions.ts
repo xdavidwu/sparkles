@@ -113,7 +113,7 @@ export const usePermissions = defineStore('permission', () => {
   };
 
   const mayAllows = (namespace: string, group: string, resource: string,
-      name: string, verb: string, costy: boolean = false) => {
+      name: string, verb: string) => {
     const res = check(namespace, group, resource, name, verb);
     return res === PermissionStatus.Allowed || res === PermissionStatus.Unknown;
   }
