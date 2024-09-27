@@ -37,6 +37,7 @@ import { PresentedError } from '@/utils/PresentedError';
 import { withProgress } from '@/utils/progressReport';
 
 interface ContainerSpec {
+  namespace: string,
   pod: string,
   container: string,
 }
@@ -195,7 +196,7 @@ const createTab = (type: TabType, target: string, pod: V1Pod, overrides?: Partia
     const name = isOnlyContainer ? truncateStart(podName, 8) : `${truncateStart(podName, 8)}/${target}`;
     const fullName = `${podName}/${target}`;
     tabs.value.push({
-      type, id, spec: { pod: podName, container: target }, alerting: false,
+      type, id, spec: { namespace: pod.metadata!.namespace!, pod: podName, container: target }, alerting: false,
       defaultTitle: `${titlePrefix[type]}${overrides?.previous ? '*' : ''}: ${name}`,
       description: `${titlePrefix[type]}: ${fullName}${overrides?.previous ? ' (previous)' : ''}`,
       ...overrides,
@@ -355,8 +356,8 @@ const bell = (index: number) => {
   }, 1000);
 };
 
-const mayAllows = (resource: string, name: string, verb: string) =>
-  permissionsStore.mayAllows(selectedNamespace.value, '', resource, name, verb);
+const mayAllows = (namespace: string, resource: string, name: string, verb: string) =>
+  permissionsStore.mayAllows(namespace, '', resource, name, verb);
 </script>
 
 <template>
@@ -417,25 +418,25 @@ const mayAllows = (resource: string, name: string, verb: string) =>
                   <TippedBtn size="small" icon="mdi-file-document"
                     tooltip="Log" variant="text"
                     :disabled="!!item.state?.waiting ||
-                      !mayAllows('pods/log', item.name, 'get')"
+                      !mayAllows(pod.metadata!.namespace!, 'pods/log', item.name, 'get')"
                     @click="createTab(TabType.LOG, value, pod)" />
                   <TippedBtn size="small" icon="mdi-file-document-minus"
                     tooltip="Log of previous instance" variant="text"
                     :disabled="!item.lastState?.terminated ||
-                      !mayAllows('pods/log', item.name, 'get')"
+                      !mayAllows(pod.metadata!.namespace!, 'pods/log', item.name, 'get')"
                     @click="createTab(TabType.LOG, value, pod, { previous: true })" />
                   <TippedBtn size="small" icon="mdi-console-line"
                     tooltip="Shell" variant="text"
                     :disabled="!item.state?.running ||
-                      !mayAllows('pods/exec', item.name, 'get')"
+                      !mayAllows(pod.metadata!.namespace!, 'pods/exec', item.name, 'get')"
                     @click="createTab(TabType.EXEC, value, pod)" />
                   <TippedBtn
                     size="small" icon="mdi-bug"
                     tooltip="Debug with ephemeral container" variant="text"
                     :disabled="pod.metadata!.annotations?.[mirrorPodAnnotation] ||
                       item.type?.startsWith('ephemeral') || !item.state?.running ||
-                      !mayAllows('pods/attach', item.name, 'get') ||
-                      !mayAllows('pods/ephemeralcontainers', item.name, 'update')"
+                      !mayAllows(pod.metadata!.namespace!, 'pods/attach', item.name, 'get') ||
+                      !mayAllows(pod.metadata!.namespace!, 'pods/ephemeralcontainers', item.name, 'update')"
                     @click="debug(item, pod)" />
                 </template>
               </VDataTable>
@@ -448,7 +449,7 @@ const mayAllows = (resource: string, name: string, verb: string) =>
       :value="tab.id">
       <component :is="components[tab.type]" :previous="tab.previous"
         :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`"
-        :container-spec="{ namespace: selectedNamespace, ...tab.spec}"
+        :container-spec="tab.spec"
         @title-changed="(title: string) => tab.title = title"
         @bell="() => bell(index)" />
     </WindowItem>
