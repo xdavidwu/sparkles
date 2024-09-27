@@ -31,22 +31,24 @@ declare module 'vue-router' {
   }
 }
 
-// TODO move computedAsync downstream to support multiple resources
-const checkNamespacedResourcePermission =
-  (group: string, resource: string, verbs: Array<string> = ['list']) => computedAsync(async () => {
-    const { selectedNamespace } = storeToRefs(useNamespaces());
-    if (selectedNamespace.value) {
-      const { mayAllows } = usePermissions();
-      for (const verb of verbs) {
-        if (!await mayAllows(selectedNamespace.value, group, resource, '*', verb)) {
+type ParametersExceptFirst<T> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends (f: any, ...r: infer R) => any ? R : never;
+
+const checkWithPermissionStore = (
+  conditions: Array<ParametersExceptFirst<ReturnType<typeof usePermissions>['mayAllows']>>,
+) => computedAsync(async () => {
+  const { selectedNamespace } = storeToRefs(useNamespaces());
+  if (selectedNamespace.value) {
+      const { mayAllows, loadReview } = usePermissions();
+      await loadReview(selectedNamespace.value);
+      for (const condition of conditions) {
+        if (!mayAllows(selectedNamespace.value, ...condition)) {
           return 'Insufficient permission';
         }
       }
-      return undefined;
-    } else {
-      return undefined;
-    }
-  }, undefined, { lazy: true });
+  }
+}, undefined, { lazy: true });
 
 const router = createRouter({
   history: createWebHistory(window.__base_url),
@@ -56,19 +58,28 @@ const router = createRouter({
       path: '/pods',
       name: 'pods',
       component: () => import('@/views/PodsList.vue'),
-      meta: { name: 'Pods', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'pods') },
+      meta: { name: 'Pods', category: Category.NAMESPACED,
+        unsupported: checkWithPermissionStore([['', 'pods', '*', 'list']]) },
     },
     {
       path: '/helm',
       name: 'helm',
       component: () => import('@/views/HelmList.vue'),
-      meta: { name: 'Helm', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'secrets') }
+      meta: { name: 'Helm', category: Category.NAMESPACED,
+        unsupported: checkWithPermissionStore([['', 'secrets', '*', 'list']]) }
     },
     {
       path: '/quotas',
       name: 'quotas',
       component: () => import('@/views/QuotasUsage.vue'),
-      meta: { name: 'Quotas', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'resourcequotas') },
+      meta: {
+        name: 'Quotas', category: Category.NAMESPACED,
+        unsupported: checkWithPermissionStore([
+          ['', 'resourcequotas', '*', 'list'],
+          ['', 'pods', '*', 'list'],
+          ['', 'persistentvolumeclaims', '*', 'list'],
+        ]),
+      },
     },
     {
       path: '/tokens',
@@ -76,7 +87,13 @@ const router = createRouter({
       component: () => import('@/views/SATokens.vue'),
       meta: {
         name: 'Tokens', category: Category.NAMESPACED,
-        unsupported: checkNamespacedResourcePermission('', 'secrets', ['list', 'create', 'delete']),
+        unsupported: checkWithPermissionStore([
+          ['', 'serviceaccounts', '*', 'create'],
+          ['', 'rolebindings', '*', 'create'],
+          ['', 'secrets', '*', 'list'],
+          ['', 'secrets', '*', 'create'],
+          ['', 'secrets', '*', 'delete'],
+        ]),
       },
     },
     {
@@ -89,7 +106,15 @@ const router = createRouter({
       path: '/kubectl',
       name: 'kubectl',
       component: () => import('@/views/KubectlTerminal.vue'),
-      meta: { name: 'kubectl', category: Category.NAMESPACED, unsupported: checkNamespacedResourcePermission('', 'pods', ['create']) },
+      meta: {
+        name: 'kubectl', category: Category.NAMESPACED,
+        unsupported: checkWithPermissionStore([
+          ['', 'serviceaccounts', '*', 'create'],
+          ['', 'rolebindings', '*', 'create'],
+          ['', 'pods', '*', 'create'],
+          ['', 'pods', '*', 'delete'],
+        ]),
+      },
     },
     // cluster
     {
