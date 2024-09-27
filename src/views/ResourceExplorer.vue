@@ -44,7 +44,7 @@ import {
   setTableIncludeObjectPolicy, V1IncludeObjectPolicy,
   V1DeletePropagation,
 } from '@/utils/api';
-import { V2ResourceScope, type V2APIResourceDiscovery, type V2APIVersionDiscovery } from '@/utils/discoveryV2';
+import { V2ResourceScope, type V2APIResourceDiscovery } from '@/utils/discoveryV2';
 import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
 import { truncate } from '@/utils/text';
@@ -57,8 +57,6 @@ import { parseInput, stringify } from '@/utils/yaml';
 import { parse } from 'yaml';
 import { real } from '@ragnarpa/quantity';
 import { createNameId } from 'mnemonic-id';
-
-type GroupVersion = V2APIVersionDiscovery & { group?: string, groupVersion: string };
 
 interface ObjectRecord {
   schema?: JSONSchema4,
@@ -96,30 +94,32 @@ const permissionsStore = usePermissions();
 
 const allNamespaces = ref(false);
 const rawGroups = await useApisDiscovery().getGroups();
-const groupVersions = ref<Array<GroupVersion>>([]);
-await permissionsStore.loadReview(selectedNamespace.value);
-const computeUsableGVKs = () => {
-  groupVersions.value = rawGroups.map((g) => {
-    const knownResources: Array<string> = [];
-    return g.versions.map((v) => {
-      const resources = v.resources.filter((r) =>
-        !knownResources.includes(r.resource) && r.verbs.includes('list'));
-      knownResources.push(...resources.map((r) => r.resource));
 
-      return {
-        ...v,
-        resources: resources.map((r) => ({
-          r,
-          enabled: permissionsStore.mayAllows(selectedNamespace.value, g.metadata?.name ?? '', r.resource, '*', 'list'),
-        })).filter((r) => r.enabled).map((r) => r.r),
-        group: g.metadata?.name,
-        groupVersion: g.metadata?.name ? `${g.metadata.name}/${v.version}` : v.version,
-      };
-    }).filter((v) => v.resources.length);
-  }).flat();
-  // TODO handle targetGroupVersion nolonger in groupVersions
+const loadedNamespace = ref(selectedNamespace.value);
+const loadPermissions = async () => {
+  await permissionsStore.loadReview(selectedNamespace.value);
+  loadedNamespace.value = selectedNamespace.value;
 };
-computeUsableGVKs();
+await loadPermissions();
+const groupVersions = computed(() => rawGroups.map((g) => {
+  const knownResources: Array<string> = [];
+  return g.versions.map((v) => {
+    const resources = v.resources.filter((r) =>
+      !knownResources.includes(r.resource) && r.verbs.includes('list'));
+    knownResources.push(...resources.map((r) => r.resource));
+
+    return {
+      ...v,
+      resources: resources.map((r) => ({
+        r,
+        enabled: permissionsStore.mayAllows(loadedNamespace.value, g.metadata?.name ?? '', r.resource, '*', 'list'),
+      })).filter((r) => r.enabled).map((r) => r.r),
+      group: g.metadata?.name,
+      groupVersion: g.metadata?.name ? `${g.metadata.name}/${v.version}` : v.version,
+    };
+  }).filter((v) => v.resources.length);
+}).flat());
+// TODO handle targetGroupVersion nolonger in groupVersions
 const targetGroupVersion = nonNullableRef(groupVersions.value[0]);
 
 const kinds = computed(() => targetGroupVersion.value.resources);
@@ -157,8 +157,6 @@ const includeObject = setTableIncludeObjectPolicy(V1IncludeObjectPolicy.OBJECT);
 const { loading, load } = useApiLoader(async (signal) => {
   searching.value = false;
 
-  await permissionsStore.loadReview(selectedNamespace.value);
-  computeUsableGVKs();
   const options = {
     group: targetGroupVersion.value.group,
     version: targetGroupVersion.value.version,
@@ -421,6 +419,7 @@ const title = (o: ObjectRecord) =>
 
 watch(targetGroupVersion, () => targetKind.value = defaultTargetKind());
 watch([targetKind, allNamespaces, selectedNamespace], load, { immediate: true });
+watch(selectedNamespace, loadPermissions);
 watch(verbose, runTableLayoutAlgorithm);
 watch([targetKind, verbose], () => order.value = []);
 // hack: v-data-table-virtual does not update properly when display: none
