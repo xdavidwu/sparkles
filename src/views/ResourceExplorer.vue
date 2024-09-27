@@ -92,29 +92,35 @@ const anyApi = new AnyApi(await apiConfigStore.getConfig());
 const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces;
 const { selectedNamespace } = storeToRefs(namespacesStore);
-const { mayAllows } = usePermissions();
+const permissionsStore = usePermissions();
 
 const allNamespaces = ref(false);
-const groupVersions: Array<GroupVersion> =
-  (await Promise.all((await useApisDiscovery().getGroups()).map(async (g) => {
+const rawGroups = await useApisDiscovery().getGroups();
+const groupVersions = ref<Array<GroupVersion>>([]);
+await permissionsStore.loadReview(selectedNamespace.value);
+const computeUsableGVKs = () => {
+  groupVersions.value = rawGroups.map((g) => {
     const knownResources: Array<string> = [];
-    return (await Promise.all(g.versions.map(async (v) => {
+    return g.versions.map((v) => {
       const resources = v.resources.filter((r) =>
         !knownResources.includes(r.resource) && r.verbs.includes('list'));
       knownResources.push(...resources.map((r) => r.resource));
 
       return {
         ...v,
-        resources: (await Promise.all(resources.map(async (r) => ({
+        resources: resources.map((r) => ({
           r,
-          enabled: await mayAllows(selectedNamespace.value, g.metadata?.name ?? '', r.resource, '*', 'list'),
-        })))).filter((r) => r.enabled).map((r) => r.r),
+          enabled: permissionsStore.mayAllows(selectedNamespace.value, g.metadata?.name ?? '', r.resource, '*', 'list'),
+        })).filter((r) => r.enabled).map((r) => r.r),
         group: g.metadata?.name,
         groupVersion: g.metadata?.name ? `${g.metadata.name}/${v.version}` : v.version,
       };
-    }))).filter((v) => v.resources.length);
-  }))).flat();
-const targetGroupVersion = nonNullableRef(groupVersions[0]);
+    }).filter((v) => v.resources.length);
+  }).flat();
+  // TODO handle targetGroupVersion nolonger in groupVersions
+};
+computeUsableGVKs();
+const targetGroupVersion = nonNullableRef(groupVersions.value[0]);
 
 const kinds = computed(() => targetGroupVersion.value.resources);
 const defaultTargetKind = () =>
@@ -151,6 +157,8 @@ const includeObject = setTableIncludeObjectPolicy(V1IncludeObjectPolicy.OBJECT);
 const { loading, load } = useApiLoader(async (signal) => {
   searching.value = false;
 
+  await permissionsStore.loadReview(selectedNamespace.value);
+  computeUsableGVKs();
   const options = {
     group: targetGroupVersion.value.group,
     version: targetGroupVersion.value.version,
