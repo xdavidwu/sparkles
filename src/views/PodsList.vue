@@ -21,6 +21,7 @@ import { useApiLoader } from '@/composables/apiLoader';
 import { useAppTabs } from '@/composables/appTabs';
 import { storeToRefs } from 'pinia';
 import { useNamespaces } from '@/stores/namespaces';
+import { usePermissions } from '@/stores/permissions';
 import { useApiConfig } from '@/stores/apiConfig';
 import {
   CoreV1Api,
@@ -63,6 +64,7 @@ type ContainerData = (V1Container | V1EphemeralContainer) & Partial<V1ContainerS
 const namespacesStore = useNamespaces();
 await namespacesStore.ensureNamespaces;
 const { selectedNamespace } = storeToRefs(namespacesStore);
+const permissionsStore = usePermissions();
 
 const api = new CoreV1Api(await useApiConfig().getConfig());
 
@@ -139,6 +141,7 @@ const innerColumns = [
 ];
 
 const { load, loading } = useApiLoader(async (signal) => {
+  await permissionsStore.loadReview(selectedNamespace.value);
   await listAndUnwaitedWatch(pods, V1PodFromJSON,
     (opt) => api.listNamespacedPodRaw({ ...opt, namespace: selectedNamespace.value }, { signal }),
     notifyListingWatchErrors,
@@ -351,6 +354,8 @@ const bell = (index: number) => {
 
 const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
   pods.value.map((p) => p.metadata!.name!) : [];
+const mayAllows = (resource: string, name: string, verb: string) =>
+  permissionsStore.mayAllows(selectedNamespace.value, '', resource, name, verb);
 </script>
 
 <template>
@@ -408,24 +413,28 @@ const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
                   </template>
                 </template>
                 <template #[`item.actions`]="{ item, value }">
-                  <!-- TODO bring permission check back? -->
                   <TippedBtn size="small" icon="mdi-file-document"
                     tooltip="Log" variant="text"
-                    :disabled="!!item.state?.waiting"
+                    :disabled="!!item.state?.waiting ||
+                      !mayAllows('pods/log', item.name, 'get')"
                     @click="createTab(TabType.LOG, value, pod)" />
                   <TippedBtn size="small" icon="mdi-file-document-minus"
                     tooltip="Log of previous instance" variant="text"
-                    :disabled="!item.lastState?.terminated"
+                    :disabled="!item.lastState?.terminated ||
+                      !mayAllows('pods/log', item.name, 'get')"
                     @click="createTab(TabType.LOG, value, pod, { previous: true })" />
                   <TippedBtn size="small" icon="mdi-console-line"
                     tooltip="Shell" variant="text"
-                    :disabled="!item.state?.running"
+                    :disabled="!item.state?.running ||
+                      !mayAllows('pods/exec', item.name, 'get')"
                     @click="createTab(TabType.EXEC, value, pod)" />
                   <TippedBtn
                     size="small" icon="mdi-bug"
                     tooltip="Debug with ephemeral container" variant="text"
                     :disabled="pod.metadata!.annotations?.[mirrorPodAnnotation] ||
-                      item.type?.startsWith('ephemeral') || !item.state?.running"
+                      item.type?.startsWith('ephemeral') || !item.state?.running ||
+                      !mayAllows('pods/attach', item.name, 'get') ||
+                      !mayAllows('pods/ephemeralcontainers', item.name, 'update')"
                     @click="debug(item, pod)" />
                 </template>
               </VDataTable>
