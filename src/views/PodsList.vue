@@ -140,13 +140,16 @@ const innerColumns = [
   },
 ];
 
+const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
+  pods.value.map((p) => p.metadata!.name!) : [];
+
 const { load, loading } = useApiLoader(async (signal) => {
+  toggleExpandAll(false);
   await permissionsStore.loadReview(selectedNamespace.value);
   await listAndUnwaitedWatch(pods, V1PodFromJSON,
     (opt) => api.listNamespacedPodRaw({ ...opt, namespace: selectedNamespace.value }, { signal }),
     notifyListingWatchErrors,
   );
-  toggleExpandAll(false);
 });
 
 watch(selectedNamespace, load, { immediate: true });
@@ -352,8 +355,6 @@ const bell = (index: number) => {
   }, 1000);
 };
 
-const toggleExpandAll = (expand: boolean) => expanded.value = expand ?
-  pods.value.map((p) => p.metadata!.name!) : [];
 const mayAllows = (resource: string, name: string, verb: string) =>
   permissionsStore.mayAllows(selectedNamespace.value, '', resource, name, verb);
 </script>
