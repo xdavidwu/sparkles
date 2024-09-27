@@ -35,9 +35,9 @@ type ParametersExceptFirst<T> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   T extends (f: any, ...r: infer R) => any ? R : never;
 
-const checkWithPermissionStore = (
+const _checkWithPermissionStore = async (
   conditions: Array<ParametersExceptFirst<ReturnType<typeof usePermissions>['mayAllows']>>,
-) => computedAsync(async () => {
+) => {
   const { selectedNamespace } = storeToRefs(useNamespaces());
   if (selectedNamespace.value) {
       const { mayAllows, loadReview } = usePermissions();
@@ -48,7 +48,11 @@ const checkWithPermissionStore = (
         }
       }
   }
-}, undefined, { lazy: true });
+};
+
+const checkWithPermissionStore = (
+  conditions: Parameters<typeof _checkWithPermissionStore>[0],
+) => computedAsync(() => _checkWithPermissionStore(conditions), undefined, { lazy: true });
 
 const router = createRouter({
   history: createWebHistory(window.__base_url),
@@ -126,7 +130,7 @@ const router = createRouter({
         if (!groups.some((g) => g.metadata?.name === 'metrics.k8s.io')) {
           return 'Not supported by cluster';
         }
-        return undefined;
+        return await _checkWithPermissionStore([['metrics.k8s.io', 'nodes', '*', 'list']]);
       }, undefined, { lazy: true }) },
     },
     // app
