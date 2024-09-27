@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
 import { AuthorizationV1Api, type V1SubjectRulesReviewStatus } from '@xdavidwu/kubernetes-client-typescript-fetch';
 
@@ -10,9 +9,9 @@ export enum PermissionStatus {
 }
 
 export const usePermissions = defineStore('permission', () => {
-  const reviews = ref<Map<string, Promise<V1SubjectRulesReviewStatus>>>(new Map());
+  const reviews: Map<string, V1SubjectRulesReviewStatus> = new Map();
 
-  const getReview = async (namespace: string) => {
+  const _doReview = async (namespace: string) => {
     const config = await useApiConfig().getConfig();
     const api = new AuthorizationV1Api(config);
 
@@ -26,17 +25,19 @@ export const usePermissions = defineStore('permission', () => {
   };
 
   // checks are likely fired in parallel, make them wait on same result
-  const ensureReview = (namespace: string) => {
-    if (!reviews.value.has(namespace)) {
-      const p = getReview(namespace);
-      reviews.value.set(namespace, p);
+  const loadReview = async (namespace: string) => {
+    if (!reviews.has(namespace)) {
+      reviews.set(namespace, await _doReview(namespace));
     }
-    return reviews.value.get(namespace)!;
+    return reviews.get(namespace)!;
   };
 
-  const check = async (namespace: string, group: string, resource: string,
-      name: string, verb: string, costy: boolean = false) => {
-    const review = await ensureReview(namespace);
+  const check = (namespace: string, group: string, resource: string,
+      name: string, verb: string) => {
+    const review = reviews.get(namespace);
+    if (!review) {
+      throw new Error('permission check before loading review');
+    }
 
     const ruleMatch = review.resourceRules.some((rule) => {
       const wildcardMatch = (v: string, t: string) => v === '*' || v === t;
@@ -76,9 +77,16 @@ export const usePermissions = defineStore('permission', () => {
       return PermissionStatus.Denied;
     }
 
-    if (!costy) {
-      return PermissionStatus.Unknown;
+    return PermissionStatus.Unknown;
+  };
+
+  const fullCheck = async (namespace: string, group: string, resource: string,
+      name: string, verb: string) => {
+    const fast = check(namespace, group, resource, name, verb);
+    if (fast != PermissionStatus.Unknown) {
+      return fast;
     }
+
     const parts = resource.split('/');
     const resourceParam = parts.length === 1 ? { resource } :
       { resource: parts[0], subresource: parts[1] };
@@ -104,14 +112,16 @@ export const usePermissions = defineStore('permission', () => {
         (response.status!.denied ? PermissionStatus.Denied : PermissionStatus.Unknown);
   };
 
-  const mayAllows = async (namespace: string, group: string, resource: string,
+  const mayAllows = (namespace: string, group: string, resource: string,
       name: string, verb: string, costy: boolean = false) => {
-    const res = await check(namespace, group, resource, name, verb, costy);
+    const res = check(namespace, group, resource, name, verb);
     return res === PermissionStatus.Allowed || res === PermissionStatus.Unknown;
   }
 
   return {
+    loadReview,
     check,
+    fullCheck,
     mayAllows,
   };
 });
