@@ -41,7 +41,6 @@ export const vMarkdown: ObjectDirective<HTMLDivElement> = {
   created: (el, binding) => {
     StyleModule.mount(document, oneDarkHighlightStyle.module!);
     const rendered = DOMPurify.sanitize(renderer.render(binding.value));
-    console.log(binding.value, rendered);
     el.innerHTML = rendered;
 
     // anchors
