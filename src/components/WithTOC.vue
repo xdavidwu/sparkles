@@ -38,9 +38,7 @@ const detectPosition = () => {
       break;
     }
   }
-  const idx = i > 0 ? i - 1 : 0;
-  console.log(position, idx);
-  current.value = idx;
+  current.value = i > 0 ? i - 1 : 0;
 };
 </script>
 
