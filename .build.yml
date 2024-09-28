@@ -14,4 +14,8 @@ tasks:
   - build: |
       podman build sparkles/ -t ghcr.io/xdavidwu/sparkles:latest
   - publish: |
-      podman push ghcr.io/xdavidwu/sparkles:latest
+      if [ "$GIT_REF" != refs/heads/main ]; then
+        printf 'Skipping push on ref %s\n' "$GIT_REF"
+      else
+        podman push ghcr.io/xdavidwu/sparkles:latest
+      fi
