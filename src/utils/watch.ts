@@ -1,11 +1,11 @@
 import {
-  V1WatchEventFromJSON,
+  V1WatchEventFromJSON, FetchError,
   type ApiResponse, type V1WatchEvent,
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import type { V1PartialObjectMetadata, V1Table } from '@/utils/AnyApi';
 import { isSameKubernetesObject, type KubernetesObject, type KubernetesList } from '@/utils/objects';
 import { rawErrorIsAborted, errorIsAborted, V1WatchEventType } from '@/utils/api';
-import { streamToGenerator } from '@/utils/lang';
+import { streamToGenerator, timeout } from '@/utils/lang';
 import type { Ref } from 'vue';
 
 const createLineDelimitedJSONStream = () => {
@@ -131,19 +131,51 @@ const retryingWatch = async<T extends { metadata?: { resourceVersion?: string } 
   expectAbort: boolean = true,
 ): Promise<string | void> => {
   let lastResourceVersion = resourceVersion;
+  let retries = 0;
+  const MAX_RETRIES = 3;
+  // TODO report status and reconsider retry
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    const res = await watch(
-      lister({ resourceVersion: lastResourceVersion, watch: true, allowWatchBookmarks: true }),
-      transformer,
-      handler,
-      lastResourceVersion,
-      expectAbort,
-    );
-    if (!res) {
-      return;
+    try {
+      const res = await watch(
+        lister({ resourceVersion: lastResourceVersion, watch: true, allowWatchBookmarks: true }),
+        transformer,
+        handler,
+        lastResourceVersion,
+        expectAbort,
+      );
+      retries = 0;
+      if (!res) {
+        return;
+      }
+      lastResourceVersion = res;
+    } catch (e) {
+      if (e instanceof FetchError) {
+        // may be termination before any event
+        if (retries >= MAX_RETRIES) {
+          throw e;
+        }
+
+        const prerequisites = [timeout((2 ** retries) * 500)];
+        let handler;
+        // not available on web worker on chromium
+        if (globalThis.ononline && !navigator.onLine) {
+          // TODO just wait when we have status reporting
+          prerequisites.push(new Promise((resolve) => {
+            handler = resolve;
+            addEventListener('online', resolve, { once: true });
+          }));
+        }
+        await Promise.race(prerequisites);
+        if (handler) {
+          removeEventListener('online', handler);
+        }
+
+        retries += 1;
+      } else {
+        throw e;
+      }
     }
-    lastResourceVersion = res;
   }
 };
 

@@ -37,3 +37,6 @@ export const ignore = async <T>(
     }
   }
 };
+
+export const timeout = (t: number) =>
+  new Promise((resolve) => setTimeout(resolve, t));
