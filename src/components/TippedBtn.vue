@@ -13,7 +13,9 @@ defineOptions({ inheritAttrs: false });
 <template>
   <HoverTooltip :text="tooltip">
     <template #activator="{ props }">
-      <VBtn v-bind="{ ...$attrs, ...props }" />
+      <span v-bind="props" class="d-inline-block">
+        <VBtn v-bind="$attrs" />
+      </span>
     </template>
   </HoverTooltip>
 </template>
