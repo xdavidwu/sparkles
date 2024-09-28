@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import HoverTooltip from '@/components/HoverTooltip.vue';
 import { computed, ref, onMounted } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
 import { errorIsKindUnsupported, doSelfSubjectReview } from '@/utils/api';
@@ -27,6 +27,6 @@ onMounted(async () => {
 <template>
   <span>
     {{ username }}
-    <LinkedTooltip :text="groupsText" activator="parent" />
+    <HoverTooltip :text="groupsText" activator="parent" />
   </span>
 </template>

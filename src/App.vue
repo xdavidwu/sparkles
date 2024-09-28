@@ -243,19 +243,31 @@ a:not([class^="v-"]):active, a:not([class^="v-"]):visited:active {
   color: #ff9e9e;
 }
 
+:root {
+  --markdown-code-background: black;
+}
+
+.markdown :is(h1, h2, h3, h4, h5, h6, p, table):first-child {
+  margin-top: 0;
+}
+
+.markdown :is(h1, h2, h3, h4, h5, h6, p, table):last-child {
+  margin-bottom: 0;
+}
+
 .markdown :is(h1, h2, h3, h4, h5, h6, p, table) {
   margin-top: 0.4lh;
   margin-bottom: 0.2lh;
 }
 
 .markdown li {
-  margin-left: 16px;
+  margin-left: 24px;
   margin-top: 2px;
 }
 
 .markdown code {
   padding: 0 2px;
-  background: black;
+  background: var(--markdown-code-background);
 }
 
 .markdown pre > code {

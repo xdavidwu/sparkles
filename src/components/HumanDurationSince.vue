@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import HoverTooltip from '@/components/HoverTooltip.vue';
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useTime } from '@/stores/time';
@@ -21,6 +21,6 @@ const tooltip = computed(() =>
   <span>
     {{ duration }}
     <template v-if="ago">ago</template>
-    <LinkedTooltip activator="parent" :text="tooltip" />
+    <HoverTooltip activator="parent" :text="tooltip" />
   </span>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import HoverTooltip from '@/components/HoverTooltip.vue';
 import { VBtn } from 'vuetify/components';
 
 defineProps<{
@@ -11,9 +11,9 @@ defineOptions({ inheritAttrs: false });
 
 <!-- VBtn does VIcon only if default slot not used -->
 <template>
-  <LinkedTooltip :text="tooltip">
+  <HoverTooltip :text="tooltip">
     <template #activator="{ props }">
       <VBtn v-bind="{ ...$attrs, ...props }" />
     </template>
-  </LinkedTooltip>
+  </HoverTooltip>
 </template>

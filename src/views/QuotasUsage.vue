@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { VCard } from 'vuetify/components';
-import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import HoverTooltip from '@/components/HoverTooltip.vue';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 import QuotaDoughnut from '@/components/QuotaDoughnut.vue';
 import { computed, ref, watch } from 'vue';
@@ -212,7 +212,7 @@ watch(selectedNamespace, load);
         {{ quota.name }}
         <span v-if="quota.scoped">
           (scoped)
-          <LinkedTooltip activator="parent" text="Covers only resources under certain conditions." />
+          <HoverTooltip activator="parent" text="Covers only resources under certain conditions." />
         </span>
       </template>
       <template #text>

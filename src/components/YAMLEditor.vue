@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import LinkedTooltipContent from '@/components/LinkedTooltipContent.vue';
+import TooltipContent from '@/components/TooltipContent.vue';
 import { createApp, computed, ref, watch } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { EditorState } from '@codemirror/state';
@@ -116,7 +116,7 @@ const origHover = yamlSchemaHover({
     const type = `Type: ${data.typeInfo}`;
     const text = data.message ? `${data.message}\n\n${type}` : type;
     const div = document.createElement('div');
-    const vue = createApp(LinkedTooltipContent, { text });
+    const vue = createApp(TooltipContent, { text, markdown: true });
     vue.mount(div);
     return div;
   }
@@ -189,7 +189,7 @@ const extensions = computed(() => {
 :deep(.cm-tooltip) {
   z-index: 10000 !important;
 
-  /* a la LinkedTooltipContent */
+  /* a la TooltipContent */
   background-color: #004d40; /* bg-teal-darken-4 */
   box-shadow: 0px 2px 1px -1px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 1px 1px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 1px 3px 0px var(--v-shadow-key-ambient-opacity, rgba(0, 0, 0, 0.12)) !important; /* elevation-1 */
   border-radius: 4px; /* rounded */

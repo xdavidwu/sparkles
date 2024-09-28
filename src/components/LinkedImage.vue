@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import HoverTooltip from '@/components/HoverTooltip.vue';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -84,6 +84,6 @@ const url = computed(() => {
 <template>
   <component :is="url ? 'a' : 'span'" :href="url" target="_blank">
     {{ image }}
-    <LinkedTooltip v-if="id" :text="id" activator="parent" style="word-break: break-all" />
+    <HoverTooltip v-if="id" :text="id" activator="parent" style="word-break: break-all" />
   </component>
 </template>

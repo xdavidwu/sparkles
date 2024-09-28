@@ -1,11 +1,12 @@
 <script lang="ts" setup>
 import { VOverlay } from 'vuetify/components';
-import LinkedTooltipContent from '@/components/LinkedTooltipContent.vue';
+import TooltipContent from '@/components/TooltipContent.vue';
 import { ref, inject, watch } from 'vue';
 import { windowVisibilityInjectionKey } from '@/utils/keys';
 
-const props = defineProps<{
+defineProps<{
   text: string,
+  markdown?: boolean,
 }>();
 
 const visible = ref(false);
@@ -28,6 +29,6 @@ if (windowVisibility !== null) {
     <template #activator="all">
       <slot name="activator" v-bind="all" />
     </template>
-    <LinkedTooltipContent :text="props.text" />
+    <TooltipContent :text="text" :markdown="markdown" />
   </VOverlay>
 </template>

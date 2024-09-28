@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import HoverTooltip from '@/components/HoverTooltip.vue';
 import { computed } from 'vue';
 import { computedAsync } from '@vueuse/core';
 import { BaseColor, ColorVariant, colorToClass, hashColor } from '@/utils/colors';
@@ -44,7 +44,7 @@ const vColor = computedAsync(async () => colorToClass(await hashColor(props.v, b
       {{ shortV }}<span :class="`rounded-e-${pill ? 'pill' : 'sm'}`"
         class="underlay position-absolute top-0 left-0 bottom-0 right-0" />
     </span>
-    <LinkedTooltip :text="title" activator="parent" />
+    <HoverTooltip :text="title" activator="parent" />
   </div>
 </template>
 

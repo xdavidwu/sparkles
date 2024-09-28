@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { VBadge, VBtn, VDataTableRow } from 'vuetify/components';
-import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import HoverTooltip from '@/components/HoverTooltip.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
 import { computed } from 'vue';
 import { type Release, type ChartVersion, Status } from '@/utils/helm';
@@ -44,7 +44,7 @@ const upgrade = computed(() =>
     <template #[`item.version`]="{ value }">
       <span class="pe-2">
         {{ value }}
-        <LinkedTooltip activator="parent"
+        <HoverTooltip activator="parent"
           :text="`Last deployed: ${(new Date(release.info.last_deployed!)).toLocaleString()}`" />
       </span>
     </template>
@@ -52,7 +52,7 @@ const upgrade = computed(() =>
       <div class="d-flex align-center">
         <img class="chart-icon mr-2" :src="release.chart.metadata.icon" />
         {{ value }}
-        <LinkedTooltip v-if="release.chart.metadata.description"
+        <HoverTooltip v-if="release.chart.metadata.description"
           activator="parent" :text="release.chart.metadata.description" />
       </div>
     </template>
@@ -60,7 +60,7 @@ const upgrade = computed(() =>
       <VBadge v-if="upgrade && upgrade.version != release.chart.metadata.version"
         color="red" dot>
         {{ value }}&nbsp;&nbsp;
-        <LinkedTooltip activator="parent" :text="`${upgrade!.version} is available`" />
+        <HoverTooltip activator="parent" :text="`${upgrade!.version} is available`" />
       </VBadge>
       <template v-else>{{ value }}</template>
     </template>
@@ -68,7 +68,7 @@ const upgrade = computed(() =>
       <VBadge v-if="upgrade && upgrade.appVersion != release.chart.metadata.appVersion"
         color="red" dot>
         {{ value }}&nbsp;&nbsp;
-        <LinkedTooltip activator="parent" :text="`${upgrade.appVersion} is available`" />
+        <HoverTooltip activator="parent" :text="`${upgrade.appVersion} is available`" />
       </VBadge>
       <template v-else>{{ value }}</template>
     </template>

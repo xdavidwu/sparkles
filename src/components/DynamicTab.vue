@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import HoverTooltip from '@/components/HoverTooltip.vue';
 import { VBadge, VBtn, VTab } from 'vuetify/components';
 
 withDefaults(defineProps<{
@@ -24,6 +24,6 @@ const emit = defineEmits<{
       {{ title }}
     </VBadge>
     <VBtn size="x-small" icon="$close" variant="plain" class="mx-n1" @click.stop="emit('close')" />
-    <LinkedTooltip v-if="description" :text="description" activator="parent" />
+    <HoverTooltip v-if="description" :text="description" activator="parent" />
   </VTab>
 </template>

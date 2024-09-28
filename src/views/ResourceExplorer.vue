@@ -16,7 +16,7 @@ import DynamicTab from '@/components/DynamicTab.vue';
 import FixedFab from '@/components/FixedFab.vue';
 import HumanDurationSince from '@/components/HumanDurationSince.vue';
 import LinkedImage from '@/components/LinkedImage.vue';
-import LinkedTooltip from '@/components/LinkedTooltip.vue';
+import HoverTooltip from '@/components/HoverTooltip.vue';
 import SpeedDialBtn from '@/components/SpeedDialBtn.vue';
 import SpeedDialFab from '@/components/SpeedDialFab.vue';
 import TabsWindow from '@/components/TabsWindow.vue';
@@ -456,7 +456,7 @@ watch(tab, (v) => v === 'explore' &&
               <VCheckbox :disabled="targetKind.scope === V2ResourceScope.Cluster"
                 class="checkbox-intense" label="All namespaces"
                 v-model="allNamespaces" hide-details density="compact" />
-              <LinkedTooltip v-if="targetKind.scope === V2ResourceScope.Cluster"
+              <HoverTooltip v-if="targetKind.scope === V2ResourceScope.Cluster"
                 activator="parent" text="Selected type is not namespaced" />
             </div>
             <VCheckbox class="checkbox-intense" label="Verbose" v-model="verbose"
@@ -490,7 +490,8 @@ watch(tab, (v) => v === 'explore' &&
             <div class="v-data-table-header__content">
               <span>
                 {{ column.title }}
-                <LinkedTooltip v-if="c.description" :text="c.description" activator="parent" />
+                <HoverTooltip v-if="c.description" :text="c.description"
+                  activator="parent" markdown />
               </span>
               <VIcon v-if="column.sortable" key="icon" class="v-data-table-header__sort-icon" :icon="getSortIcon(column)" />
             </div>
