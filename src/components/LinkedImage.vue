@@ -82,8 +82,10 @@ const url = computed(() => {
 </script>
 
 <template>
-  <component :is="url ? 'a' : 'span'" :href="url" target="_blank">
+  <component :is="url ? 'a' : 'span'" :href="url" target="_blank"
+    style="word-break: break-all">
     {{ image }}
-    <HoverTooltip v-if="id" :text="id" activator="parent" style="word-break: break-all" />
+    <HoverTooltip v-if="id" :text="id" activator="parent"
+      style="word-break: break-all" />
   </component>
 </template>
