@@ -93,7 +93,7 @@ const router = createRouter({
         name: 'Tokens', category: Category.NAMESPACED,
         unsupported: checkWithPermissionStore([
           ['', 'serviceaccounts', '*', 'create'],
-          ['', 'rolebindings', '*', 'create'],
+          ['rbac.authorization.k8s.io', 'rolebindings', '*', 'create'],
           ['', 'secrets', '*', 'list'],
           ['', 'secrets', '*', 'create'],
           ['', 'secrets', '*', 'delete'],
@@ -114,7 +114,7 @@ const router = createRouter({
         name: 'kubectl', category: Category.NAMESPACED,
         unsupported: checkWithPermissionStore([
           ['', 'serviceaccounts', '*', 'create'],
-          ['', 'rolebindings', '*', 'create'],
+          ['rbac.authorization.k8s.io', 'rolebindings', '*', 'create'],
           ['', 'pods', '*', 'create'],
           ['', 'pods', '*', 'delete'],
         ]),
