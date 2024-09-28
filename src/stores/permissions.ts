@@ -10,6 +10,7 @@ export enum PermissionStatus {
 
 export const usePermissions = defineStore('permission', () => {
   const reviews: Map<string, V1SubjectRulesReviewStatus> = new Map();
+  const pendingReviews: Map<string, Promise<V1SubjectRulesReviewStatus>> = new Map();
 
   const _doReview = async (namespace: string) => {
     const config = await useApiConfig().getConfig();
@@ -21,15 +22,16 @@ export const usePermissions = defineStore('permission', () => {
     if (res.status!.evaluationError) {
       console.log(`SelfSubjectRulesReview evaluation error at namespace ${namespace}: ${res.status!.evaluationError}`);
     }
+    reviews.set(namespace, res.status!);
     return res.status!;
   };
 
   // checks are likely fired in parallel, make them wait on same result
   const loadReview = async (namespace: string) => {
-    if (!reviews.has(namespace)) {
-      reviews.set(namespace, await _doReview(namespace));
+    if (!pendingReviews.has(namespace)) {
+      pendingReviews.set(namespace, _doReview(namespace));
     }
-    return reviews.get(namespace)!;
+    return await pendingReviews.get(namespace)!;
   };
 
   const check = (namespace: string, group: string, resource: string,
