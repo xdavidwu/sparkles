@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { VTabs } from 'vuetify/components';
+import { VForm, VTabs } from 'vuetify/components';
 import MarkdownViewer from '@/components/MarkdownViewer.vue';
+import SchemaForm from '@/components/SchemaForm.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
-import { stringify } from '@/utils/yaml';
+import { parseInput, stringify } from '@/utils/yaml';
 import type { Chart, SerializedChart } from '@/utils/helm';
 import type { JSONSchema4 } from 'json-schema';
 
@@ -38,6 +39,7 @@ const schema = computed(() =>
 
 const builtinTabs = [
   { text: 'Values', value: 'values' },
+  { text: 'Form', value: 'schema' },
   { text: 'README', value: 'readme' },
   { text: 'Defaults', value: 'defaults' },
 ];
@@ -51,6 +53,11 @@ const tabs = props.prependTabs ? props.prependTabs.concat(builtinTabs) : builtin
       <YAMLEditor v-model="values" :schema="schema"
         :style="`height: calc(${height} - 48px)`" :disabled="disabled" 
         v-model:diagnosticCount="diagnosticCount" />
+    </template>
+    <template v-if="schema" #[`item.schema`]>
+      <VForm :disabled="disabled">
+        <SchemaForm :schema="schema" :model-value="parseInput(values ?? '')" />
+      </VForm>
     </template>
     <template #[`item.readme`]>
       <MarkdownViewer :markdown="readme"
