@@ -358,6 +358,31 @@ const bell = (index: number) => {
 
 const mayAllows = (namespace: string, resource: string, name: string, verb: string) =>
   permissionsStore.mayAllows(namespace, '', resource, name, verb);
+
+const EPERM = 'insufficient permission';
+
+const logDisabledReason = (container: ContainerData, pod: V1Pod) =>
+  container.state?.waiting ? 'container waiting to be run' :
+  !mayAllows(pod.metadata!.namespace!, 'pods/log', pod.metadata!.name!, 'get') ? EPERM :
+  undefined;
+
+const previousLogDisabledReason = (container: ContainerData, pod: V1Pod) =>
+  !container.lastState?.terminated ? 'previous instance not found' :
+  !mayAllows(pod.metadata!.namespace!, 'pods/log', pod.metadata!.name!, 'get') ? EPERM :
+  undefined;
+
+const shellDisabledReason = (container: ContainerData, pod: V1Pod) =>
+  !container.state?.running ? 'container not running' :
+  !mayAllows(pod.metadata!.namespace!, 'pods/log', pod.metadata!.name!, 'get') ? EPERM :
+  undefined;
+
+const debugDisabledReason = (container: ContainerData, pod: V1Pod) =>
+  pod.metadata!.annotations?.[mirrorPodAnnotation] ? 'not supported on static pods' :
+  container.type?.startsWith('ephemeral') ? 'not supported on ephemeral containers' :
+  !container.state?.running ? 'container not running' :
+  !mayAllows(pod.metadata!.namespace!, 'pods/attach', pod.metadata!.name!, 'get') ? EPERM :
+  !mayAllows(pod.metadata!.namespace!, 'pods/ephemeralcontainers', pod.metadata!.name!, 'update') ? EPERM :
+  undefined;
 </script>
 
 <template>
@@ -417,26 +442,20 @@ const mayAllows = (namespace: string, resource: string, name: string, verb: stri
                 <template #[`item.actions`]="{ item, value }">
                   <TippedBtn size="small" icon="mdi-file-document"
                     tooltip="Log" variant="text"
-                    :disabled="!!item.state?.waiting ||
-                      !mayAllows(pod.metadata!.namespace!, 'pods/log', item.name, 'get')"
+                    :disabled-reason="logDisabledReason(item, pod)"
                     @click="createTab(TabType.LOG, value, pod)" />
                   <TippedBtn size="small" icon="mdi-file-document-minus"
                     tooltip="Log of previous instance" variant="text"
-                    :disabled="!item.lastState?.terminated ||
-                      !mayAllows(pod.metadata!.namespace!, 'pods/log', item.name, 'get')"
+                    :disabled-reason="previousLogDisabledReason(item, pod)"
                     @click="createTab(TabType.LOG, value, pod, { previous: true })" />
                   <TippedBtn size="small" icon="mdi-console-line"
                     tooltip="Shell" variant="text"
-                    :disabled="!item.state?.running ||
-                      !mayAllows(pod.metadata!.namespace!, 'pods/exec', item.name, 'get')"
+                    :disabled-reason="shellDisabledReason(item, pod)"
                     @click="createTab(TabType.EXEC, value, pod)" />
                   <TippedBtn
                     size="small" icon="mdi-bug"
                     tooltip="Debug with ephemeral container" variant="text"
-                    :disabled="pod.metadata!.annotations?.[mirrorPodAnnotation] ||
-                      item.type?.startsWith('ephemeral') || !item.state?.running ||
-                      !mayAllows(pod.metadata!.namespace!, 'pods/attach', item.name, 'get') ||
-                      !mayAllows(pod.metadata!.namespace!, 'pods/ephemeralcontainers', item.name, 'update')"
+                    :disabled-reason="debugDisabledReason(item, pod)"
                     @click="debug(item, pod)" />
                 </template>
               </VDataTable>
