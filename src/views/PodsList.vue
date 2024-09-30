@@ -373,7 +373,7 @@ const previousLogDisabledReason = (container: ContainerData, pod: V1Pod) =>
 
 const shellDisabledReason = (container: ContainerData, pod: V1Pod) =>
   !container.state?.running ? 'container not running' :
-  !mayAllows(pod.metadata!.namespace!, 'pods/log', pod.metadata!.name!, 'get') ? EPERM :
+  !mayAllows(pod.metadata!.namespace!, 'pods/exec', pod.metadata!.name!, 'get') ? EPERM :
   undefined;
 
 const debugDisabledReason = (container: ContainerData, pod: V1Pod) =>
