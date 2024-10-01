@@ -5,7 +5,6 @@ import {
   VCheckbox,
   VCol,
   VDataTableVirtual,
-  VDataTableRow,
   VIcon,
   VRow,
   VTab,
@@ -326,6 +325,11 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
   tab.value = key;
 };
 
+const rowClick = (
+  _: unknown,
+  slotProps: { item: Required<V1Table<V1PartialObjectMetadata>>['rows'][0] },
+) => inspectObject(slotProps.item.object);
+
 const save = async (r: ObjectRecord, key: string) => {
   const method = r.metadata.name === NAME_NEW ? 'create' : 'replace';
   const metadata = method === 'create' ? parseInput(r.object)?.metadata : r.metadata;
@@ -473,7 +477,7 @@ watch(tab, (v) => v === 'explore' &&
           style="min-height: 0" ref="table"
           :items="objects.rows ?? []" :headers="columns" :loading="loading"
           :search="searching ? search : undefined" :sort-by="order"
-          hover fixed-header>
+          hover fixed-header @click:row="rowClick">
           <template #[`body.prepend`]>
             <div v-if="searching" class="position-absolute top-0 right-0 ma-2"
               style="z-index: 2">
@@ -496,19 +500,14 @@ watch(tab, (v) => v === 'explore' &&
               <VIcon v-if="column.sortable" key="icon" class="v-data-table-header__sort-icon" :icon="getSortIcon(column)" />
             </div>
           </template>
-          <template #item="{ props: itemProps, itemRef }">
-            <VDataTableRow v-bind="itemProps" :ref="itemRef"
-              @click="inspectObject(itemProps.item.raw.object)">
-              <template v-for="c in TimestampColumns" :key="c" #[`item.${c}`]="{ value }">
-                <HumanDurationSince :since="new Date(value)" />
-              </template>
-              <template v-for="c in ImageColumns" :key="c" #[`item.${c}`]="{ value }">
-                <template v-for="i in value.split(',')" :key="i">
-                  <LinkedImage :image="i" />
-                  <br>
-                </template>
-              </template>
-            </VDataTableRow>
+          <template v-for="c in TimestampColumns" :key="c" #[`item.${c}`]="{ value }">
+            <HumanDurationSince :since="new Date(value)" />
+          </template>
+          <template v-for="c in ImageColumns" :key="c" #[`item.${c}`]="{ value }">
+            <template v-for="i in value.split(',')" :key="i">
+              <LinkedImage :image="i" />
+              <br>
+            </template>
           </template>
         </VDataTableVirtual>
         <!-- TODO we should show info for type somewhere -->
