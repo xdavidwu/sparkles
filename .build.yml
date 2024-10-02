@@ -7,8 +7,7 @@ tasks:
   - setup: |
       sudo rc-service cgroups start
       sudo modprobe tun
-      sudo chown root:wheel /dev/net/tun
-      sudo chmod g+rw /dev/net/tun
+      sudo chmod o+rw /dev/net/tun
       echo build:100000:65536 | sudo tee /etc/subuid
       echo build:100000:65536 | sudo tee /etc/subgid
   - build: |
