@@ -1,0 +1,26 @@
+contents:
+  repositories:
+    - https://dl-cdn.alpinelinux.org/alpine/v3.20/main
+    - https://dl-cdn.alpinelinux.org/alpine/v3.20/community
+  packages:
+    - bash
+    - bash-completion
+    - kubectl
+    - helm
+    - jq
+
+cmd: /bin/bash
+
+accounts:
+  groups:
+    - groupname: user
+      gid: 10000
+  users:
+    - username: user
+      uid: 10000
+      shell: /bin/bash
+  run-as: 10000
+
+work-dir: /home/user
+
+archs: [amd64]

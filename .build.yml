@@ -13,9 +13,16 @@ tasks:
       echo build:100000:65536 | sudo tee /etc/subgid
   - build: |
       podman build sparkles/ -t ghcr.io/xdavidwu/sparkles:latest
+  - build-kubectl-shell: |
+      podman run -v .:/work cgr.dev/chainguard/apko:latest \
+        build /work/sparkles/kubectl-shell.apko.yaml kubectl-shell \
+        /work/kubectl-shell.tar
+      podman load -i kubectl-shell.tar
   - publish: |
       if [ "$GIT_REF" != refs/heads/main ]; then
         printf 'Skipping push on ref %s\n' "$GIT_REF"
       else
         podman push ghcr.io/xdavidwu/sparkles:latest
+        podman push kubectl-shell:latest-amd64 \
+          ghcr.io/xdavidwu/sparkles/kubectl-shell:latest
       fi
