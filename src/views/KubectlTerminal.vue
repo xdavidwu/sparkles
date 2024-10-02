@@ -88,7 +88,8 @@ const create = () => withProgress('Setting up kubectl shell', async (progress) =
       generateName: POD_PREFIX,
       labels: managedByLabel,
       annotations: {
-        [descriptionAnnotation]: `Pod that implements kubectl shell funtionality in ${brand}. ` +
+        [descriptionAnnotation]:
+          `Pod that implements kubectl shell funtionality in ${brand}. ` +
           'A pod is used per kubectl shell session, with ServiceAccount of admin role under the same namespace. ' +
           'Will be deleted automatically when user exit the session, ' +
           'but may still be left running if the browser crashes. ' +
@@ -98,9 +99,7 @@ const create = () => withProgress('Setting up kubectl shell', async (progress) =
     spec: {
       containers: [{
         name: CONTAINER_NAME,
-        // TODO find a better one with completion, helm, match version with cluster
-        image: 'public.ecr.aws/bitnami/kubectl',
-        command: ['/bin/bash'],
+        image: 'ghcr.io/xdavidwu/sparkles/kubectl-shell:latest',
         stdin: true,
         stdinOnce: true,
         tty: true,
