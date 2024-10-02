@@ -50,13 +50,9 @@ const inspectedRelease = ref<Release | undefined>();
 const upgradeIntent = ref<'values' | 'upgrade'>('values');
 const upgradingRelease = ref<Release | undefined>();
 
+// load failure affects only update check, not fatal,
+// letting HelmCreate notify user should be enough
 const { charts } = storeToRefs(useHelmRepository());
-try {
-  await useHelmRepository().ensureIndex;
-} catch (e) {
-  // affects only update check, not fatal,
-  // letting HelmCreate notify user should be enough
-}
 
 const releases = computedAsync(async () =>
   (await Promise.all(secrets.value.map(async (s) => {
