@@ -33,7 +33,8 @@ func consoleLog(args ...any) {
 }
 
 func jsError(e error) js.Value {
-	return errorClass.New(e.Error())
+	// XXX seems not to work? return errorClass.New(e.Error())
+	return js.ValueOf(e.Error())
 }
 
 func goError(e js.Value) error {
