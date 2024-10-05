@@ -33,8 +33,12 @@ func consoleLog(args ...any) {
 }
 
 func jsError(e error) js.Value {
-	// XXX seems not to work? return errorClass.New(e.Error())
-	return js.ValueOf(e.Error())
+	msg := e.Error()
+	asError := errorClass.New(msg)
+	// XXX directly using it (for console.log, promise reject, etc.)
+	// seems not to work on firefox 130.0
+	stack := asError.Get("stack").String()
+	return js.ValueOf(msg + "\n" + stack)
 }
 
 func goError(e js.Value) error {
