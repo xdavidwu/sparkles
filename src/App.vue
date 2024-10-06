@@ -92,7 +92,7 @@ const handleError = (err: unknown) => {
         } else {
           failedMessage.value = stringify(o);
         }
-      } catch (e) {
+      } catch {
         failedMessage.value = t;
       }
     });

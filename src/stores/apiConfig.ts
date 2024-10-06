@@ -50,7 +50,7 @@ export const useApiConfig = defineStore('api-config', () => {
     if ((user?.expired || idTokenExpired()) && user?.refresh_token) {
       try {
         user = await userManager.signinSilent();
-      } catch (e) {
+      } catch {
         //
       }
     }

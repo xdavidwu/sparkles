@@ -134,7 +134,6 @@ const retryingWatch = async<T extends { metadata?: { resourceVersion?: string } 
   let retries = 0;
   const MAX_RETRIES = 3;
   // TODO report status and reconsider retry
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
       const res = await watch(
