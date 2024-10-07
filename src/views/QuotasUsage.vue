@@ -129,7 +129,7 @@ const podsResourceUsage = computed(() => {
   const res: { [key: string]: { [key: string]: number } } = {};
   eligiblePods.value.forEach((pod) => {
     pod.spec!.containers.forEach((container) => {
-      const identifier = `${pod.metadata!.name}/${container.name}`;
+      const identifier = `Container: ${pod.metadata!.name}/${container.name}`;
       const resources = container.resources;
 
       for (const type in resources?.limits) {
@@ -159,16 +159,17 @@ const pvcsResourceUsage = computed(() => {
     // behind RecoverVolumeExpansionFailure
     const allocated = real(pvc.status?.allocatedResources?.storage ?? '0')!;
     const usage = allocated > fromSpec ? allocated : fromSpec;
+    const id = `PersistentVolumeClaim: ${pvc.metadata!.name}`;
 
-    res['requests.storage'][pvc.metadata!.name!] = usage;
+    res['requests.storage'][id] = usage;
 
     // k8s.io/component-helpers/storage/volume.GetPersistentVolumeClaimClass()
     const sc = pvc.metadata!.annotations?.['volume.beta.kubernetes.io/storage-class'] ??
       pvc.spec!.storageClassName;
     if (sc) {
-      const id = `${sc}.storageclass.storage.k8s.io/requests.storage`;
-      res[id] ??= {};
-      res[id][pvc.metadata!.name!] = usage;
+      const rid = `${sc}.storageclass.storage.k8s.io/requests.storage`;
+      res[rid] ??= {};
+      res[rid][id] = usage;
     }
   });
   return res;
