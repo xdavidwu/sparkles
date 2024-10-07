@@ -24,8 +24,8 @@ if (windowVisibility !== null) {
 </script>
 
 <template>
-  <VOverlay location-strategy="connected" min-width="0" open-on-hover
-    :scrim="false" :transition="false" v-model="visible">
+  <VOverlay v-model="visible" :scrim="false" :transition="false" min-width="0"
+    location-strategy="connected" scroll-strategy="reposition" open-on-hover>
     <template #activator="all">
       <slot name="activator" v-bind="all" />
     </template>
