@@ -208,6 +208,7 @@ export const watchUntil = async<T extends KubernetesObject> (
   lister: (opt: WatchOpt) => Promise<ApiResponse<KubernetesList<T>>>,
   transformer: (obj: object) => T,
   condition: (e: TypedV1WatchEvent<T>) => boolean,
+  expectAbort: boolean = false,
 ) => {
   const listResponse = await (await lister({})).value();
   for (const i of listResponse.items) {
@@ -221,7 +222,7 @@ export const watchUntil = async<T extends KubernetesObject> (
     lister,
     transformer,
     condition,
-    false,
+    expectAbort,
   );
 };
 

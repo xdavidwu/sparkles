@@ -5,6 +5,7 @@ import { ref, watch, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useEventListener } from '@vueuse/core';
 import { useApiConfig } from '@/stores/apiConfig';
+import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useNamespaces } from '@/stores/namespaces';
 import {
   descriptionAnnotation, errorIsResourceNotFound, bySSA,
@@ -155,11 +156,11 @@ const create = () => withProgress('Setting up kubectl shell', async (progress) =
   state.value = State.READY;
 });
 
-const cleanup = async (namespace?: string) =>
+const cleanup = async (namespace?: string, name?: string) =>
   podName.value && await ignore(
     api.deleteNamespacedPod({
       namespace: namespace ?? selectedNamespace.value,
-      name: podName.value,
+      name: name ?? podName.value,
     }),
     errorIsResourceNotFound
   );
@@ -174,6 +175,37 @@ watch(selectedNamespace, async (to: string, from: string) => {
 onUnmounted(() => cleanup());
 
 useEventListener(window, 'beforeunload', () => cleanup());
+
+const checkAndCleanup = async () => {
+  const namespace = selectedNamespace.value;
+  const name = podName.value;
+  await watchUntil(
+    (opt) => api.listNamespacedPodRaw({
+      namespace,
+      fieldSelector: `metadata.name=${name}`,
+      ...opt
+    }),
+    V1PodFromJSON,
+    (ev) => {
+      if (ev.type === V1WatchEventType.ADDED ||
+          ev.type === V1WatchEventType.MODIFIED) {
+        const terminationStatus = ev.object.status?.containerStatuses?.find(
+          (s) => s.name === CONTAINER_NAME)?.state?.terminated;
+        const terminated = !!terminationStatus;
+        if (terminated && terminationStatus.reason != 'Completed') {
+          useErrorPresentation().pendingToast =
+            terminationStatus.reason == 'Error' ?
+              `Container terminated with code ${terminationStatus.exitCode}.`:
+              `Container terminated due to ${terminationStatus.reason}.`;
+        }
+        return terminated;
+      }
+      return ev.type === V1WatchEventType.DELETED;
+    },
+    true,
+  );
+  await cleanup(namespace, name);
+};
 </script>
 
 <template>
@@ -203,7 +235,7 @@ useEventListener(window, 'beforeunload', () => cleanup());
       style="height: calc(100dvh - 64px - 32px)"
       :container-spec="{ namespace: selectedNamespace,
         pod: podName, container: CONTAINER_NAME }"
-      @closed="cleanup()" shell />
+      @closed="checkAndCleanup" shell />
     <template v-if="state === State.USER_CANCELED">
       This feature requires supporting pod.
     </template>
