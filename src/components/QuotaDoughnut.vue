@@ -37,6 +37,7 @@ const chartData = computed(() => {
       data: items.map((k) => data.value[k]).concat([Math.max(props.total - props.used, 0)]),
       backgroundColor: items.map(() => color.value).concat(['#0000']),
       borderColor: items.map(() => '#fff7').concat(['#fff1']),
+      hoverBorderColor: items.map(() => '#fffc').concat(['#fff2']),
     }],
   };
 });
@@ -55,16 +56,17 @@ const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
   if (JSON.stringify(pending) !== JSON.stringify(tooltip.value)) {
     tooltip.value = pending;
   }
-}
+};
 </script>
 
 <template>
   <div>
-    <h4 class="doughnut-title text-center text-pre-wrap mb-1">
+    <h4 class="doughnut-title text-center text-pre-wrap mb-2">
       {{ title }}
+      <!-- 2 to mimic caretPadding -->
       <VOverlay location-strategy="connected" location="bottom left"
         activator="parent" content-class="pointer-events-none"
-        :offset="tooltip ? [tooltip.caretY, -tooltip.caretX] : [0, 0]"
+        :offset="tooltip ? [tooltip.caretY + 2, -(tooltip.caretX + 2)] : [0, 0]"
         :scrim="false" :modelValue="tooltip && tooltip.opacity != 0">
         <TooltipContent>
           <div v-for="(title, i) in tooltip!.title" :key="i">
