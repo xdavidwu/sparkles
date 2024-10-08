@@ -322,7 +322,8 @@ const inspectObject = async (obj: V1PartialObjectMetadata) => {
   ]);
 
   inspectedObjects.value.set(key, r);
-  tab.value = key;
+  // make sure transition gets right
+  requestAnimationFrame(() => tab.value = key);
 };
 
 const rowClick = (
@@ -407,7 +408,8 @@ const newDraft = async () => {
 
   const key = crypto.randomUUID();
   inspectedObjects.value.set(key, r);
-  tab.value = key;
+  // make sure transition gets right
+  requestAnimationFrame(() => tab.value = key);
 };
 
 const closeTab = (key: string) => {
@@ -440,7 +442,7 @@ watch(tab, (v) => v === 'explore' &&
       :title="title(r)" :alerting="r.unsaved" @close="closeTab(key)" />
   </AppTabs>
   <TabsWindow v-model="tab">
-    <WindowItem value="explore">
+    <WindowItem value="explore" :transition="false">
       <div class="d-flex flex-column"
         v-resize-observer="runTableLayoutAlgorithm"
         :style="`height: calc(100dvh - ${appBarHeightPX}px - 32px)`">

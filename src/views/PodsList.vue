@@ -202,7 +202,8 @@ const createTab = (type: TabType, target: string, pod: V1Pod, overrides?: Partia
       ...overrides,
     });
   }
-  tab.value = id;
+  // make sure transition gets right
+  requestAnimationFrame(() => tab.value = id);
 };
 
 const reducePrivilege = import.meta.env.VITE_DEBUG_PRIVILEGED == 'false';
@@ -393,7 +394,7 @@ const debugDisabledReason = (container: ContainerData, pod: V1Pod) =>
       @click="() => tab.alerting = false" @close="() => closeTab(index)" />
   </AppTabs>
   <TabsWindow v-model="tab">
-    <WindowItem value="table">
+    <WindowItem value="table" :transition="false">
       <VDataTable :items="pods" :headers="columns" :loading="loading"
         v-model:expanded="expanded"
         item-value="metadata.name" expand-on-click show-expand>
