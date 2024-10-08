@@ -101,8 +101,11 @@ const columns = [
     sortable: false,
     nowrap: true,
     width: 0,
+    headerProps: {
+      class: 'text-end pe-7',
+    },
     cellProps: {
-      class: 'ps-1',
+      class: 'text-end',
     },
   },
 ];
