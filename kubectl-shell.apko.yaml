@@ -5,6 +5,7 @@ contents:
   packages:
     - bash
     - bash-completion
+    - ca-certificates-bundle
     - kubectl
     - helm
     - jq
