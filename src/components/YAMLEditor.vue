@@ -9,7 +9,10 @@ import { diagnosticCount, linter, lintGutter, type Diagnostic } from '@codemirro
 import { yaml, yamlLanguage } from '@codemirror/lang-yaml';
 import { foldEffect, syntaxTree, ensureSyntaxTree } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { stateExtensions, updateSchema } from 'codemirror-json-schema';
+import {
+  stateExtensions, updateSchema, JSONHover,
+  type FoundCursorData,
+} from 'codemirror-json-schema';
 import { yamlCompletion, yamlSchemaHover, yamlSchemaLinter } from 'codemirror-json-schema/yaml';
 import type { JSONSchema4, JSONSchema7 } from 'json-schema';
 
@@ -111,15 +114,33 @@ const codemirrorReady = ({ view }: { view: EditorView }) => {
 };
 
 const origHover = yamlSchemaHover({
+  // patch out kubernetes { allOf: [{ $ref: '#/...' }], description: '...' }
+  // draft is not publicly-typed on override
+  getHoverTexts: ((data: FoundCursorData, draft: Parameters<typeof JSONHover.prototype.getHoverTexts>[1]) => {
+    if (data.schema.allOf?.length == 1) {
+      const description = data.schema.description;
+      let schema = data.schema.allOf[0];
+      if (schema['$ref']) {
+        schema = draft.resolveRef(schema);
+      }
+      return JSONHover.prototype.getHoverTexts({
+        ...data,
+        schema: {
+          ...schema,
+          description: description ?? schema.description,
+        },
+      }, draft);
+    }
+    return JSONHover.prototype.getHoverTexts(data, draft);
+  }) as (data: FoundCursorData) => ReturnType<typeof JSONHover.prototype.getHoverTexts>,
   formatHover: (data) => {
-    // XXX: typeInfo does not look great sometime? (allof or object)
     const type = `Type: ${data.typeInfo}`;
     const text = data.message ? `${data.message}\n\n${type}` : type;
     const div = document.createElement('div');
     const vue = createApp(TooltipContent, { text, markdown: true });
     vue.mount(div);
     return div;
-  }
+  },
 });
 
 const tooltipExtension = hoverTooltip(async (view, pos, side) => {
