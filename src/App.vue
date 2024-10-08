@@ -285,4 +285,9 @@ a:not([class^="v-"]):active, a:not([class^="v-"]):visited:active {
   border: 2px solid rgba(var(--v-border-color), var(--v-border-opacity));
   padding: 4px 8px;
 }
+
+td.v-data-table__td:empty::before {
+  content: '(None)';
+  opacity: var(--v-disabled-opacity);
+}
 </style>
