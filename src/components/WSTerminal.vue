@@ -16,7 +16,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'closed'): void;
+  (e: 'close'): void;
 }>();
 
 const wsstreamV4Channel = 'v4.channel.k8s.io';
@@ -98,7 +98,7 @@ const display = async (terminal: Terminal) => {
       terminal.write(`${CSI}?25l`); // unset mode: cursor visible
 
       socket.close();
-      emit('closed');
+      emit('close');
     }
   };
 
