@@ -1,7 +1,8 @@
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
 import { VOverlay } from 'vuetify/components';
 import { Doughnut } from 'vue-chartjs';
+import TooltipContent from '@/components/TooltipContent.vue';
+import { computed, ref } from 'vue';
 import type { TooltipModel } from 'chart.js';
 // @ts-expect-error Missing type definitions
 import colors from 'vuetify/lib/util/colors';
@@ -64,8 +65,8 @@ const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
       <VOverlay location-strategy="connected" location="bottom left"
         activator="parent" content-class="pointer-events-none"
         :offset="tooltip ? [tooltip.caretY, -tooltip.caretX] : [0, 0]"
-        :scrim= "false" :modelValue="tooltip && tooltip.opacity != 0">
-        <div class="text-white bg-grey-darken-3 px-2 py-1 text-caption">
+        :scrim="false" :modelValue="tooltip && tooltip.opacity != 0">
+        <TooltipContent>
           <div v-for="(title, i) in tooltip!.title" :key="i">
             <div>{{ title }}</div>
             <div class="d-flex align-center">
@@ -78,7 +79,7 @@ const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
               {{ tooltip!.body[i].lines.join('') }}
             </div>
           </div>
-        </div>
+        </TooltipContent>
       </VOverlay>
     </h4>
     <div class="doughnut">

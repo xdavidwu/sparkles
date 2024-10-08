@@ -2,7 +2,7 @@
 import { vMarkdown } from '@/directives/vMarkdown';
 
 defineProps<{
-  text: string,
+  text?: string,
   markdown?: boolean,
 }>();
 </script>
@@ -10,7 +10,7 @@ defineProps<{
 <template>
   <div class="bg-teal-darken-4 px-2 py-1 rounded elevation-1 mw-40 text-caption text-denser">
     <div v-if="markdown" v-markdown="text" class="markdown code-background" />
-    <template v-else >{{ text }}</template>
+    <slot v-else>{{ text }}</slot>
   </div>
 </template>
 
