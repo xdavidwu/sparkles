@@ -1,6 +1,6 @@
 # Sparkles
 
-[WIP] Web Interface for Kubernetes
+Web Interface for Kubernetes
 
 Client-side only, with WebAssembly for Helm support
 
