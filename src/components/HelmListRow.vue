@@ -77,7 +77,8 @@ const upgrade = computed(() =>
       <TippedBtn size="small" icon="$info" tooltip="More information" variant="text"
         @click="emit('view')" />
       <template v-if="!history">
-        <template v-if="release.info.status == Status.DEPLOYED">
+        <template v-if="release.info.status == Status.DEPLOYED ||
+          release.info.status == Status.FAILED">
           <TippedBtn v-if="upgrade" size="small" icon="mdi-update" variant="text"
             :tooltip="`Upgrade to chart version ${upgrade.version}, app version ${upgrade.appVersion}`"
             @click="emit('upgrade', 'upgrade')" />
