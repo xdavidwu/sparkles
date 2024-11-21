@@ -53,7 +53,7 @@ export default defineConfig({
     },
   },
   build: {
-    target: 'es2022',
+    target: 'es2023',
     reportCompressedSize: false,
   },
   experimental: {

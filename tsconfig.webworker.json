@@ -2,7 +2,7 @@
   "extends": "@vue/tsconfig/tsconfig.json",
   "include": ["env.d.ts", "src/**/*.webworker.ts"],
   "compilerOptions": {
-    "lib": ["es2022", "webworker", "webworker.iterable", "esnext.array"],
+    "lib": ["es2023", "webworker", "webworker.iterable", "esnext.array"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
