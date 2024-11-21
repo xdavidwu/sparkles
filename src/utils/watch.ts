@@ -31,10 +31,8 @@ type TypedV1WatchEvent<T extends object> = V1WatchEvent & {
   object: T;
 };
 
-type ListTypeOf<T> = KubernetesList<T> | T; // FIXME with conditional types?
-
 const rawResponseToWatchEvents = <T extends object>(
-  raw: ApiResponse<ListTypeOf<T>>,
+  raw: ApiResponse<KubernetesList<object>>,
   transformer: (obj: object) => T,
 ): AsyncGenerator<TypedV1WatchEvent<T>> => {
   const stream = raw.raw.body!
@@ -52,7 +50,7 @@ const rawResponseToWatchEvents = <T extends object>(
 };
 
 const watch = async<T extends { metadata?: { resourceVersion?: string } }> (
-  watchResponse: Promise<ApiResponse<ListTypeOf<T>>>,
+  watchResponse: Promise<ApiResponse<KubernetesList<object>>>,
   transformer: (obj: object) => T,
   handler: (event: TypedV1WatchEvent<T>) => boolean | void,
   resourceVersion: string,
@@ -125,7 +123,7 @@ interface WatchOpt {
 
 const retryingWatch = async<T extends { metadata?: { resourceVersion?: string } }> (
   resourceVersion: string,
-  lister: (opt: WatchOpt) => Promise<ApiResponse<ListTypeOf<T>>>,
+  lister: (opt: WatchOpt) => Promise<ApiResponse<KubernetesList<object>>>,
   transformer: (obj: object) => T,
   handler: (event: TypedV1WatchEvent<T>) => boolean | void,
   expectAbort: boolean = true,
@@ -189,11 +187,11 @@ const retryingWatch = async<T extends { metadata?: { resourceVersion?: string } 
 export const listAndUnwaitedWatch = async<T extends KubernetesObject> (
   dest: Ref<Array<T>>,
   transformer: (obj: object) => T,
-  lister: (opt: WatchOpt) => Promise<ApiResponse<KubernetesList<T>>>,
+  lister: (opt: WatchOpt) => Promise<ApiResponse<KubernetesList<object>>>,
   catcher: Parameters<Promise<void>['catch']>[0],
 ) => {
-  const listResponse = await (await lister({})).value();
-  dest.value = listResponse.items;
+  const listResponse: KubernetesList<object> = await (await lister({})).raw.json();
+  dest.value = listResponse.items.map((i) => transformer(i));
 
   retryingWatch(
     listResponse.metadata!.resourceVersion!,
@@ -239,7 +237,7 @@ export const listAndUnwaitedWatchTable = async (
 
   retryingWatch(
     listResponse.metadata!.resourceVersion!,
-    lister,
+    lister as unknown as (opt: WatchOpt) => Promise<ApiResponse<KubernetesList<object>>>,
     tableTransformer,
     watchTableHandler(dest),
   ).catch(catcher);
