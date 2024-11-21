@@ -33,7 +33,7 @@ type TypedV1WatchEvent<T extends object> = V1WatchEvent & {
 
 const rawResponseToWatchEvents = <T extends object>(
   raw: ApiResponse<KubernetesList<object>>,
-  transformer: (obj: object) => T,
+  transformer: (obj: object) => T | Promise<T>,
 ): AsyncGenerator<TypedV1WatchEvent<T>> => {
   const stream = raw.raw.body!
     .pipeThrough(new TextDecoderStream())
@@ -42,7 +42,8 @@ const rawResponseToWatchEvents = <T extends object>(
       start: () => {},
       transform: async (chunk, controller) => {
         const ev = V1WatchEventFromJSON(chunk);
-        controller.enqueue(ev.type === V1WatchEventType.BOOKMARK ? ev : { ...ev, object: transformer(ev.object) });
+        controller.enqueue(ev.type === V1WatchEventType.BOOKMARK ? ev :
+          { ...ev, object: await transformer(ev.object) });
       },
       flush: () => {},
     }));
@@ -51,7 +52,7 @@ const rawResponseToWatchEvents = <T extends object>(
 
 const watch = async<T extends { metadata?: { resourceVersion?: string } }> (
   watchResponse: Promise<ApiResponse<KubernetesList<object>>>,
-  transformer: (obj: object) => T,
+  transformer: (obj: object) => T | Promise<T>,
   handler: (event: TypedV1WatchEvent<T>) => boolean | void,
   resourceVersion: string,
   expectAbort: boolean,
@@ -124,7 +125,7 @@ interface WatchOpt {
 const retryingWatch = async<T extends { metadata?: { resourceVersion?: string } }> (
   resourceVersion: string,
   lister: (opt: WatchOpt) => Promise<ApiResponse<KubernetesList<object>>>,
-  transformer: (obj: object) => T,
+  transformer: (obj: object) => T | Promise<T>,
   handler: (event: TypedV1WatchEvent<T>) => boolean | void,
   expectAbort: boolean = true,
 ): Promise<string | void> => {
@@ -186,12 +187,12 @@ const retryingWatch = async<T extends { metadata?: { resourceVersion?: string } 
 
 export const listAndUnwaitedWatch = async<T extends KubernetesObject> (
   dest: Ref<Array<T>>,
-  transformer: (obj: object) => T,
+  transformer: (obj: object) => T | Promise<T>,
   lister: (opt: WatchOpt) => Promise<ApiResponse<KubernetesList<object>>>,
   catcher: Parameters<Promise<void>['catch']>[0],
 ) => {
   const listResponse: KubernetesList<object> = await (await lister({})).raw.json();
-  dest.value = listResponse.items.map((i) => transformer(i));
+  dest.value = await Promise.all(listResponse.items.map((i) => transformer(i)));
 
   retryingWatch(
     listResponse.metadata!.resourceVersion!,
