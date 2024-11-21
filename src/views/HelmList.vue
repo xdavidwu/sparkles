@@ -8,10 +8,8 @@ import HelmValues from '@/components/HelmValues.vue';
 import LinkedDocument from '@/components/LinkedDocument.vue';
 import LoadingSuspense from '@/components/LoadingSuspense.vue';
 import { computed, ref, watch, toRaw } from 'vue';
-import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { useApiConfig } from '@/stores/apiConfig';
-import { useErrorPresentation } from '@/stores/errorPresentation';
 import { useHelmRepository } from '@/stores/helmRepository';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiLoader } from '@/composables/apiLoader';
@@ -40,7 +38,22 @@ const { selectedNamespace } = storeToRefs(namespacesStore);
 const config = await useApiConfig().getConfig();
 const api = new CoreV1Api(config);
 
-const secrets = ref<Array<V1Secret>>([]);
+type ParsedSecret = V1Secret & Release;
+const releaseTransformer = async (o: object): Promise<ParsedSecret> => {
+  const secret = V1SecretFromJSON(o);
+  return {
+    ...secret,
+    // TODO handle failures?
+    ...await parseSecret(secret),
+  };
+};
+const _releases = ref<Array<ParsedSecret>>([]);
+const releases = computed(() => _releases.value.toSorted((a, b) => {
+  if (a.name !== b.name) {
+    return a.name.localeCompare(b.name);
+  }
+  return b.version - a.version;
+}));
 
 const creating = ref(false);
 const upgrading = ref(false);
@@ -53,22 +66,6 @@ const upgradingRelease = ref<Release | undefined>();
 // load failure affects only update check, not fatal,
 // letting HelmCreate notify user should be enough
 const { charts } = storeToRefs(useHelmRepository());
-
-const releases = computedAsync(async () =>
-  (await Promise.all(secrets.value.map(async (s) => {
-    try {
-      // avoid multiple layer of proxy via toRaw, for easier cloning
-      return await parseSecret(toRaw(s));
-    } catch (e) {
-      console.log(e);
-      useErrorPresentation().pendingToast = `Failed to parse Helm release from secret ${s.metadata!.namespace}/${s.metadata!.name}`;
-    }
-  }))).filter((v) => v != undefined).sort((a, b) => {
-    if (a.name !== b.name) {
-      return a.name.localeCompare(b.name);
-    }
-    return b.version - a.version;
-  }), []);
 
 const names = computed(() => Array.from(releases.value.map((r) => r.name)
   .reduce((a, v) => a.set(v, true), new Map<string, boolean>()).keys()));
@@ -115,7 +112,7 @@ const columns = [
 ];
 
 const { loading, load } = useApiLoader((signal) => listAndUnwaitedWatch(
-  secrets, V1SecretFromJSON,
+  _releases, releaseTransformer,
   (opt) => api.listNamespacedSecretRaw(
     {
       ...opt,
