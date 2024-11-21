@@ -9,7 +9,8 @@ import { listAndUnwaitedWatch } from '@/utils/watch';
 export const useNamespaces = defineStore('namespace', () => {
   const _namespaces = ref<Array<V1Namespace>>([]);
   const namespaces = computed(() => _namespaces.value.map((v) => v.metadata!.name!));
-  const selectedNamespace = useLocalStorage('namespace', 'default');
+  const selectedNamespace = useLocalStorage('namespace', 'default',
+    { listenToStorageChanges: false });
   const loading = ref(true);
 
   const setDefaultNamespace = () => {
