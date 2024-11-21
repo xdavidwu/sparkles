@@ -14,6 +14,7 @@ import {
   tokenHandleSecretType,
   tokenNoteAnnotation, tokenExpiresAtAnnotation,
 } from '@/utils/contracts';
+import { formatDate, formatDateTime } from '@/utils/lang';
 import { listAndUnwaitedWatch } from '@/utils/watch';
 import { stringify } from '@/utils/yaml';
 import { notifyListingWatchErrors } from '@/utils/errors';
@@ -259,10 +260,10 @@ const revoke = async (s: V1Secret) => {
           variant="text" @click="revoke(item)" />
       </template>
       <template #[`item.metadata.annotations[${tokenExpiresAtAnnotation}]`]="{ value }">
-        {{ (new Date(value)).toLocaleString() }}
+        {{ value ? formatDateTime(new Date(value)) : '' }}
       </template>
       <template #[`item.metadata.creationTimestamp`]="{ value }">
-        {{ value.toLocaleString() }}
+        {{ formatDateTime(value) }}
       </template>
     </VDataTable>
     <FixedFab icon="$plus" @click="creatingToken = true" />
@@ -272,7 +273,7 @@ const revoke = async (s: V1Secret) => {
           <div class="text-subtitle-2 mb-4">
             Fill up the form below to create a token of Kubernetes API with permission to use this namespace.
           </div>
-          <VTextField :model-value="creatingExpiresAt.toLocaleDateString()"
+          <VTextField :model-value="formatDate(creatingExpiresAt)"
             label="Expires at" readonly
             @click="pickingDate = true"
             @keydown.exact="(e: KeyboardEvent) => e.key != 'Tab' && (pickingDate = true)" />

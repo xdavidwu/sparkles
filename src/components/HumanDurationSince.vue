@@ -4,9 +4,10 @@ import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useTime } from '@/stores/time';
 import { humanDuration } from '@/utils/duration';
+import { formatDateTime } from '@/utils/lang';
 
 const props = defineProps<{
-  since: Date,
+  since: Date | number,
   ago?: boolean,
 }>();
 
@@ -14,7 +15,7 @@ const { now } = storeToRefs(useTime());
 const duration = computed(() =>
   humanDuration(now.value.valueOf() - props.since.valueOf()));
 const tooltip = computed(() =>
-  `${props.ago ? '' : 'Since: '}${props.since.toLocaleString()}`);
+  `${props.ago ? '' : 'Since: '}${formatDateTime(props.since)}`);
 </script>
 
 <template>

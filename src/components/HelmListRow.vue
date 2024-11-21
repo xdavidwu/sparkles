@@ -4,6 +4,7 @@ import HoverTooltip from '@/components/HoverTooltip.vue';
 import TippedBtn from '@/components/TippedBtn.vue';
 import { computed } from 'vue';
 import { type Release, type ChartVersion, Status } from '@/utils/helm';
+import { formatDateTime } from '@/utils/lang';
 import { gt } from 'semver';
 
 const props = defineProps<{
@@ -45,7 +46,7 @@ const upgrade = computed(() =>
       <span class="pe-2">
         {{ value }}
         <HoverTooltip activator="parent"
-          :text="`Last deployed: ${(new Date(release.info.last_deployed!)).toLocaleString()}`" />
+          :text="`Last deployed: ${formatDateTime(new Date(release.info.last_deployed))}`" />
       </span>
     </template>
     <template #[`item.chart.metadata.name`]="{ value }">

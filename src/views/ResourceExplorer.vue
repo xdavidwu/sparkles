@@ -472,7 +472,7 @@ watch(tab, (v) => v === 'explore' &&
         <div v-if="!targetKind.verbs.includes('watch')"
           class="flex-grow-0 text-caption text-medium-emphasis mb-2">
           This type does not support watch operation, last updated
-          <HumanDurationSince class="font-weight-bold" :since="new Date(lastUpdatedAt)" ago />
+          <HumanDurationSince class="font-weight-bold" :since="lastUpdatedAt" ago />
           <VBtn variant="text" size="x-small" color="primary" @click="load">refresh</VBtn>
         </div>
         <VDataTableVirtual class="flex-shrink-1 position-relative"
