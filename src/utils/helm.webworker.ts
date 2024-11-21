@@ -1,5 +1,5 @@
 import {
-  handleFnCall, progress,
+  handleFnCall, progress as reportProgress,
   type FnCallInboundMessage, type FnCallOutboundMessage, type ToastMessage,
 } from '@/utils/fnCall.webworker';
 import {
@@ -527,6 +527,23 @@ const execHooks = (
     await updateRelease(api, r);
   }, Promise.resolve());
 
+let currentProgress: string | undefined;
+const progress = (p: string) => {
+  currentProgress = p;
+  reportProgress(p);
+};
+const withFailureRecording = async (verb: string,
+    api: CoreV1Api, release: Release, op: () => Promise<void>) => {
+  try {
+    await op();
+  } catch (e) {
+    release.info.status = Status.FAILED;
+    release.info.description = `Failed to ${verb}: ${currentProgress}: ${e instanceof Error ? e.message : e}`;
+    await updateRelease(api, release);
+    throw e;
+  }
+};
+
 const fns = {
   // helm.sh/helm/v3/pkg/action.Uninstall.Run
   uninstall: async (release: Release) => {
@@ -549,15 +566,17 @@ const fns = {
     release.info.description = 'Deletion in progress (or sliently failed)';
     await updateRelease(api, release);
 
-    progress('Deleting resources');
+    await withFailureRecording('delete', api, release, async () => {
+      progress('Deleting resources');
 
-    await applyDifference(anyApi, groups, resources, []);
+      await applyDifference(anyApi, groups, resources, []);
 
-    // TODO wait?
+      // TODO wait?
 
-    progress(`Running ${Event.POST_DELETE} hooks`);
+      progress(`Running ${Event.POST_DELETE} hooks`);
 
-    await execHooks(api, batchApi, anyApi, release, Event.POST_DELETE, groups);
+      await execHooks(api, batchApi, anyApi, release, Event.POST_DELETE, groups);
+    });
 
     progress('Marking release as uninstalled');
 
@@ -586,22 +605,24 @@ const fns = {
     release.version = latest.version + 1;
     await createRelease(api, release);
 
-    progress(`Running ${Event.PRE_ROLLBACK} hooks`);
+    await withFailureRecording('rollback', api, release, async () => {
+      progress(`Running ${Event.PRE_ROLLBACK} hooks`);
 
-    await execHooks(api, batchApi, anyApi, release, Event.PRE_ROLLBACK, groups);
+      await execHooks(api, batchApi, anyApi, release, Event.PRE_ROLLBACK, groups);
 
-    progress('Rolling back resources')
+      progress('Rolling back resources')
 
-    const resources = parseManifest(release.manifest).map((r) => addManagedMetadata(r, release));
-    const latestResources = parseManifest(latest.manifest);
+      const resources = parseManifest(release.manifest).map((r) => addManagedMetadata(r, release));
+      const latestResources = parseManifest(latest.manifest);
 
-    await applyDifference(anyApi, groups, latestResources, resources);
+      await applyDifference(anyApi, groups, latestResources, resources);
 
-    // TODO recreate? (delete old pod to trigger a rollout?), wait?
+      // TODO recreate? (delete old pod to trigger a rollout?), wait?
 
-    progress(`Running ${Event.POST_ROLLBACK} hooks`);
+      progress(`Running ${Event.POST_ROLLBACK} hooks`);
 
-    await execHooks(api, batchApi, anyApi, release, Event.POST_ROLLBACK, groups);
+      await execHooks(api, batchApi, anyApi, release, Event.POST_ROLLBACK, groups);
+    });
 
     progress('Marking release statuses');
 
@@ -731,17 +752,19 @@ const fns = {
     };
     await createRelease(api, release);
 
-    progress(`Running ${Event.PRE_INSTALL} hooks`);
+    await withFailureRecording('install', api, release, async () => {
+      progress(`Running ${Event.PRE_INSTALL} hooks`);
 
-    await execHooks(api, batchApi, anyApi, release, Event.PRE_INSTALL, groups);
+      await execHooks(api, batchApi, anyApi, release, Event.PRE_INSTALL, groups);
 
-    progress('Creating resources');
+      progress('Creating resources');
 
-    await applyDifference(anyApi, groups, [], resources.map((r) => addManagedMetadata(r, release)));
+      await applyDifference(anyApi, groups, [], resources.map((r) => addManagedMetadata(r, release)));
 
-    progress(`Running ${Event.POST_INSTALL} hooks`);
+      progress(`Running ${Event.POST_INSTALL} hooks`);
 
-    await execHooks(api, batchApi, anyApi, release, Event.POST_INSTALL, groups);
+      await execHooks(api, batchApi, anyApi, release, Event.POST_INSTALL, groups);
+    });
 
     progress('Marking release status');
 
@@ -795,21 +818,23 @@ const fns = {
     };
     await createRelease(api, release);
 
-    progress(`Running ${Event.PRE_UPGRADE} hooks`);
+    await withFailureRecording('upgrade', api, release, async () => {
+      progress(`Running ${Event.PRE_UPGRADE} hooks`);
 
-    await execHooks(api, batchApi, anyApi, release, Event.PRE_UPGRADE, groups);
+      await execHooks(api, batchApi, anyApi, release, Event.PRE_UPGRADE, groups);
 
-    progress('Upgrading resources')
+      progress('Upgrading resources')
 
-    const onlineResources = parseManifest(oldRelease.manifest);
+      const onlineResources = parseManifest(oldRelease.manifest);
 
-    await applyDifference(anyApi, groups, onlineResources, resources.map((r) => addManagedMetadata(r, release)));
+      await applyDifference(anyApi, groups, onlineResources, resources.map((r) => addManagedMetadata(r, release)));
 
-    // TODO recreate? (delete old pod to trigger a rollout?), wait?
+      // TODO recreate? (delete old pod to trigger a rollout?), wait?
 
-    progress(`Running ${Event.POST_UPGRADE} hooks`);
+      progress(`Running ${Event.POST_UPGRADE} hooks`);
 
-    await execHooks(api, batchApi, anyApi, release, Event.POST_UPGRADE, groups);
+      await execHooks(api, batchApi, anyApi, release, Event.POST_UPGRADE, groups);
+    });
 
     progress('Marking release statuses');
 
