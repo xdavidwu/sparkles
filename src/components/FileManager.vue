@@ -6,6 +6,7 @@ import { CoreV1Api } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { extractUrl } from '@/utils/api';
 import { connect } from '@/utils/wsstream';
 import { sftpFromWsstream, asPromise } from '@/utils/sftp';
+import { modfmt } from '@/utils/posix';
 import type { IItem } from '@xdavidwu/websocket-sftp/lib/fs-api';
 
 const props = defineProps<{
@@ -47,8 +48,11 @@ const listdir = async (p: string) => {
 
 listdir('/');
 
-const enter = async (d: string) => {
-  const target = `${path.value}/${d}`;
+const enter = async (e: IItem) => {
+  if (!e.stats.isDirectory?.()) {
+    return;
+  }
+  const target = `${path.value}/${e.filename}`;
   const [realpath] = await asPromise(sftp, 'realpath', [target]);
   listdir(realpath);
 };
@@ -69,8 +73,11 @@ onUnmounted(() => sftp.end());
           <div class="overflow-y-auto">
             <template v-for="{ raw: e }, index in items" :key="e.filename">
               <VDivider v-if="index && index != items.length" />
-              <VListItem v-if="e.stats.isDirectory?.()" :title="e.filename" :prepend-icon="getIcon(e)" @dblclick="enter(e.filename)"/>
-              <VListItem v-else :title="e.filename" :prepend-icon="getIcon(e)" />
+              <VListItem :title="e.filename" :prepend-icon="getIcon(e)" @dblclick="enter(e)">
+                <template #subtitle>
+                  <span class="text-mono">{{ e.stats.isDirectory?.() ? 'd' : '-' }}{{ modfmt(e.stats.mode ?? 0) }}</span>
+                </template>
+              </VListItem>
             </template>
           </div>
         </template>
