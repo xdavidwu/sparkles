@@ -69,6 +69,8 @@ const enter = async (e: IItem) => {
     a.href = url;
     a.target = '_blank';
     a.click();
+    // let click to be handled first
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 };
 
