@@ -9,6 +9,7 @@ import AppTabs from '@/components/AppTabs.vue';
 import DynamicTab from '@/components/DynamicTab.vue';
 import AttachTerminal from '@/components/AttachTerminal.vue';
 import ExecTerminal from '@/components/ExecTerminal.vue';
+import FileManager from '@/components/FileManager.vue';
 import HumanDurationSince from '@/components/HumanDurationSince.vue';
 import KeyValueBadge from '@/components/KeyValueBadge.vue';
 import LogViewer from '@/components/LogViewer.vue';
@@ -46,6 +47,7 @@ enum TabType {
   EXEC,
   LOG,
   ATTACH,
+  FILE_MANAGER,
 }
 
 interface Tab {
@@ -178,12 +180,14 @@ const titlePrefix = {
   [TabType.LOG]: 'Log',
   [TabType.EXEC]: 'Shell',
   [TabType.ATTACH]: 'Debug',
+  [TabType.FILE_MANAGER]: 'FS',
 };
 
 const components = {
   [TabType.LOG]: LogViewer,
   [TabType.EXEC]: ExecTerminal,
   [TabType.ATTACH]: AttachTerminal,
+  [TabType.FILE_MANAGER]: FileManager,
 };
 
 const createTab = (type: TabType, target: string, pod: V1Pod, overrides?: Partial<Tab>) => {
@@ -359,6 +363,25 @@ const debug = async (target: ContainerData, pod: V1Pod) => {
   // TODO find a way to make sure it terminates or gc
 };
 
+const sftp = async (target: ContainerData, pod: V1Pod) => {
+  const name = await createEphemeral(
+    target,
+    pod,
+    'fs',
+    {
+      image: 'ghcr.io/xdavidwu/sparkles/sftp-server:latest',
+      command: ['/usr/lib/ssh/sftp-server', '-d', '/proc/1/root', '-e', '-l', 'DEBUG3'],
+      stdin: true,
+      stdinOnce: true,
+    },
+  );
+
+  createTab(TabType.FILE_MANAGER, name, pod, {
+    description: `FS: ${pod.metadata!.name}/${target.name}`,
+  });
+  // TODO find a way to make sure it terminates or gc
+};
+
 const bell = (index: number) => {
   const bellingTab = tabs.value[index];
   if (bellingTab.bellTimeoutID) {
@@ -474,6 +497,11 @@ const debugDisabledReason = (container: ContainerData, pod: V1Pod) =>
                     tooltip="Debug with ephemeral container" variant="text"
                     :disabled-reason="debugDisabledReason(item, pod)"
                     @click="debug(item, pod)" />
+                  <TippedBtn
+                    size="small" icon="mdi-folder"
+                    tooltip="File manager" variant="text"
+                    :disabled-reason="debugDisabledReason(item, pod)"
+                    @click="sftp(item, pod)" />
                 </template>
               </VDataTable>
             </td>

@@ -1,0 +1,80 @@
+<script lang="ts" setup>
+import { VCard, VDataIterator, VDivider, VListItem } from 'vuetify/components';
+import { ref, onUnmounted } from 'vue';
+import { useApiConfig } from '@/stores/apiConfig';
+import { CoreV1Api } from '@xdavidwu/kubernetes-client-typescript-fetch';
+import { extractUrl } from '@/utils/api';
+import { connect } from '@/utils/wsstream';
+import { sftpFromWsstream, asPromise } from '@/utils/sftp';
+import type { IItem } from '@xdavidwu/websocket-sftp/lib/fs-api';
+
+const props = defineProps<{
+  containerSpec: {
+    namespace: string,
+    pod: string,
+    container: string,
+  },
+}>();
+
+const path = ref('/');
+const entries = ref<Array<IItem>>([]);
+
+const configStore = useApiConfig();
+const api = new CoreV1Api(await configStore.getConfig());
+const url = (await extractUrl(api, (api) => api.connectGetNamespacedPodAttach({
+  namespace: props.containerSpec.namespace,
+  name: props.containerSpec.pod,
+  container: props.containerSpec.container,
+  stdin: true,
+  stdout: true,
+  stderr: true,
+}))).replace(/^https:/, 'wss:').replace(/^http:/, 'ws:')
+const token = await configStore.getBearerToken();
+
+const sftp = await sftpFromWsstream(connect(url, token));
+
+const listdir = async (p: string) => {
+  path.value = p;
+  entries.value = [];
+  const [fd] = await asPromise(sftp, 'opendir', [p]);
+  let [res] = await asPromise(sftp, 'readdir', [fd]);
+  while (res) {
+    entries.value.push(...res);
+    [res] = await asPromise(sftp, 'readdir', [fd]);
+  }
+  await asPromise(sftp, 'close', [fd]);
+};
+
+listdir('/');
+
+const enter = async (d: string) => {
+  const target = `${path.value}/${d}`;
+  const [realpath] = await asPromise(sftp, 'realpath', [target]);
+  listdir(realpath);
+};
+
+// TODO symlink, mime-from-ext for files
+const getIcon = (i: IItem) =>
+  i.stats.isDirectory?.() ? 'mdi-folder' :
+  i.stats.isFile?.() ? 'mdi-file-document' : 'mdi-file-question';
+
+onUnmounted(() => sftp.end());
+</script>
+
+<template>
+  <VCard :title="path" class="overflow-y-auto">
+    <template #text>
+      <VDataIterator :items="entries" items-per-page="-1" :sort-by="[{ key: 'filename' }]">
+        <template #default="{ items }">
+          <div class="overflow-y-auto">
+            <template v-for="{ raw: e }, index in items" :key="e.filename">
+              <VDivider v-if="index && index != items.length" />
+              <VListItem v-if="e.stats.isDirectory?.()" :title="e.filename" :prepend-icon="getIcon(e)" @dblclick="enter(e.filename)"/>
+              <VListItem v-else :title="e.filename" :prepend-icon="getIcon(e)" />
+            </template>
+          </div>
+        </template>
+      </VDataIterator>
+    </template>
+  </VCard>
+</template>
