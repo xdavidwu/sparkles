@@ -5,6 +5,7 @@ import type { Terminal } from '@xterm/xterm';
 import { useApiConfig } from '@/stores/apiConfig';
 import { V1StatusFromJSON } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { V1StatusStatus } from '@/utils/api';
+import { Streams, connect, v5Channel } from '@/utils/wsstream';
 import { PresentedError } from '@/utils/PresentedError';
 import { useErrorPresentation } from '@/stores/errorPresentation';
 
@@ -19,23 +20,7 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-const wsstreamV4Channel = 'v4.channel.k8s.io';
-const wsstreamV5Channel = 'v5.channel.k8s.io';
-const supportedProtocols = [
-  wsstreamV5Channel,
-  wsstreamV4Channel,
-];
 
-enum Streams {
-  STDIN = 0,
-  STDOUT = 1,
-  STDERR = 2,
-  ERROR = 3,
-  RESIZE = 4,
-  CLOSE = 255,
-}
-
-const base64url = (s: string) => btoa(s).replace(/=+$/g, '').replace(/\+/g, '-').replace(/\\/g, '_');
 const configStore = useApiConfig();
 const token = await configStore.getBearerToken();
 const encoder = new TextEncoder();
@@ -43,11 +28,7 @@ const encoder = new TextEncoder();
 const display = async (terminal: Terminal) => {
   terminal.write('Connecting...');
 
-  // k8s.io/kubelet/pkg/cri/streaming/remotecommand.createWebSocketStreams
-  const socket = new WebSocket(props.url, token ? supportedProtocols.concat([
-    // https://github.com/kubernetes/kubernetes/pull/47740
-    `base64url.bearer.authorization.k8s.io.${base64url(token)}`
-  ]) : supportedProtocols);
+  const socket = connect(props.url, token);
   socket.binaryType = 'arraybuffer';
   socket.onerror = (event) => {
     useErrorPresentation().pendingError = new PresentedError(
@@ -103,7 +84,7 @@ const display = async (terminal: Terminal) => {
   };
 
   onUnmounted(() => {
-    if (socket.protocol === wsstreamV5Channel) {
+    if (socket.protocol === v5Channel) {
       // XXX: there seems to be no way to close underlying tty?
       socket.send(new Uint8Array([Streams.CLOSE, Streams.STDIN]));
     }
