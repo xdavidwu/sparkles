@@ -25,8 +25,7 @@ import {
 import type { OpenAPIV3 } from 'openapi-types';
 import type { KubernetesObject } from '@/utils/objects';
 import { chainOverrideFunction, type ChainableInitOverrideFunction } from '@/utils/api';
-
-type MakePartial<T, C extends keyof T> = Omit<T, C> & Partial<Pick<T, C>>;
+import type { MakePartial } from '@/utils/lang';
 
 export type AnyApiGetAPIResourcesRequest =
   MakePartial<CustomObjectsApiGetAPIResourcesRequest, 'group'>;

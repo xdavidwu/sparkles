@@ -64,3 +64,18 @@ export const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
 // invalid date (NaN) throws unlike toLocale*String
 export const formatDate = dateFormatter.format;
 export const formatDateTime = dateTimeFormatter.format;
+
+// objects
+export type OnlyRequired<T> = { [K in keyof T as (undefined extends T[K] ? never : K)]: T[K] };
+export type MakePartial<T, C extends keyof T> = Omit<T, C> & Partial<Pick<T, C>>;
+
+// tuples
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Last<T extends Array<any>>  = T extends [ ...any, infer L ] ? L : never;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ExceptLast<T extends Array<any>>  = T extends [ ...infer R, any ] ? R : never;
+
+// funcs
+export type ParametersExceptFirst<T> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends (f: any, ...r: infer R) => any ? R : never;

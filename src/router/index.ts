@@ -8,6 +8,7 @@ import { useApisDiscovery } from '@/stores/apisDiscovery';
 import { useNamespaces } from '@/stores/namespaces';
 import { usePermissions } from '@/stores/permissions';
 import { brand } from '@/utils/config';
+import type { ParametersExceptFirst } from '@/utils/lang';
 
 declare global {
   interface Window {
@@ -30,10 +31,6 @@ declare module 'vue-router' {
     unsupported?: Ref<string | undefined>,
   }
 }
-
-type ParametersExceptFirst<T> =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  T extends (f: any, ...r: infer R) => any ? R : never;
 
 const _checkWithPermissionStore = async (
   conditions: Array<ParametersExceptFirst<ReturnType<typeof usePermissions>['mayAllows']>>,

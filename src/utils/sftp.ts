@@ -3,6 +3,7 @@ import type { IChannel } from '@xdavidwu/websocket-sftp/lib/channel';
 import type { IFilesystem } from '@xdavidwu/websocket-sftp/lib/fs-api';
 import { Buffer } from 'buffer';
 import { Streams } from '@/utils/wsstream';
+import type { ExceptLast, Last, ParametersExceptFirst, OnlyRequired } from '@/utils/lang';
 
 globalThis.Buffer = Buffer;
 
@@ -62,15 +63,7 @@ export const sftpFromWsstream = async (ws: WebSocket): Promise<SftpClientCore> =
   });
 };
 
-type OnlyRequired<T> = { [K in keyof T as (undefined extends T[K] ? never : K)]: T[K] };
 type SftpClientOps = keyof OnlyRequired<IFilesystem>;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Last<T extends Array<any>>  = T extends [ ...any, infer L ] ? L : never;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ExceptLast<T extends Array<any>>  = T extends [ ...infer R, any ] ? R : never;
-type ParametersExceptFirst<T> =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  T extends (f: any, ...r: infer R) => any ? R : never;
 type ExtractOpRes<op extends SftpClientOps> = ParametersExceptFirst<Last<Parameters<SftpClientCore[op]>>>;
 type ExtractOpParams<op extends SftpClientOps> = ExceptLast<Parameters<SftpClientCore[op]>>;
 
