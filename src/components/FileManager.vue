@@ -5,7 +5,7 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { extractUrl } from '@/utils/api';
 import { connect } from '@/utils/wsstream';
-import { sftpFromWsstream, asPromise } from '@/utils/sftp';
+import { sftpFromWsstream, asPromise, readAsGenerator } from '@/utils/sftp';
 import { modfmt, isExecutable } from '@/utils/posix';
 import { formatDateTime } from '@/utils/lang';
 import { fromBytes } from '@tsmx/human-readable';
@@ -52,12 +52,24 @@ const listdir = async (p: string) => {
 listdir('/');
 
 const enter = async (e: IItem) => {
-  if (!e.stats.isDirectory?.()) {
-    return;
-  }
   const target = `${path.value}/${e.filename}`;
-  const [realpath] = await asPromise(sftp, 'realpath', [target]);
-  listdir(realpath);
+  if (e.stats.isDirectory?.()) {
+    const [realpath] = await asPromise(sftp, 'realpath', [target]);
+    await listdir(realpath);
+  } else if (e.stats.isFile?.()) {
+    const [fd] = await asPromise(sftp, 'open', [target, 'r', {}]);
+    // XXX can we stream it?
+    const blob = new File(
+      await Array.fromAsync(readAsGenerator(sftp, fd, 0, e.stats.size ?? 0)),
+      e.filename,
+      { type: mime.getType(e.filename) ?? '' },
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.click();
+  };
 };
 
 const iconFromMime = (m: string) =>

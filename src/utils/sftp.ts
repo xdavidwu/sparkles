@@ -80,3 +80,17 @@ export const asPromise = <T extends SftpClientOps> (
     }
   });
 });
+
+const chunkSize = 16 * 1024;
+export async function* readAsGenerator(
+  sftp: SftpClientCore, handle: Parameters<SftpClientCore['read']>[0], offset: number, length: number,
+) {
+  while (length > 0) {
+    const wanted = length < chunkSize ? length : chunkSize;
+    const [buffer, read] = await asPromise(sftp, 'read', [handle, Buffer.alloc(wanted), 0, wanted, offset]);
+    offset += read;
+    length -= read;
+    yield buffer;
+  }
+  await asPromise(sftp, 'close', [handle]);
+};
