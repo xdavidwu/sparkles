@@ -41,6 +41,7 @@
     "it-tar": "^6.0.5",
     "markdown-it": "^14.1.0",
     "markdown-it-anchor": "^9.0.1",
+    "mime": "^4.0.4",
     "mnemonic-id": "^3.2.7",
     "oidc-client-ts": "^3.0.0",
     "openapi-types": "^12.1.0",

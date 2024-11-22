@@ -6,9 +6,10 @@ import { CoreV1Api } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { extractUrl } from '@/utils/api';
 import { connect } from '@/utils/wsstream';
 import { sftpFromWsstream, asPromise } from '@/utils/sftp';
-import { modfmt } from '@/utils/posix';
+import { modfmt, isExecutable } from '@/utils/posix';
 import { formatDateTime } from '@/utils/lang';
 import { fromBytes } from '@tsmx/human-readable';
+import mime from 'mime';
 import type { IItem } from '@xdavidwu/websocket-sftp/lib/fs-api';
 
 const props = defineProps<{
@@ -59,10 +60,20 @@ const enter = async (e: IItem) => {
   listdir(realpath);
 };
 
-// TODO symlink, mime-from-ext for files
+const iconFromMime = (m: string) =>
+  m.startsWith('text/') ? 'mdi-file-document' :
+  m.startsWith('image/') ? 'mdi-image' :
+  m.startsWith('video/') ? 'mdi-movie' :
+  m.startsWith('audio/') ? 'mdi-music-note' :
+  m.startsWith('font/') ? 'mdi-format-size' :
+  'mdi-file';
+// TODO symlink
 const getIcon = (i: IItem) =>
-  i.stats.isDirectory?.() ? 'mdi-folder' :
-  i.stats.isFile?.() ? 'mdi-file-document' : 'mdi-file-question';
+  i.stats.isDirectory?.() ? 'mdi-folder-outline' :
+  i.stats.isFile?.() ? (
+    isExecutable(i.stats.mode ?? 0) ? 'mdi-application-cog':
+    iconFromMime(mime.getType(i.filename) ?? '')) :
+  'mdi-file-question';
 
 onUnmounted(() => sftp.end());
 </script>

@@ -7,10 +7,12 @@ export enum S {
   ISVTX = 0o1000,
 }
 
-export const modfmt = (mode: number): string => {
-  const mod = mode & 0o7777;
+export const isExecutable = (mod: number) =>
+  ((mod >> 6) & 1) | ((mod >> 3) & 1) | (mod & 1);
+
+export const modfmt = (mod: number): string => {
   const res = Array.from(`${rwx(mod >> 6)}${rwx(mod >> 3)}${rwx(mod)}`);
-  const executable = ((mod >> 6) & 1) | ((mod >> 3) & 1) | (mod & 1);
+  const executable = isExecutable(mod);
 
   if ((mod & S.ISUID) == S.ISUID) {
     if (!executable) {
