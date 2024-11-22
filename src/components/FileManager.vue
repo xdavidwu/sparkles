@@ -7,6 +7,8 @@ import { extractUrl } from '@/utils/api';
 import { connect } from '@/utils/wsstream';
 import { sftpFromWsstream, asPromise } from '@/utils/sftp';
 import { modfmt } from '@/utils/posix';
+import { formatDateTime } from '@/utils/lang';
+import { fromBytes } from '@tsmx/human-readable';
 import type { IItem } from '@xdavidwu/websocket-sftp/lib/fs-api';
 
 const props = defineProps<{
@@ -75,7 +77,13 @@ onUnmounted(() => sftp.end());
               <VDivider v-if="index && index != items.length" />
               <VListItem :title="e.filename" :prepend-icon="getIcon(e)" @dblclick="enter(e)">
                 <template #subtitle>
-                  <span class="text-mono">{{ e.stats.isDirectory?.() ? 'd' : '-' }}{{ modfmt(e.stats.mode ?? 0) }}</span>
+                  <pre>{{
+                    e.stats.isDirectory?.() ? 'd' : '-' }}{{ modfmt(e.stats.mode ?? 0) }} {{
+                    `${e.stats.uid}`.padStart(8) }} {{ `${e.stats.gid}`.padStart(8) }} {{
+                    fromBytes(e.stats.size ?? 0, { mode: 'IEC' }).split(' ')
+                      .map((s, i) => i ? s.padStart(3) : s.padStart(8)).join(' ') }} {{
+                    formatDateTime(e.stats.mtime).padStart(32)
+                  }}</pre>
                 </template>
               </VListItem>
             </template>
