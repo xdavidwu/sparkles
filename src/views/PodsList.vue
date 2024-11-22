@@ -207,11 +207,14 @@ const createTab = (type: TabType, target: string, pod: V1Pod, overrides?: Partia
 };
 
 const reducePrivilege = import.meta.env.VITE_DEBUG_PRIVILEGED == 'false';
-const debug = (target: ContainerData, pod: V1Pod) =>
+const createEphemeral = (
+  target: ContainerData, pod: V1Pod,
+  type: string, spec: Omit<V1EphemeralContainer, 'name'>,
+): Promise<string> =>
   withProgress('Setting up ephemeral container', async (progress) => {
     progress('Creating ephemeral container');
     const id = crypto.randomUUID().split('-')[1];
-    const name = `spk-dbg-${id}`;
+    const name = `spk-${type}-${id}`;
     // fs[ug]id
     let uid = 65535, gid = 65535, fscredKnown = false;
 
@@ -289,13 +292,8 @@ const debug = (target: ContainerData, pod: V1Pod) =>
       spec: {
         containers: [], // for types
         ephemeralContainers: [{
+          ...spec,
           name,
-          image: 'public.ecr.aws/docker/library/alpine:3.20',
-          command: ['/bin/sh', '-c'],
-          args: ['cd /proc/1/root; exec /bin/sh'],
-          stdin: true,
-          stdinOnce: true,
-          tty: true,
           targetContainerName: target.name,
           securityContext: reducePrivilege ? {
             ...restrictedSecurityContext,
@@ -337,11 +335,29 @@ const debug = (target: ContainerData, pod: V1Pod) =>
       }
     );
 
-    createTab(TabType.ATTACH, name, pod, {
-      description: `Debug: ${pod.metadata!.name}/${name} (for ${target.name})`,
-    });
-    // TODO find a way to make sure it terminates or gc
+    return name;
   });
+
+const debug = async (target: ContainerData, pod: V1Pod) => {
+  const name = await createEphemeral(
+    target,
+    pod,
+    'dbg',
+    {
+      image: 'public.ecr.aws/docker/library/alpine:3.20',
+      command: ['/bin/sh', '-c'],
+      args: ['cd /proc/1/root; exec /bin/sh'],
+      stdin: true,
+      stdinOnce: true,
+      tty: true,
+    },
+  );
+
+  createTab(TabType.ATTACH, name, pod, {
+    description: `Debug: ${pod.metadata!.name}/${name} (for ${target.name})`,
+  });
+  // TODO find a way to make sure it terminates or gc
+};
 
 const bell = (index: number) => {
   const bellingTab = tabs.value[index];
