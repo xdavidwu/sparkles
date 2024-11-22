@@ -17,6 +17,11 @@ tasks:
         build /work/sparkles/kubectl-shell.apko.yaml kubectl-shell \
         /work/kubectl-shell.tar
       podman load -i kubectl-shell.tar
+  - build-sftp-server: |
+      podman run -v .:/work cgr.dev/chainguard/apko:latest \
+        build /work/sparkles/sftp-server.apko.yaml sftp-server \
+        /work/sftp-server.tar
+      podman load -i sftp-server.tar
   - publish: |
       if [ "$GIT_REF" != refs/heads/main ]; then
         printf 'Skipping push on ref %s\n' "$GIT_REF"
@@ -24,4 +29,6 @@ tasks:
         podman push ghcr.io/xdavidwu/sparkles:latest
         podman push kubectl-shell:latest-amd64 \
           ghcr.io/xdavidwu/sparkles/kubectl-shell:latest
+        podman push sftp-server:latest-amd64 \
+          ghcr.io/xdavidwu/sparkles/sftp-server:latest
       fi
