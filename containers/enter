@@ -1,0 +1,2 @@
+#!/bin/ash
+chroot /proc/1/root ash -c 'cd / && exec ash'

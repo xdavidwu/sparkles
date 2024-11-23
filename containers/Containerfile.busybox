@@ -20,5 +20,6 @@ FROM scratch
 COPY --from=builder /busybox /busybox
 RUN ["/busybox", "mkdir", "-p", "/bin", "/sbin", "/usr/bin", "/usr/sbin"]
 RUN ["/busybox", "--install", "-s"]
+ADD containers/enter /usr/sbin/enter
 ENTRYPOINT ["/busybox"]
 CMD ["ash"]
