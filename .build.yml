@@ -11,15 +11,16 @@ tasks:
       echo build:100000:65536 | sudo tee /etc/subuid
       echo build:100000:65536 | sudo tee /etc/subgid
   - build: |
-      podman build sparkles/ -t ghcr.io/xdavidwu/sparkles:latest
+      podman build sparkles/ -t ghcr.io/xdavidwu/sparkles:latest \
+        -f sparkles/containers/Containerfile
   - build-kubectl-shell: |
       podman run -v .:/work cgr.dev/chainguard/apko:latest \
-        build /work/sparkles/kubectl-shell.apko.yaml kubectl-shell \
+        build /work/sparkles/containers/kubectl-shell.apko.yaml kubectl-shell \
         /work/kubectl-shell.tar
       podman load -i kubectl-shell.tar
   - build-sftp-server: |
       podman run -v .:/work cgr.dev/chainguard/apko:latest \
-        build /work/sparkles/sftp-server.apko.yaml sftp-server \
+        build /work/sparkles/containers/sftp-server.apko.yaml sftp-server \
         /work/sftp-server.tar
       podman load -i sftp-server.tar
   - publish: |
