@@ -20,6 +20,7 @@ const props = defineProps<{
   },
 }>();
 
+const realroot = '/proc/1/root';
 const path = ref('/');
 const entries = ref<Array<IItem>>([]);
 
@@ -40,7 +41,7 @@ const sftp = await sftpFromWsstream(connect(url, token));
 const listdir = async (p: string) => {
   path.value = p;
   entries.value = [];
-  const [fd] = await asPromise(sftp, 'opendir', [p]);
+  const [fd] = await asPromise(sftp, 'opendir', [`${realroot}${p}`]);
   let [res] = await asPromise(sftp, 'readdir', [fd]);
   while (res) {
     entries.value.push(...res);
@@ -52,12 +53,18 @@ const listdir = async (p: string) => {
 listdir('/');
 
 const enter = async (e: IItem) => {
-  const target = `${path.value}/${e.filename}`;
+  const target = `${path.value.length == 1 ? '' : path.value}/${e.filename}`;
   if (e.stats.isDirectory?.()) {
-    const [realpath] = await asPromise(sftp, 'realpath', [target]);
-    await listdir(realpath);
+    if (e.filename == '.') {
+      await listdir(path.value); // reload
+    } else if (e.filename == '..') {
+      const trimmed = path.value.substring(0, path.value.lastIndexOf('/'));
+      await listdir(trimmed.length ? trimmed : '/');
+    } else {
+      await listdir(target);
+    }
   } else if (e.stats.isFile?.()) {
-    const [fd] = await asPromise(sftp, 'open', [target, 'r', {}]);
+    const [fd] = await asPromise(sftp, 'open', [`${realroot}${target}`, 'r', {}]);
     // XXX can we stream it?
     const blob = new File(
       await Array.fromAsync(readAsGenerator(sftp, fd, 0, e.stats.size ?? 0)),
