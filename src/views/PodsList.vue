@@ -417,6 +417,7 @@ const shellDisabledReason = (container: ContainerData, pod: V1Pod) =>
 const debugDisabledReason = (container: ContainerData, pod: V1Pod) =>
   pod.metadata!.annotations?.[mirrorPodAnnotation] ? 'not supported on static pods' :
   container.type?.startsWith('ephemeral') ? 'not supported on ephemeral containers' :
+  (pod.spec!.hostPID || pod.spec!.shareProcessNamespace) ? 'not supported with PID namespace sharing' :
   !container.state?.running ? 'container not running' :
   !mayAllows(pod.metadata!.namespace!, 'pods/attach', pod.metadata!.name!, 'get') ? EPERM :
   !mayAllows(pod.metadata!.namespace!, 'pods/ephemeralcontainers', pod.metadata!.name!, 'update') ? EPERM :
