@@ -8,6 +8,10 @@
 
 The `Phase` field of the pods is `status.phase` from the [API](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podstatus-v1-core) and is different from `STATUS` of `kubectl get pods`. `Running` may not mean the same as what you expect.
 
+##### Debug with ephemeral container
+
+This feature launches an ephemeral container, sharing the pid namespace of target container. Filesystem of target container typically may be inspected under `/proc/1/root`. The ephemeral container is shipped with a static linked, self-contained busybox that executes its applets via `/proc/self/exe`, which means with sufficient permission, it may be possible to chroot inside `/proc/1/root` along with its fully functional shell, without writing anything into the filesystem. To try chroot'ing, use the helper command named `enter`.
+
 #### Helm
 
 Parses Helm release histories stored in Secrets. ConfigMap-backed releases are currently not supported.
