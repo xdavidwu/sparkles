@@ -241,9 +241,8 @@ const createEphemeral = (
           containers: [], // for types
           ephemeralContainers: [{
             name: inspectName,
-            image: 'public.ecr.aws/docker/library/alpine:3.20',
-            command: ['/bin/sh', '-c'],
-            args: ['grep ^[UG]id: /proc/1/status | cut -f 5'],
+            image: 'ghcr.io/xdavidwu/sparkles/busybox:latest',
+            args: ['ash', '-c', 'grep ^[UG]id: /proc/1/status | cut -f 5'],
             targetContainerName: target.name,
             securityContext: {
               ...restrictedSecurityContext,
@@ -348,9 +347,8 @@ const debug = async (target: ContainerData, pod: V1Pod) => {
     pod,
     'dbg',
     {
-      image: 'public.ecr.aws/docker/library/alpine:3.20',
-      command: ['/bin/sh', '-c'],
-      args: ['cd /proc/1/root; exec /bin/sh'],
+      image: 'ghcr.io/xdavidwu/sparkles/busybox:latest',
+      args: ['ash', '-c', 'cd /proc/1/root; exec ash'],
       stdin: true,
       stdinOnce: true,
       tty: true,
