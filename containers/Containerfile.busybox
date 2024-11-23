@@ -1,10 +1,24 @@
 # static busybox with CONFIG_FEATURE_PREFER_APPLETS
-# debian build is meant for rescue and do have this set
 
-FROM bitnami/minideb as builder
-RUN install_packages busybox-static
+FROM public.ecr.aws/docker/library/alpine:3.20 as builder
+
+ARG VERSION=1.37.0
+ARG SHA512=ad8fd06f082699774f990a53d7a73b189ed404fe0a2166aff13eae4d9d8ee5c9239493befe949c98801fe7897520dbff3ed0224faa7205854ce4fa975e18467e
+
+RUN apk add gcc musl-dev linux-headers make
+RUN wget https://busybox.net/downloads/busybox-$VERSION.tar.bz2
+RUN echo "$SHA512  busybox-$VERSION.tar.bz2" | sha512sum -c -
+RUN tar -xf busybox-$VERSION.tar.bz2
+WORKDIR busybox-$VERSION
+RUN make defconfig && sed -i .config \
+  -e "s/.*CONFIG_STATIC\([A-Z_]*\).*/CONFIG_STATIC\1=y/" \
+  -e "s/.*CONFIG_FEATURE_PREFER_APPLETS.*/CONFIG_FEATURE_PREFER_APPLETS=y/" \
+  -e "s/.*CONFIG_FEATURE_SH_STANDALONE.*/CONFIG_FEATURE_SH_STANDALONE=y/"
+RUN make busybox -j$(nproc) && cp busybox /busybox && cp .config /bbconfig
 
 FROM scratch
-COPY --from=builder /bin/busybox /busybox
+COPY --from=builder /busybox /busybox
+RUN ["/busybox", "mkdir", "-p", "/bin", "/sbin", "/usr/bin", "/usr/sbin"]
+RUN ["/busybox", "--install", "-s"]
 ENTRYPOINT ["/busybox"]
 CMD ["ash"]
