@@ -1,0 +1,10 @@
+# static busybox with CONFIG_FEATURE_PREFER_APPLETS
+# debian build is meant for rescue and do have this set
+
+FROM bitnami/minideb as builder
+RUN install_packages busybox-static
+
+FROM scratch
+COPY --from=builder /bin/busybox /busybox
+ENTRYPOINT ["/busybox"]
+CMD ["ash"]

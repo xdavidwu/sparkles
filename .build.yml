@@ -13,6 +13,9 @@ tasks:
   - build: |
       podman build sparkles/ -t ghcr.io/xdavidwu/sparkles:latest \
         -f sparkles/containers/Containerfile
+  - build-busybox: |
+      podman build sparkles/ -t ghcr.io/xdavidwu/sparkles/busybox:latest \
+        -f sparkles/containers/Containerfile.busybox
   - build-kubectl-shell: |
       podman run -v .:/work cgr.dev/chainguard/apko:latest \
         build /work/sparkles/containers/kubectl-shell.apko.yaml kubectl-shell \
@@ -28,6 +31,7 @@ tasks:
         printf 'Skipping push on ref %s\n' "$GIT_REF"
       else
         podman push ghcr.io/xdavidwu/sparkles:latest
+        podman push ghcr.io/xdavidwu/sparkles/busybox:latest
         podman push kubectl-shell:latest-amd64 \
           ghcr.io/xdavidwu/sparkles/kubectl-shell:latest
         podman push sftp-server:latest-amd64 \
