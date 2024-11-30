@@ -4,8 +4,7 @@ import { Doughnut } from 'vue-chartjs';
 import TooltipContent from '@/components/TooltipContent.vue';
 import { computed, ref } from 'vue';
 import type { TooltipModel } from 'chart.js';
-// @ts-expect-error Missing type definitions
-import colors from 'vuetify/lib/util/colors';
+import colors from 'vuetify/util/colors';
 
 const props = defineProps<{
   used: number,
