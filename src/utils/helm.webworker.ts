@@ -118,8 +118,7 @@ const capabilitiesFromDiscovery = (versionInfo: VersionInfo, groups: Array<V2API
 const base64Buffer = (b: ArrayBuffer) =>
   btoa(Array.from(new Uint8Array(b), (b) => String.fromCodePoint(b)).join(''));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const arrayBufferReplacer = (key: string, value: any): any =>
+const arrayBufferReplacer = (key: string, value: unknown) =>
   value instanceof ArrayBuffer ? base64Buffer(value) : value;
 
 const parseAnnotationList = <T extends string>(e: { [k: string]: T }, s?: string) =>
