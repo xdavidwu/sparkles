@@ -2,10 +2,28 @@ const rwx = (m: number): string =>
   `${m & 4 ? 'r' : '-'}${m & 2 ? 'w' : '-'}${m & 1 ? 'x' : '-'}`;
 
 export enum S {
-  ISUID = 0o4000,
-  ISGID = 0o2000,
-  ISVTX = 0o1000,
+  IFMT	= 0o170000,
+  IFSOCK	= 0o140000,
+  IFLNK	= 0o120000,
+  IFREG	= 0o100000,
+  IFBLK	= 0o060000,
+  IFDIR	= 0o040000,
+  IFCHR	= 0o020000,
+  IFIFO	= 0o010000,
+  ISUID	= 0o4000,
+  ISGID	= 0o2000,
+  ISVTX	= 0o1000,
 }
+
+const entryTypeChar = {
+  [S.IFSOCK]:	's',
+  [S.IFLNK]:	'l',
+  [S.IFREG]:	'-',
+  [S.IFBLK]:	'b',
+  [S.IFDIR]:	'd',
+  [S.IFCHR]:	'c',
+  [S.IFIFO]:	'p',
+};
 
 export const isExecutable = (mod: number) =>
   ((mod >> 6) & 1) | ((mod >> 3) & 1) | (mod & 1);
@@ -41,7 +59,8 @@ export const modfmt = (mod: number): string => {
       res[5] = 't';
     }
   }
-  return res.join('');
+  const type = mod & S.IFMT;
+  return `${entryTypeChar[type as keyof typeof entryTypeChar] ?? '?'}${res.join('')}`;
 };
 
 export const normalizeAbsPath = (p: string) => {

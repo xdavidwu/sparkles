@@ -103,7 +103,7 @@ onUnmounted(() => sftp.end());
               <VListItem :title="e.filename" :prepend-icon="getIcon(e)" @dblclick="enter(e)">
                 <template #subtitle>
                   <pre>{{
-                    e.stats.isDirectory?.() ? 'd' : '-' }}{{ modfmt(e.stats.mode ?? 0) }} {{
+                    modfmt(e.stats.mode ?? 0) }} {{
                     `${e.stats.uid}`.padStart(8) }} {{ `${e.stats.gid}`.padStart(8) }} {{
                     fromBytes(e.stats.size ?? 0, { mode: 'IEC' }).split(' ')
                       .map((s, i) => i ? s.padStart(3) : s.padStart(8)).join(' ') }} {{
