@@ -6,7 +6,7 @@ import { CoreV1Api } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { extractUrl } from '@/utils/api';
 import { connect } from '@/utils/wsstream';
 import { sftpFromWsstream, asPromise, readAsGenerator } from '@/utils/sftp';
-import { modfmt, isExecutable } from '@/utils/posix';
+import { normalizeAbsPath, modfmt, isExecutable } from '@/utils/posix';
 import { formatDateTime } from '@/utils/lang';
 import { fromBytes } from '@tsmx/human-readable';
 import mime from 'mime';
@@ -53,16 +53,9 @@ const listdir = async (p: string) => {
 listdir('/');
 
 const enter = async (e: IItem) => {
-  const target = `${path.value.length == 1 ? '' : path.value}/${e.filename}`;
+  const target = normalizeAbsPath(`${path.value.length == 1 ? '' : path.value}/${e.filename}`);
   if (e.stats.isDirectory?.()) {
-    if (e.filename == '.') {
-      await listdir(path.value); // reload
-    } else if (e.filename == '..') {
-      const trimmed = path.value.substring(0, path.value.lastIndexOf('/'));
-      await listdir(trimmed.length ? trimmed : '/');
-    } else {
-      await listdir(target);
-    }
+    await listdir(target);
   } else if (e.stats.isFile?.()) {
     const [fd] = await asPromise(sftp, 'open', [`${realroot}${target}`, 'r', {}]);
     // XXX can we stream it?

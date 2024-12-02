@@ -43,3 +43,18 @@ export const modfmt = (mod: number): string => {
   }
   return res.join('');
 };
+
+export const normalizeAbsPath = (p: string) => {
+  const components = p.split('/').filter((c) => c.length && c != '.');
+  const results = [];
+  for (const c of components) {
+    if (c == '..') {
+      if (results.length) {
+        results.pop();
+      }
+    } else {
+      results.push(c);
+    }
+  }
+  return `/${results.join('/')}`;
+};
