@@ -10,7 +10,7 @@ import { normalizeAbsPath, modfmt, isExecutable } from '@/utils/posix';
 import { formatDateTime } from '@/utils/lang';
 import { fromBytes } from '@tsmx/human-readable';
 import mime from 'mime';
-import type { IItem } from '@xdavidwu/websocket-sftp/lib/fs-api';
+import type { IItem, IStats } from '@xdavidwu/websocket-sftp/lib/fs-api';
 
 const props = defineProps<{
   containerSpec: {
@@ -20,9 +20,11 @@ const props = defineProps<{
   },
 }>();
 
+type Entry = IItem & { target?: IStats };
+
 const realroot = '/proc/1/root';
 const path = ref('/');
-const entries = ref<Array<IItem>>([]);
+const entries = ref<Array<Entry>>([]);
 
 const configStore = useApiConfig();
 const api = new CoreV1Api(await configStore.getConfig());
@@ -38,13 +40,33 @@ const token = await configStore.getBearerToken();
 
 const sftp = await sftpFromWsstream(connect(url, token));
 
+// plain stat is broken with /proc/<pid>/root
+// TODO loop detection
+const dereference = async (b: string, p: string) => {
+  const [l] = await asPromise(sftp, 'readlink', [`${realroot}${b}/${p}`]);
+  const target = normalizeAbsPath(l.startsWith('/') ? l : `${b}/${l}`);
+  const [st] = await asPromise(sftp, 'lstat', [`${realroot}${target}`]);
+  if (st?.isSymbolicLink?.()) {
+    if (target == '/') { // ?
+      return dereference(target, target);
+    } else {
+      const sep = l.lastIndexOf('/');
+      return dereference(l.substring(0, sep), l.substring(sep + 1));
+    }
+  } else {
+    return st;
+  }
+};
+
 const listdir = async (p: string) => {
   path.value = p;
   entries.value = [];
   const [fd] = await asPromise(sftp, 'opendir', [`${realroot}${p}`]);
   let [res] = await asPromise(sftp, 'readdir', [fd]);
   while (res) {
-    entries.value.push(...res);
+    entries.value.push(...await Promise.all(res.map(async (r) =>
+      r.stats.isSymbolicLink?.() ?
+        { ...r, target: await dereference(p, r.filename).catch(() => undefined) } : r)));
     [res] = await asPromise(sftp, 'readdir', [fd]);
   }
   await asPromise(sftp, 'close', [fd]);
@@ -82,7 +104,12 @@ const iconFromMime = (m: string) =>
   m.startsWith('font/') ? 'mdi-format-size' :
   'mdi-file';
 // TODO symlink
-const getIcon = (i: IItem) =>
+const getIcon = (i: Entry) =>
+  i.stats.isSymbolicLink?.() ? (
+    i.target?.isDirectory?.() ? 'mdi-folder-move-outline' :
+    i.target?.isFile?.() ? 'mdi-file-move' :
+    'mdi-file-question'
+  ) :
   i.stats.isDirectory?.() ? 'mdi-folder-outline' :
   i.stats.isFile?.() ? (
     isExecutable(i.stats.mode ?? 0) ? 'mdi-application-cog':
