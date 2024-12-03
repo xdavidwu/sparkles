@@ -81,7 +81,9 @@ export const asPromise = <T extends SftpClientOps> (
   });
 });
 
-const chunkSize = 16 * 1024;
+// see OpenSSH/PROTOCOL sftp extension limits@openssh.com
+// which says server should support chunks of at least 32768
+const chunkSize = 32768;
 export async function* readAsGenerator(
   sftp: SftpClientCore, handle: Parameters<SftpClientCore['read']>[0], offset: number, length: number,
 ) {
