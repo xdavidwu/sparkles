@@ -30,6 +30,7 @@ type Entry = IItem & Partial<DereferenceResult>;
 const realroot = '/proc/1/root';
 const cwd = ref('/');
 const entries = ref<Array<Entry>>([]);
+const entriesLoading = ref(false);
 
 const configStore = useApiConfig();
 const api = new CoreV1Api(await configStore.getConfig());
@@ -66,6 +67,7 @@ const dereference = async (b: string, p: string): Promise<DereferenceResult> => 
 const listdir = async (p: string) => {
   cwd.value = p;
   entries.value = [];
+  entriesLoading.value = true;
   const [fd] = await asPromise(sftp, 'opendir', [`${realroot}${p}`]);
   let [res] = await asPromise(sftp, 'readdir', [fd]);
   while (res) {
@@ -74,6 +76,7 @@ const listdir = async (p: string) => {
         { ...r, ...await dereference(p, r.filename).catch(() => undefined) } : r)));
     [res] = await asPromise(sftp, 'readdir', [fd]);
   }
+  entriesLoading.value = false;
   await asPromise(sftp, 'close', [fd]);
 };
 
@@ -82,7 +85,7 @@ listdir('/');
 const enter = async (e: Entry) => {
   const path = e.realpath ?? normalizeAbsPath(`${cwd.value.length == 1 ? '' : cwd.value}/${e.filename}`);
   const st = (e.stats.isSymbolicLink?.() && e.target) ? e.target : e.stats;
-  if (st.isDirectory?.()) {
+  if (st.isDirectory?.() && !entriesLoading.value) { // until we have proper concurrency control
     await listdir(path);
   } else if (st.isFile?.()) {
     const [fd] = await asPromise(sftp, 'open', [`${realroot}${path}`, 'r', {}]);
@@ -126,7 +129,7 @@ onUnmounted(() => sftp.end());
 </script>
 
 <template>
-  <VCard :title="cwd" class="overflow-y-auto">
+  <VCard class="overflow-y-auto" :title="cwd" :loading="entriesLoading">
     <template #text>
       <VDataIterator :items="entries" items-per-page="-1" :sort-by="[{ key: 'filename' }]">
         <template #default="{ items }">
