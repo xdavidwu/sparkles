@@ -28,7 +28,7 @@ interface DereferenceResult {
 type Entry = IItem & Partial<DereferenceResult>;
 
 const realroot = '/proc/1/root';
-const path = ref('/');
+const cwd = ref('/');
 const entries = ref<Array<Entry>>([]);
 
 const configStore = useApiConfig();
@@ -49,22 +49,22 @@ const sftp = await sftpFromWsstream(connect(url, token));
 // TODO loop detection
 const dereference = async (b: string, p: string): Promise<DereferenceResult> => {
   const [l] = await asPromise(sftp, 'readlink', [`${realroot}${b}/${p}`]);
-  const target = normalizeAbsPath(l.startsWith('/') ? l : `${b}/${l}`);
-  const [st] = await asPromise(sftp, 'lstat', [`${realroot}${target}`]);
+  const path = normalizeAbsPath(l.startsWith('/') ? l : `${b}/${l}`);
+  const [st] = await asPromise(sftp, 'lstat', [`${realroot}${path}`]);
   if (st?.isSymbolicLink?.()) {
-    if (target == '/') { // ?
-      return dereference(target, target);
+    if (path == '/') { // ?
+      return dereference(path, path);
     } else {
-      const sep = l.lastIndexOf('/');
-      return dereference(l.substring(0, sep), l.substring(sep + 1));
+      const sep = path.lastIndexOf('/');
+      return dereference(path.substring(0, sep), path.substring(sep + 1));
     }
   } else {
-    return { target: st, realpath: target };
+    return { target: st, realpath: path };
   }
 };
 
 const listdir = async (p: string) => {
-  path.value = p;
+  cwd.value = p;
   entries.value = [];
   const [fd] = await asPromise(sftp, 'opendir', [`${realroot}${p}`]);
   let [res] = await asPromise(sftp, 'readdir', [fd]);
@@ -79,12 +79,13 @@ const listdir = async (p: string) => {
 
 listdir('/');
 
-const enter = async (e: IItem) => {
-  const target = normalizeAbsPath(`${path.value.length == 1 ? '' : path.value}/${e.filename}`);
-  if (e.stats.isDirectory?.()) {
-    await listdir(target);
-  } else if (e.stats.isFile?.()) {
-    const [fd] = await asPromise(sftp, 'open', [`${realroot}${target}`, 'r', {}]);
+const enter = async (e: Entry) => {
+  const path = e.realpath ?? normalizeAbsPath(`${cwd.value.length == 1 ? '' : cwd.value}/${e.filename}`);
+  const st = (e.stats.isSymbolicLink?.() && e.target) ? e.target : e.stats;
+  if (st.isDirectory?.()) {
+    await listdir(path);
+  } else if (st.isFile?.()) {
+    const [fd] = await asPromise(sftp, 'open', [`${realroot}${path}`, 'r', {}]);
     // XXX can we stream it?
     const blob = new File(
       await Array.fromAsync(readAsGenerator(sftp, fd, 0, e.stats.size ?? 0)),
@@ -125,7 +126,7 @@ onUnmounted(() => sftp.end());
 </script>
 
 <template>
-  <VCard :title="path" class="overflow-y-auto">
+  <VCard :title="cwd" class="overflow-y-auto">
     <template #text>
       <VDataIterator :items="entries" items-per-page="-1" :sort-by="[{ key: 'filename' }]">
         <template #default="{ items }">
