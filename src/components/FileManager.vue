@@ -91,7 +91,7 @@ const enter = async (e: Entry) => {
     const [fd] = await asPromise(sftp, 'open', [`${realroot}${path}`, 'r', {}]);
     e.downloadProgress = 0;
     // XXX can we stream it?
-    const length = e.stats.size ?? 0;
+    const length = st.size ?? 0;
     const blob = new File(
       await Array.fromAsync(readAsGenerator(
         sftp, fd, 0, length, (read) => e.downloadProgress = read / length * 100,
