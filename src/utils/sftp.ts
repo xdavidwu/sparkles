@@ -1,4 +1,4 @@
-import { SftpClientCore } from '@xdavidwu/websocket-sftp/lib/sftp-client';
+import { SftpClientCore, MAX_READ_BLOCK_LENGTH } from '@xdavidwu/websocket-sftp/lib/sftp-client';
 import type { IChannel } from '@xdavidwu/websocket-sftp/lib/channel';
 import type { IFilesystem } from '@xdavidwu/websocket-sftp/lib/fs-api';
 import { Buffer } from 'buffer';
@@ -81,9 +81,7 @@ export const asPromise = <T extends SftpClientOps> (
   });
 });
 
-// see OpenSSH/PROTOCOL sftp extension limits@openssh.com
-// which says server should support chunks of at least 32768
-const chunkSize = 32768;
+const chunkSize = MAX_READ_BLOCK_LENGTH;
 export async function* readAsGenerator(
   sftp: SftpClientCore, handle: Parameters<SftpClientCore['read']>[0],
   offset: number, length: number, progress?: (offset: number) => unknown,
