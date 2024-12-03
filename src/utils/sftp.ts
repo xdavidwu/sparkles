@@ -94,7 +94,7 @@ export async function* readAsGenerator(
     offset += read;
     length -= read;
     progress?.(offset);
-    yield buffer;
+    yield buffer.subarray(0, read);
   }
   await asPromise(sftp, 'close', [handle]);
 };
