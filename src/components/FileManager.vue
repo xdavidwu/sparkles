@@ -20,7 +20,12 @@ const props = defineProps<{
   },
 }>();
 
-type Entry = IItem & { target?: IStats };
+interface DereferenceResult {
+  target: IStats;
+  realpath: string;
+};
+
+type Entry = IItem & Partial<DereferenceResult>;
 
 const realroot = '/proc/1/root';
 const path = ref('/');
@@ -42,7 +47,7 @@ const sftp = await sftpFromWsstream(connect(url, token));
 
 // plain stat is broken with /proc/<pid>/root
 // TODO loop detection
-const dereference = async (b: string, p: string) => {
+const dereference = async (b: string, p: string): Promise<DereferenceResult> => {
   const [l] = await asPromise(sftp, 'readlink', [`${realroot}${b}/${p}`]);
   const target = normalizeAbsPath(l.startsWith('/') ? l : `${b}/${l}`);
   const [st] = await asPromise(sftp, 'lstat', [`${realroot}${target}`]);
@@ -54,7 +59,7 @@ const dereference = async (b: string, p: string) => {
       return dereference(l.substring(0, sep), l.substring(sep + 1));
     }
   } else {
-    return st;
+    return { target: st, realpath: target };
   }
 };
 
@@ -66,7 +71,7 @@ const listdir = async (p: string) => {
   while (res) {
     entries.value.push(...await Promise.all(res.map(async (r) =>
       r.stats.isSymbolicLink?.() ?
-        { ...r, target: await dereference(p, r.filename).catch(() => undefined) } : r)));
+        { ...r, ...await dereference(p, r.filename).catch(() => undefined) } : r)));
     [res] = await asPromise(sftp, 'readdir', [fd]);
   }
   await asPromise(sftp, 'close', [fd]);
