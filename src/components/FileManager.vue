@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { VCard, VDataIterator, VDivider, VListItem } from 'vuetify/components';
+import { VCard, VDataIterator, VDivider, VListItem, VProgressCircular } from 'vuetify/components';
 import { ref, onUnmounted } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api } from '@xdavidwu/kubernetes-client-typescript-fetch';
@@ -25,7 +25,7 @@ interface DereferenceResult {
   realpath: string;
 };
 
-type Entry = IItem & Partial<DereferenceResult>;
+type Entry = IItem & Partial<DereferenceResult> & { downloadProgress?: number };
 
 const realroot = '/proc/1/root';
 const cwd = ref('/');
@@ -89,12 +89,17 @@ const enter = async (e: Entry) => {
     await listdir(path);
   } else if (st.isFile?.()) {
     const [fd] = await asPromise(sftp, 'open', [`${realroot}${path}`, 'r', {}]);
+    e.downloadProgress = 0;
     // XXX can we stream it?
+    const length = e.stats.size ?? 0;
     const blob = new File(
-      await Array.fromAsync(readAsGenerator(sftp, fd, 0, e.stats.size ?? 0)),
+      await Array.fromAsync(readAsGenerator(
+        sftp, fd, 0, length, (read) => e.downloadProgress = read / length * 100,
+      )),
       e.filename,
       { type: mime.getType(e.filename) ?? '' },
     );
+    e.downloadProgress = undefined;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -137,6 +142,12 @@ onUnmounted(() => sftp.end());
             <template v-for="{ raw: e }, index in items" :key="e.filename">
               <VDivider v-if="index && index != items.length" />
               <VListItem :title="e.filename" :prepend-icon="getIcon(e)" @dblclick="enter(e)">
+                <template #title>
+                  {{ e.filename }}
+                  <VProgressCircular v-if="e.downloadProgress != undefined"
+                    class="ms-1" size="18" width="2"
+                    :model-value="e.downloadProgress"/>
+                </template>
                 <template #subtitle>
                   <pre>{{
                     modfmt(e.stats.mode ?? 0) }} {{
