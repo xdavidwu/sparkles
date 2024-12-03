@@ -21,8 +21,9 @@ const props = defineProps<{
 }>();
 
 interface DereferenceResult {
-  target: IStats;
-  realpath: string;
+  target?: IStats;
+  realpath?: string;
+  readlink: string;
 };
 
 type Entry = IItem & Partial<DereferenceResult> & { downloadProgress?: number };
@@ -52,15 +53,19 @@ const dereference = async (b: string, p: string): Promise<DereferenceResult> => 
   const [l] = await asPromise(sftp, 'readlink', [`${realroot}${b}/${p}`]);
   const path = normalizeAbsPath(l.startsWith('/') ? l : `${b}/${l}`);
   const [st] = await asPromise(sftp, 'lstat', [`${realroot}${path}`]);
+  const maybeDerefernce = (b: string, p: string) => dereference(b, p).catch(() => undefined);
   if (st?.isSymbolicLink?.()) {
     if (path == '/') { // ?
-      return dereference(path, path);
+      return { ...await maybeDerefernce(path, path), readlink: l };
     } else {
       const sep = path.lastIndexOf('/');
-      return dereference(path.substring(0, sep), path.substring(sep + 1));
+      return {
+        ...await maybeDerefernce(path.substring(0, sep), path.substring(sep + 1)),
+        readlink: l,
+      };
     }
   } else {
-    return { target: st, realpath: path };
+    return { target: st, realpath: path, readlink: l };
   }
 };
 
@@ -144,6 +149,9 @@ onUnmounted(() => sftp.end());
               <VListItem :title="e.filename" :prepend-icon="getIcon(e)" @dblclick="enter(e)">
                 <template #title>
                   {{ e.filename }}
+                  <span v-if="e.readlink" class="text-medium-emphasis text-caption">
+                    → {{ e.readlink }}
+                  </span>
                   <VProgressCircular v-if="e.downloadProgress != undefined"
                     class="ms-1" size="18" width="2"
                     :model-value="e.downloadProgress"/>
