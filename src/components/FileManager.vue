@@ -74,42 +74,46 @@ const dereference = async (b: string, p: string): Promise<DereferenceResult> => 
 const { abort, signal } = useAbortController();
 
 const listdir = async (p: string, signal: AbortSignal) => {
-  cwd.value = p;
-  entries.value = [];
   entriesLoading.value = true;
-  const [fd] = await asPromise(sftp, 'opendir', [`${realroot}${p}`]);
-  const symlinkPromises = [];
   try {
-    signal.throwIfAborted();
+    const [fd] = await asPromise(sftp, 'opendir', [`${realroot}${p}`]);
+    cwd.value = p;
+    entries.value = [];
 
-    let [res] = await asPromise(sftp, 'readdir', [fd]);
-
-    while (res) {
+    const symlinkPromises = [];
+    try {
       signal.throwIfAborted();
 
-      for (const r of res) {
-        if (r.stats.isSymbolicLink?.()) {
-          symlinkPromises.push((async () => {
-            const d = await dereference(p, r.filename).catch(() => undefined);
-            signal.throwIfAborted();
-            entries.value.push({ ...r, ...d });
-          })());
-        } else {
-          entries.value.push(r);
+      let [res] = await asPromise(sftp, 'readdir', [fd]);
+
+      while (res) {
+        signal.throwIfAborted();
+
+        for (const r of res) {
+          if (r.stats.isSymbolicLink?.()) {
+            symlinkPromises.push((async () => {
+              const d = await dereference(p, r.filename).catch(() => undefined);
+              signal.throwIfAborted();
+              entries.value.push({ ...r, ...d });
+            })());
+          } else {
+            entries.value.push(r);
+          }
         }
+        [res] = await asPromise(sftp, 'readdir', [fd]);
       }
-      [res] = await asPromise(sftp, 'readdir', [fd]);
+      await Promise.all(symlinkPromises);
+      signal.throwIfAborted();
+    } catch (e) {
+      if (!rawErrorIsAborted(e)) {
+        throw e;
+      }
+      await Promise.allSettled(symlinkPromises); // consume rejects
+    } finally {
+      await asPromise(sftp, 'close', [fd]);
     }
-    await Promise.all(symlinkPromises);
-    signal.throwIfAborted();
-    entriesLoading.value = false;
-  } catch (e) {
-    if (!rawErrorIsAborted(e)) {
-      throw e;
-    }
-    await Promise.allSettled(symlinkPromises); // consume rejects
   } finally {
-    await asPromise(sftp, 'close', [fd]);
+    entriesLoading.value = false;
   }
 };
 
