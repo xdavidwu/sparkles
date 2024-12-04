@@ -75,12 +75,21 @@ const listdir = async (p: string) => {
   entriesLoading.value = true;
   const [fd] = await asPromise(sftp, 'opendir', [`${realroot}${p}`]);
   let [res] = await asPromise(sftp, 'readdir', [fd]);
+  const symlinkPromises = [];
   while (res) {
-    entries.value.push(...await Promise.all(res.map(async (r) =>
-      r.stats.isSymbolicLink?.() ?
-        { ...r, ...await dereference(p, r.filename).catch(() => undefined) } : r)));
+    for (const r of res) {
+      if (r.stats.isSymbolicLink?.()) {
+        symlinkPromises.push((async () => {
+          const d = await dereference(p, r.filename).catch(() => undefined);
+          entries.value.push({ ...r, ...d });
+        })());
+      } else {
+        entries.value.push(r);
+      }
+    }
     [res] = await asPromise(sftp, 'readdir', [fd]);
   }
+  await Promise.all(symlinkPromises);
   entriesLoading.value = false;
   await asPromise(sftp, 'close', [fd]);
 };
