@@ -1,6 +1,7 @@
 import { SftpClientCore, MAX_READ_BLOCK_LENGTH } from '@xdavidwu/websocket-sftp/lib/sftp-client';
 import type { IChannel } from '@xdavidwu/websocket-sftp/lib/channel';
 import type { IFilesystem } from '@xdavidwu/websocket-sftp/lib/fs-api';
+import type { SftpStatusCode } from '@xdavidwu/websocket-sftp/lib/sftp-enums';
 import { Buffer } from 'buffer';
 import { Streams } from '@/utils/wsstream';
 import type { ExceptLast, Last, ParametersExceptFirst, OnlyRequired } from '@/utils/lang';
@@ -80,6 +81,27 @@ export const asPromise = <T extends SftpClientOps> (
     }
   });
 });
+
+// lib/sftp-client, SftpClientCore.createError
+export interface SftpError extends Error {
+  errno: number;
+  code: string;
+  nativeCode: SftpStatusCode;
+  description: string;
+
+  // from SftpCommandInfo
+  path?: string;
+  oldPath?: string;
+  newPath?: string;
+  targetPath?: string;
+  linkPath?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handle?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  fromHandle?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  toHandle?: any;
+};
 
 const chunkSize = MAX_READ_BLOCK_LENGTH;
 export async function* readAsGenerator(

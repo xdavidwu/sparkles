@@ -55,6 +55,7 @@ const request = <K extends keyof PromiseStore>(key: K): Required<PromiseStore>[K
   if (pendingPromises[key]) {
     return pendingPromises[key]!.promise;
   }
+  // TODO Promise.withResolvers() es2024
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let resolver: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

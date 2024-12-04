@@ -1,12 +1,13 @@
 <script lang="ts" setup>
 import { VCard, VDataIterator, VDivider, VListItem, VProgressCircular } from 'vuetify/components';
-import { ref, onUnmounted } from 'vue';
+import { ref, onErrorCaptured, onUnmounted } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { useAbortController } from '@/composables/abortController';
 import { extractUrl, rawErrorIsAborted } from '@/utils/api';
+import { PresentedError } from '@/utils/PresentedError';
 import { connect } from '@/utils/wsstream';
-import { sftpFromWsstream, asPromise, readAsGenerator } from '@/utils/sftp';
+import { type SftpError, sftpFromWsstream, asPromise, readAsGenerator } from '@/utils/sftp';
 import { normalizeAbsPath, modfmt, isExecutable } from '@/utils/posix';
 import { formatDateTime } from '@/utils/lang';
 import { fromBytes } from '@tsmx/human-readable';
@@ -162,6 +163,20 @@ const getIcon = (i: Entry) =>
     isExecutable(i.stats.mode ?? 0) ? 'mdi-application-cog':
     iconFromMime(mime.getType(i.filename) ?? '')) :
   'mdi-file-question';
+
+onErrorCaptured((e) => {
+  if ((e as SftpError).errno != undefined) {
+    const err = e as SftpError;
+    for (const key in err) {
+      console.log(key, err[key as keyof SftpError]);
+    }
+    const msg = err.path ?
+      `Accessing ${err.path.replace(realroot, '')}: ${err.description}` :
+      err.description;
+    throw new PresentedError(msg, { cause: err });
+  }
+  throw e;
+});
 
 onUnmounted(() => sftp.end());
 </script>
