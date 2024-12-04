@@ -3,7 +3,8 @@ import { VCard, VDataIterator, VDivider, VListItem, VProgressCircular } from 'vu
 import { ref, onUnmounted } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api } from '@xdavidwu/kubernetes-client-typescript-fetch';
-import { extractUrl } from '@/utils/api';
+import { useAbortController } from '@/composables/abortController';
+import { extractUrl, rawErrorIsAborted } from '@/utils/api';
 import { connect } from '@/utils/wsstream';
 import { sftpFromWsstream, asPromise, readAsGenerator } from '@/utils/sftp';
 import { normalizeAbsPath, modfmt, isExecutable } from '@/utils/posix';
@@ -69,38 +70,56 @@ const dereference = async (b: string, p: string): Promise<DereferenceResult> => 
   }
 };
 
-const listdir = async (p: string) => {
+const { abort, signal } = useAbortController();
+
+const listdir = async (p: string, signal: AbortSignal) => {
   cwd.value = p;
   entries.value = [];
   entriesLoading.value = true;
   const [fd] = await asPromise(sftp, 'opendir', [`${realroot}${p}`]);
-  let [res] = await asPromise(sftp, 'readdir', [fd]);
   const symlinkPromises = [];
-  while (res) {
-    for (const r of res) {
-      if (r.stats.isSymbolicLink?.()) {
-        symlinkPromises.push((async () => {
-          const d = await dereference(p, r.filename).catch(() => undefined);
-          entries.value.push({ ...r, ...d });
-        })());
-      } else {
-        entries.value.push(r);
+  try {
+    signal.throwIfAborted();
+
+    let [res] = await asPromise(sftp, 'readdir', [fd]);
+
+    while (res) {
+      signal.throwIfAborted();
+
+      for (const r of res) {
+        if (r.stats.isSymbolicLink?.()) {
+          symlinkPromises.push((async () => {
+            const d = await dereference(p, r.filename).catch(() => undefined);
+            signal.throwIfAborted();
+            entries.value.push({ ...r, ...d });
+          })());
+        } else {
+          entries.value.push(r);
+        }
       }
+      [res] = await asPromise(sftp, 'readdir', [fd]);
     }
-    [res] = await asPromise(sftp, 'readdir', [fd]);
+    await Promise.all(symlinkPromises);
+    signal.throwIfAborted();
+    entriesLoading.value = false;
+  } catch (e) {
+    if (!rawErrorIsAborted(e)) {
+      throw e;
+    }
+    await Promise.allSettled(symlinkPromises); // consume rejects
+  } finally {
+    await asPromise(sftp, 'close', [fd]);
   }
-  await Promise.all(symlinkPromises);
-  entriesLoading.value = false;
-  await asPromise(sftp, 'close', [fd]);
 };
 
-listdir('/');
+listdir('/', signal.value);
 
 const enter = async (e: Entry) => {
   const path = e.realpath ?? normalizeAbsPath(`${cwd.value.length == 1 ? '' : cwd.value}/${e.filename}`);
   const st = (e.stats.isSymbolicLink?.() && e.target) ? e.target : e.stats;
-  if (st.isDirectory?.() && !entriesLoading.value) { // until we have proper concurrency control
-    await listdir(path);
+  if (st.isDirectory?.()) {
+    abort();
+    await listdir(path, signal.value);
   } else if (st.isFile?.()) {
     const [fd] = await asPromise(sftp, 'open', [`${realroot}${path}`, 'r', {}]);
     e.downloadProgress = 0;

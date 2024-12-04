@@ -259,6 +259,7 @@ export const errorIsKindUnsupported = async (err: unknown) => {
   return false;
 };
 
+// XXX probably shouldn't be here
 export const rawErrorIsAborted = (err: unknown) =>
   err instanceof DOMException && err.name === 'AbortError';
 
