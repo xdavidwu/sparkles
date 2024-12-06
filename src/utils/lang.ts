@@ -26,6 +26,24 @@ export async function* streamToGenerator<T>(r: ReadableStream<T>) {
   }
 }
 
+export const createLineDelimitedStream = () => {
+  let buffer = '';
+  return new TransformStream({
+    start: () => {},
+    transform: async (chunk, controller) => {
+      let newlineIndex = chunk.indexOf('\n');
+      while (newlineIndex !== -1) {
+        controller.enqueue(buffer + chunk.substr(0, newlineIndex));
+        buffer = '';
+        chunk = chunk.substring(newlineIndex + 1);
+        newlineIndex = chunk.indexOf('\n');
+      }
+      buffer += chunk;
+    },
+    flush: () => {},
+  });
+};
+
 export const ignore = async <T>(
   op: T, condition: (e: unknown) => Promise<boolean> | boolean,
 ): Promise<Awaited<T> | undefined> => {

@@ -5,26 +5,8 @@ import {
 import type { V1PartialObjectMetadata, V1Table } from '@/utils/AnyApi';
 import { isSameKubernetesObject, type KubernetesObject, type KubernetesList } from '@/utils/objects';
 import { rawErrorIsAborted, errorIsAborted, V1WatchEventType } from '@/utils/api';
-import { streamToGenerator, timeout } from '@/utils/lang';
+import { createLineDelimitedStream, streamToGenerator, timeout } from '@/utils/lang';
 import type { Ref } from 'vue';
-
-const createLineDelimitedJSONStream = () => {
-  let buffer = '';
-  return new TransformStream({
-    start: () => {},
-    transform: async (chunk, controller) => {
-      let newlineIndex = chunk.indexOf('\n');
-      while (newlineIndex !== -1) {
-        controller.enqueue(JSON.parse(buffer + chunk.substr(0, newlineIndex)));
-        buffer = '';
-        chunk = chunk.substring(newlineIndex + 1);
-        newlineIndex = chunk.indexOf('\n');
-      }
-      buffer += chunk;
-    },
-    flush: () => {},
-  });
-};
 
 type TypedV1WatchEvent<T extends object> = V1WatchEvent & {
   type: V1WatchEventType;
@@ -37,11 +19,11 @@ const rawResponseToWatchEvents = <T extends object>(
 ): AsyncGenerator<TypedV1WatchEvent<T>> => {
   const stream = raw.raw.body!
     .pipeThrough(new TextDecoderStream())
-    .pipeThrough(createLineDelimitedJSONStream())
+    .pipeThrough(createLineDelimitedStream())
     .pipeThrough(new TransformStream({
       start: () => {},
       transform: async (chunk, controller) => {
-        const ev = V1WatchEventFromJSON(chunk);
+        const ev = V1WatchEventFromJSON(JSON.parse(chunk));
         controller.enqueue(ev.type === V1WatchEventType.BOOKMARK ? ev :
           { ...ev, object: await transformer(ev.object) });
       },
