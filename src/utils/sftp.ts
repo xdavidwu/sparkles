@@ -106,15 +106,30 @@ export interface SftpError extends Error {
 const chunkSize = MAX_READ_BLOCK_LENGTH;
 export async function* readAsGenerator(
   sftp: SftpClientCore, handle: Parameters<SftpClientCore['read']>[0],
-  offset: number, length: number, progress?: (offset: number) => unknown,
+  offset: number = 0, length: number = Number.POSITIVE_INFINITY,
+  progress?: (offset: number) => unknown,
 ) {
-  while (length > 0) {
-    const wanted = length < chunkSize ? length : chunkSize;
-    const [buffer, read] = await asPromise(sftp, 'read', [handle, Buffer.alloc(wanted), 0, wanted, offset]);
-    offset += read;
-    length -= read;
-    progress?.(offset);
-    yield buffer.subarray(0, read);
+  try {
+    while (length > 0) {
+      const wanted = length < chunkSize ? length : chunkSize;
+      try {
+        const [buffer, read] = await asPromise(sftp, 'read', [handle, Buffer.alloc(wanted), 0, wanted, offset]);
+        offset += read;
+        length -= read;
+        progress?.(offset);
+        yield buffer.subarray(0, read);
+      } catch (e) {
+        if ((e as SftpError).errno != undefined) {
+          const err = e as SftpError;
+          // SftpStatusCode.EOF ambient const enum
+          if (err.nativeCode == 1 && length == Number.POSITIVE_INFINITY) {
+            return;
+          }
+        }
+        throw e;
+      }
+    }
+  } finally {
+    await asPromise(sftp, 'close', [handle]);
   }
-  await asPromise(sftp, 'close', [handle]);
 };
