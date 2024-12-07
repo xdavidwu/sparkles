@@ -104,32 +104,48 @@ export interface SftpError extends Error {
 };
 
 const chunkSize = MAX_READ_BLOCK_LENGTH;
-export async function* readAsGenerator(
+export const readAsStream = (
   sftp: SftpClientCore, handle: Parameters<SftpClientCore['read']>[0],
   offset: number = 0, length: number = Number.POSITIVE_INFINITY,
   progress?: (offset: number) => unknown,
-) {
-  try {
-    while (length > 0) {
-      const wanted = length < chunkSize ? length : chunkSize;
-      try {
-        const [buffer, read] = await asPromise(sftp, 'read', [handle, Buffer.alloc(wanted), 0, wanted, offset]);
-        offset += read;
-        length -= read;
-        progress?.(offset);
-        yield buffer.subarray(0, read);
-      } catch (e) {
-        if ((e as SftpError).errno != undefined) {
-          const err = e as SftpError;
-          // SftpStatusCode.EOF ambient const enum
-          if (err.nativeCode == 1 && length == Number.POSITIVE_INFINITY) {
-            return;
+) => {
+  let closed = false;
+  return new ReadableStream({
+    pull: async (ctrl) => {
+      if (length > 0) {
+        const wanted = length < chunkSize ? length : chunkSize;
+        try {
+          const [buffer, read] = await asPromise(sftp, 'read', [handle, Buffer.alloc(wanted), 0, wanted, offset]);
+          offset += read;
+          length -= read;
+          progress?.(offset);
+          ctrl.enqueue(buffer.subarray(0, read));
+        } catch (e) {
+          if ((e as SftpError).errno != undefined) {
+            const err = e as SftpError;
+            // SftpStatusCode.EOF ambient const enum
+            if (err.nativeCode == 1 && length == Number.POSITIVE_INFINITY) {
+              ctrl.close();
+              await asPromise(sftp, 'close', [handle]);
+              closed = true;
+              return;
+            }
           }
+          ctrl.close();
+          await asPromise(sftp, 'close', [handle]);
+          closed = true;
+          throw e;
         }
-        throw e;
+      } else {
+        ctrl.close();
+        await asPromise(sftp, 'close', [handle]);
+        closed = true;
       }
-    }
-  } finally {
-    await asPromise(sftp, 'close', [handle]);
-  }
+    },
+    cancel: async () => {
+      if (!closed) {
+        await asPromise(sftp, 'close', [handle]);
+      }
+    },
+  });
 };

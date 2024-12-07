@@ -7,9 +7,9 @@ import { useAbortController } from '@/composables/abortController';
 import { extractUrl, rawErrorIsAborted } from '@/utils/api';
 import { PresentedError } from '@/utils/PresentedError';
 import { connect } from '@/utils/wsstream';
-import { type SftpError, sftpFromWsstream, asPromise, readAsGenerator } from '@/utils/sftp';
+import { type SftpError, sftpFromWsstream, asPromise, readAsStream } from '@/utils/sftp';
 import { normalizeAbsPath, modfmt, isExecutable } from '@/utils/posix';
-import { formatDateTime } from '@/utils/lang';
+import { formatDateTime, streamToGenerator } from '@/utils/lang';
 import { fromBytes } from '@tsmx/human-readable';
 import mime from 'mime';
 import type { IItem, IStats } from '@xdavidwu/websocket-sftp/lib/fs-api';
@@ -131,9 +131,9 @@ const enter = async (e: Entry) => {
     // XXX can we stream it?
     const length = st.size ?? 0;
     const blob = new File(
-      await Array.fromAsync(readAsGenerator(
+      await Array.fromAsync(streamToGenerator(readAsStream(
         sftp, fd, 0, length, (read) => e.downloadProgress = read / length * 100,
-      )),
+      ))),
       e.filename,
       { type: mime.getType(e.filename) ?? '' },
     );
