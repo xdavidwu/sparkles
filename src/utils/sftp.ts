@@ -114,21 +114,17 @@ export const readAsStream = (
         const wanted = length < chunkSize ? length : chunkSize;
         try {
           const [buffer, read] = await asPromise(sftp, 'read', [handle, Buffer.alloc(wanted), 0, wanted, offset]);
+          if (read == 0) {
+            ctrl.close();
+            await asPromise(sftp, 'close', [handle]);
+            closed = true;
+            return;
+          }
           offset += read;
           length -= read;
           progress?.(offset);
           ctrl.enqueue(buffer.subarray(0, read));
         } catch (e) {
-          if ((e as SftpError).errno != undefined) {
-            const err = e as SftpError;
-            // SftpStatusCode.EOF ambient const enum
-            if (err.nativeCode == 1 && length == Number.POSITIVE_INFINITY) {
-              ctrl.close();
-              await asPromise(sftp, 'close', [handle]);
-              closed = true;
-              return;
-            }
-          }
           ctrl.close();
           await asPromise(sftp, 'close', [handle]);
           closed = true;
