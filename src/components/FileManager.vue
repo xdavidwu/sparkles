@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { VCard, VDataIterator, VDivider, VListItem, VProgressCircular } from 'vuetify/components';
-import { ref, onErrorCaptured, onUnmounted } from 'vue';
+import { ref, onErrorCaptured, onMounted, onUnmounted } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { useAbortController } from '@/composables/abortController';
@@ -9,7 +9,11 @@ import { PresentedError } from '@/utils/PresentedError';
 import { connect } from '@/utils/wsstream';
 import { type SftpError, sftpFromWsstream, asPromise, readAsStream } from '@/utils/sftp';
 import { normalizeAbsPath, modfmt, isExecutable } from '@/utils/posix';
-import { formatDateTime, streamToGenerator } from '@/utils/lang';
+import { type Passwd, type Group, parsePasswdLine, parseGroupLine } from '@/utils/linux';
+import {
+  createChunkTransformStream, createLineDelimitedStream, streamToGenerator,
+  formatDateTime,
+} from '@/utils/lang';
 import { fromBytes } from '@tsmx/human-readable';
 import mime from 'mime';
 import type { IItem, IStats } from '@xdavidwu/websocket-sftp/lib/fs-api';
@@ -34,6 +38,8 @@ const realroot = '/proc/1/root';
 const cwd = ref('/');
 const entries = ref<Array<Entry>>([]);
 const entriesLoading = ref(false);
+const passwd = ref<{ [uid: number]: Passwd }>({});
+const group = ref<{ [gid: number]: Group }>({});
 
 const configStore = useApiConfig();
 const api = new CoreV1Api(await configStore.getConfig());
@@ -182,6 +188,33 @@ onErrorCaptured((e) => {
   throw e;
 });
 
+onMounted(() => Promise.all([
+  (async () => {
+    const [fd] = await asPromise(sftp, 'open', [`${realroot}/etc/passwd`, 'r', {}]);
+    const entries = streamToGenerator(readAsStream(sftp, fd)
+      .pipeThrough(new TextDecoderStream())
+      .pipeThrough(createLineDelimitedStream())
+      .pipeThrough(createChunkTransformStream(parsePasswdLine)));
+    for await (const e of entries) {
+      if (e) {
+        passwd.value[e.uid] = e;
+      }
+    }
+  })().catch((e) => console.log('Cannot read passwd:', e)), // distroless?
+  (async () => {
+    const [fd] = await asPromise(sftp, 'open', [`${realroot}/etc/group`, 'r', {}]);
+    const entries = streamToGenerator(readAsStream(sftp, fd)
+      .pipeThrough(new TextDecoderStream())
+      .pipeThrough(createLineDelimitedStream())
+      .pipeThrough(createChunkTransformStream(parseGroupLine)));
+    for await (const e of entries) {
+      if (e) {
+        group.value[e.gid] = e;
+      }
+    }
+  })().catch((e) => console.log('Cannot read group:', e)), // distroless?
+]));
+
 onUnmounted(() => sftp.end());
 </script>
 
@@ -206,7 +239,7 @@ onUnmounted(() => sftp.end());
                 <template #subtitle>
                   <pre>{{
                     modfmt(e.stats.mode ?? 0) }} {{
-                    `${e.stats.uid}`.padStart(8) }} {{ `${e.stats.gid}`.padStart(8) }} {{
+                    `${passwd[e.stats.uid!]?.name ?? e.stats.uid}`.padStart(16) }} {{ `${group[e.stats.gid!]?.groupName ?? e.stats.gid}`.padStart(16) }} {{
                     fromBytes(e.stats.size ?? 0, { mode: 'IEC' }).split(' ')
                       .map((s, i) => i ? s.padStart(3) : s.padStart(8)).join(' ') }} {{
                     formatDateTime(e.stats.mtime).padStart(32)

@@ -1,7 +1,9 @@
 const rwx = (m: number): string =>
   `${m & 4 ? 'r' : '-'}${m & 2 ? 'w' : '-'}${m & 1 ? 'x' : '-'}`;
 
+// sys_stat.h(0p)
 export enum S {
+  // actual values not really defined in posix
   IFMT	= 0o170000,
   IFSOCK	= 0o140000,
   IFLNK	= 0o120000,
@@ -10,6 +12,8 @@ export enum S {
   IFDIR	= 0o040000,
   IFCHR	= 0o020000,
   IFIFO	= 0o010000,
+
+  // with values defined in posix
   ISUID	= 0o4000,
   ISGID	= 0o2000,
   ISVTX	= 0o1000,
@@ -28,6 +32,7 @@ const entryTypeChar = {
 export const isExecutable = (mod: number) =>
   ((mod >> 6) & 1) | ((mod >> 3) & 1) | (mod & 1);
 
+// ls(1p)
 export const modfmt = (mod: number): string => {
   const res = Array.from(`${rwx(mod >> 6)}${rwx(mod >> 3)}${rwx(mod)}`);
   const executable = isExecutable(mod);
