@@ -19,9 +19,7 @@ export const sftpFromWsstream = async (ws: WebSocket): Promise<SftpClientCore> =
       if (type == 'message') {
         ws.onmessage = (ev) => {
           const b = Buffer.from(ev.data as ArrayBuffer);
-          console.log('receive.raw', b);
           if (b[0] == Streams.STDOUT && b.length > 1) {
-            console.log('receive', b);
             const msg = b.slice(1);
             buffer = Buffer.concat([buffer, msg], buffer.length + msg.length);
 
