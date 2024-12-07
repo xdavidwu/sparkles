@@ -29,7 +29,6 @@ export async function* streamToGenerator<T>(r: ReadableStream<T>) {
 export const createLineDelimitedStream = () => {
   let buffer = '';
   return new TransformStream({
-    start: () => {},
     transform: async (chunk, controller) => {
       let newlineIndex = chunk.indexOf('\n');
       while (newlineIndex !== -1) {
@@ -40,9 +39,16 @@ export const createLineDelimitedStream = () => {
       }
       buffer += chunk;
     },
-    flush: () => {},
   });
 };
+
+export const createChunkTransformStream = <I, O>(
+  transformer: (i: I) => O | Promise<O>,
+) => new TransformStream<I, O>({
+  transform: async (chunk, controller) => {
+    controller.enqueue(await transformer(chunk));
+  },
+});
 
 export const ignore = async <T>(
   op: T, condition: (e: unknown) => Promise<boolean> | boolean,

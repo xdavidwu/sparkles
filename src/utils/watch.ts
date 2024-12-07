@@ -5,7 +5,10 @@ import {
 import type { V1PartialObjectMetadata, V1Table } from '@/utils/AnyApi';
 import { isSameKubernetesObject, type KubernetesObject, type KubernetesList } from '@/utils/objects';
 import { rawErrorIsAborted, errorIsAborted, V1WatchEventType } from '@/utils/api';
-import { createLineDelimitedStream, streamToGenerator, timeout } from '@/utils/lang';
+import {
+  createLineDelimitedStream, createChunkTransformStream, streamToGenerator,
+  timeout,
+} from '@/utils/lang';
 import type { Ref } from 'vue';
 
 type TypedV1WatchEvent<T extends object> = V1WatchEvent & {
@@ -20,15 +23,11 @@ const rawResponseToWatchEvents = <T extends object>(
   const stream = raw.raw.body!
     .pipeThrough(new TextDecoderStream())
     .pipeThrough(createLineDelimitedStream())
-    .pipeThrough(new TransformStream({
-      start: () => {},
-      transform: async (chunk, controller) => {
-        const ev = V1WatchEventFromJSON(JSON.parse(chunk));
-        controller.enqueue(ev.type === V1WatchEventType.BOOKMARK ? ev :
-          { ...ev, object: await transformer(ev.object) });
-      },
-      flush: () => {},
-    }));
+    .pipeThrough(createChunkTransformStream(async (chunk) => {
+      const ev = V1WatchEventFromJSON(JSON.parse(chunk));
+      return (ev.type === V1WatchEventType.BOOKMARK ? ev :
+        { ...ev, object: await transformer(ev.object) }) as TypedV1WatchEvent<T>;
+      }));
   return streamToGenerator(stream);
 };
 
