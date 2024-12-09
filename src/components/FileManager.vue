@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { VCard, VDataIterator, VDivider, VListItem, VProgressCircular } from 'vuetify/components';
+import { VCard, VDataIterator, VDivider, VListItem, VMenu, VProgressCircular } from 'vuetify/components';
 import { ref, onErrorCaptured, onMounted, onUnmounted } from 'vue';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api } from '@xdavidwu/kubernetes-client-typescript-fetch';
@@ -32,7 +32,16 @@ interface DereferenceResult {
   readlink: string;
 };
 
-type Entry = IItem & Partial<DereferenceResult> & { downloadProgress?: number };
+interface ContextMenuProps {
+  present?: boolean;
+  x?: number;
+  y?: number;
+};
+
+type Entry = IItem & Partial<DereferenceResult> & {
+  downloadProgress?: number,
+  contextMenu: ContextMenuProps,
+};
 
 const realroot = '/proc/1/root';
 const cwd = ref('/');
@@ -100,10 +109,10 @@ const listdir = async (p: string, signal: AbortSignal) => {
             symlinkPromises.push((async () => {
               const d = await dereference(p, r.filename).catch(() => undefined);
               signal.throwIfAborted();
-              entries.value.push({ ...r, ...d });
+              entries.value.push({ ...r, ...d, contextMenu: {} });
             })());
           } else {
-            entries.value.push(r);
+            entries.value.push({ ...r, contextMenu: {} });
           }
         }
         [res] = await asPromise(sftp, 'readdir', [fd]);
@@ -174,6 +183,17 @@ const getIcon = (i: Entry) =>
     iconFromMime(mime.getType(i.filename) ?? '')) :
   'mdi-file-question';
 
+const onContextMenu = (e: PointerEvent, i: Entry) => {
+  entries.value.forEach((e) => e.contextMenu = { present: false });
+  const targetRect = (e.target as Element).getBoundingClientRect();
+  const wantedRect = (e.currentTarget as Element).getBoundingClientRect();
+  i.contextMenu = {
+    present: true,
+    x: e.offsetX + targetRect.x - wantedRect.x,
+    y: e.offsetY + targetRect.y - wantedRect.y,
+  };
+};
+
 onErrorCaptured((e) => {
   if ((e as SftpError).errno != undefined) {
     const err = e as SftpError;
@@ -226,7 +246,9 @@ onUnmounted(() => sftp.end());
           <div class="overflow-y-auto">
             <template v-for="{ raw: e }, index in items" :key="e.filename">
               <VDivider v-if="index && index != items.length" />
-              <VListItem :title="e.filename" :prepend-icon="getIcon(e)" @dblclick="enter(e)">
+              <VListItem :title="e.filename" :prepend-icon="getIcon(e)"
+                class="position-relative" @dblclick="enter(e)"
+                @contextmenu.prevent="(ev: PointerEvent) => onContextMenu(ev, e)">
                 <template #title>
                   {{ e.filename }}
                   <span v-if="e.readlink" class="text-medium-emphasis text-caption">
@@ -245,6 +267,11 @@ onUnmounted(() => sftp.end());
                     formatDateTime(e.stats.mtime).padStart(32)
                   }}</pre>
                 </template>
+                <VMenu v-model="e.contextMenu.present"
+                  :content-props="{ style: `left: ${e.contextMenu.x}px; top: ${e.contextMenu.y}px`}"
+                  location-strategy="static" absolute attach>
+                  TODO
+                </VMenu>
               </VListItem>
             </template>
           </div>
