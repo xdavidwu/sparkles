@@ -201,7 +201,7 @@ const getIcon = (i: Entry) =>
     iconFromMime(mime.getType(i.filename) ?? '')) :
   'mdi-file-question';
 
-const onContextMenu = (e: PointerEvent, i: Entry) => {
+const onContextMenu = (e: MouseEvent, i: Entry) => {
   contextMenuAboutEl.value = e.currentTarget as HTMLDivElement;
   const targetRect = (e.target as Element).getBoundingClientRect();
   const wantedRect = contextMenuAboutEl.value.getBoundingClientRect();
@@ -264,12 +264,12 @@ onUnmounted(() => sftp.end());
       <VDataIterator :items="entries" items-per-page="-1" :sort-by="[{ key: 'filename' }]">
         <template #default="{ items }">
           <div class="position-relative" ref="container">
-            <template v-for="{ raw: e }, index in items" :key="e.filename">
+            <div v-for="{ raw: e }, index in items" :key="e.filename"
+              @contextmenu.prevent="(ev: MouseEvent) => onContextMenu(ev, e)">
               <VDivider v-if="index && index != items.length" />
               <VListItem :title="e.filename" :prepend-icon="getIcon(e)"
                 :active="contextMenu && contextMenuAbout == e"
-                @dblclick="enter(e)"
-                @contextmenu.prevent="(ev: PointerEvent) => onContextMenu(ev, e)">
+                @dblclick="enter(e)">
                 <template #title>
                   {{ e.filename }}
                   <span v-if="e.readlink" class="text-medium-emphasis text-caption">
@@ -289,7 +289,7 @@ onUnmounted(() => sftp.end());
                   }}</pre>
                 </template>
               </VListItem>
-            </template>
+            </div>
             <VMenu v-model="contextMenu"
               :content-props="{ style: `left: ${contextMenuPosition.x}px; top: ${contextMenuPosition.y}px`}"
               location-strategy="static" absolute attach>
