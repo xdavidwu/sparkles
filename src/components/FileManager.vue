@@ -1,6 +1,11 @@
 <script lang="ts" setup>
 import { VCard, VDataIterator, VDivider, VListItem, VMenu, VProgressCircular } from 'vuetify/components';
-import { ref, onErrorCaptured, onMounted, onUnmounted } from 'vue';
+import {
+  computed, ref, watch,
+  onErrorCaptured, onMounted, onUnmounted,
+  useTemplateRef,
+} from 'vue';
+import { useElementBounding } from '@vueuse/core';
 import { useApiConfig } from '@/stores/apiConfig';
 import { CoreV1Api } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { useAbortController } from '@/composables/abortController';
@@ -32,15 +37,8 @@ interface DereferenceResult {
   readlink: string;
 };
 
-interface ContextMenuProps {
-  present?: boolean;
-  x?: number;
-  y?: number;
-};
-
 type Entry = IItem & Partial<DereferenceResult> & {
   downloadProgress?: number,
-  contextMenu: ContextMenuProps,
 };
 
 const realroot = '/proc/1/root';
@@ -49,6 +47,22 @@ const entries = ref<Array<Entry>>([]);
 const entriesLoading = ref(false);
 const passwd = ref<{ [uid: number]: Passwd }>({});
 const group = ref<{ [gid: number]: Group }>({});
+
+const contextMenu = ref(false);
+const contextMenuAbout = ref<Entry | undefined>();
+const contextMenuAboutEl = ref<HTMLDivElement | undefined>();
+const contextMenuAboutPosition = ref({ x: 0, y: 0 });
+const container = useTemplateRef('container');
+const { x: containerX, y: containerY } = useElementBounding(container);
+const { x: aboutX, y: aboutY, update: updateAboutBox } = useElementBounding(contextMenuAboutEl);
+// position of contextMenuAboutEl may change without resize or scroll by gradual entries loading
+// XXX until there is sth like PositionObserver
+watch(entries, () => requestAnimationFrame(updateAboutBox));
+const contextMenuPosition = computed(() => ({
+  // XXX maybe relativeToContainer in https://github.com/vueuse/vueuse/pull/4368
+  x: contextMenuAboutPosition.value.x + aboutX.value - containerX.value,
+  y: contextMenuAboutPosition.value.y + aboutY.value - containerY.value,
+}));
 
 const configStore = useApiConfig();
 const api = new CoreV1Api(await configStore.getConfig());
@@ -109,10 +123,10 @@ const listdir = async (p: string, signal: AbortSignal) => {
             symlinkPromises.push((async () => {
               const d = await dereference(p, r.filename).catch(() => undefined);
               signal.throwIfAborted();
-              entries.value.push({ ...r, ...d, contextMenu: {} });
+              entries.value.push({ ...r, ...d });
             })());
           } else {
-            entries.value.push({ ...r, contextMenu: {} });
+            entries.value.push({ ...r });
           }
         }
         [res] = await asPromise(sftp, 'readdir', [fd]);
@@ -184,14 +198,16 @@ const getIcon = (i: Entry) =>
   'mdi-file-question';
 
 const onContextMenu = (e: PointerEvent, i: Entry) => {
-  entries.value.forEach((e) => e.contextMenu = { present: false });
+  contextMenuAboutEl.value = e.currentTarget as HTMLDivElement;
   const targetRect = (e.target as Element).getBoundingClientRect();
-  const wantedRect = (e.currentTarget as Element).getBoundingClientRect();
-  i.contextMenu = {
-    present: true,
+  const wantedRect = contextMenuAboutEl.value.getBoundingClientRect();
+
+  contextMenuAbout.value = i;
+  contextMenuAboutPosition.value = {
     x: e.offsetX + targetRect.x - wantedRect.x,
     y: e.offsetY + targetRect.y - wantedRect.y,
   };
+  contextMenu.value = true;
 };
 
 onErrorCaptured((e) => {
@@ -243,11 +259,11 @@ onUnmounted(() => sftp.end());
     <template #text>
       <VDataIterator :items="entries" items-per-page="-1" :sort-by="[{ key: 'filename' }]">
         <template #default="{ items }">
-          <div class="overflow-y-auto">
+          <div class="position-relative" ref="container">
             <template v-for="{ raw: e }, index in items" :key="e.filename">
               <VDivider v-if="index && index != items.length" />
               <VListItem :title="e.filename" :prepend-icon="getIcon(e)"
-                class="position-relative" @dblclick="enter(e)"
+                @dblclick="enter(e)"
                 @contextmenu.prevent="(ev: PointerEvent) => onContextMenu(ev, e)">
                 <template #title>
                   {{ e.filename }}
@@ -267,13 +283,13 @@ onUnmounted(() => sftp.end());
                     formatDateTime(e.stats.mtime).padStart(32)
                   }}</pre>
                 </template>
-                <VMenu v-model="e.contextMenu.present"
-                  :content-props="{ style: `left: ${e.contextMenu.x}px; top: ${e.contextMenu.y}px`}"
-                  location-strategy="static" absolute attach>
-                  TODO
-                </VMenu>
               </VListItem>
             </template>
+            <VMenu v-model="contextMenu"
+              :content-props="{ style: `left: ${contextMenuPosition.x}px; top: ${contextMenuPosition.y}px`}"
+              location-strategy="static" absolute attach>
+              TODO
+            </VMenu>
           </div>
         </template>
       </VDataIterator>
