@@ -1,5 +1,9 @@
 <script lang="ts" setup>
-import { VCard, VDataIterator, VDivider, VListItem, VMenu, VProgressCircular } from 'vuetify/components';
+import {
+  VCard, VMenu,
+  VDataIterator, VList, VListItem,
+  VDivider, VProgressCircular,
+} from 'vuetify/components';
 import {
   computed, ref, watch,
   onErrorCaptured, onMounted, onUnmounted,
@@ -263,6 +267,7 @@ onUnmounted(() => sftp.end());
             <template v-for="{ raw: e }, index in items" :key="e.filename">
               <VDivider v-if="index && index != items.length" />
               <VListItem :title="e.filename" :prepend-icon="getIcon(e)"
+                :active="contextMenu && contextMenuAbout == e"
                 @dblclick="enter(e)"
                 @contextmenu.prevent="(ev: PointerEvent) => onContextMenu(ev, e)">
                 <template #title>
@@ -288,7 +293,11 @@ onUnmounted(() => sftp.end());
             <VMenu v-model="contextMenu"
               :content-props="{ style: `left: ${contextMenuPosition.x}px; top: ${contextMenuPosition.y}px`}"
               location-strategy="static" absolute attach>
-              TODO
+              <VList density="compact">
+                <VListItem title="TODO" />
+                <VListItem title="Some" />
+                <VListItem title="Actions" />
+              </VList>
             </VMenu>
           </div>
         </template>
