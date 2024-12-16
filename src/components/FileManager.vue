@@ -181,6 +181,13 @@ const enter = async (e: Entry) => {
   };
 };
 
+// XXX: EROFS is not obvious: sftp-server seems not to strerror and returns "Failure" (with SSH_FX_FAILURE) instead
+const unlink = async (e: Entry) => {
+  await asPromise(sftp, 'unlink',
+    [`${realroot}${cwd.value.length == 1 ? '' : cwd.value}/${e.filename}`]);
+  await listdir(cwd.value, signal.value);
+};
+
 const iconFromMime = (m: string) =>
   m.startsWith('text/') ? 'mdi-file-document' :
   m.startsWith('image/') ? 'mdi-image' :
@@ -294,9 +301,8 @@ onUnmounted(() => sftp.end());
               :content-props="{ style: `left: ${contextMenuPosition.x}px; top: ${contextMenuPosition.y}px`}"
               location-strategy="static" absolute attach>
               <VList density="compact">
-                <VListItem title="TODO" />
-                <VListItem title="Some" />
-                <VListItem title="Actions" />
+                <VListItem v-if="!contextMenuAbout!.stats.isDirectory?.()" title="Delete" @click="unlink(contextMenuAbout!)" />
+                <VListItem title="TODO: more actions" />
               </VList>
             </VMenu>
           </div>
