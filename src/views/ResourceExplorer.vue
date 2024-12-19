@@ -2,7 +2,7 @@
 import {
   VAutocomplete,
   VBtn,
-  VCheckbox,
+  VCheckboxBtn,
   VCol,
   VDataTableVirtual,
   VIcon,
@@ -459,14 +459,12 @@ watch(tab, (v) => v === 'explore' &&
           </VCol>
           <VCol md="3" sm="4">
             <div>
-              <VCheckbox :disabled="targetKind.scope === V2ResourceScope.Cluster"
-                class="checkbox-intense" label="All namespaces"
-                v-model="allNamespaces" hide-details density="compact" />
+              <VCheckboxBtn :disabled="targetKind.scope === V2ResourceScope.Cluster"
+                label="All namespaces" v-model="allNamespaces" density="compact" />
               <HoverTooltip v-if="targetKind.scope === V2ResourceScope.Cluster"
                 activator="parent" text="Selected type is not namespaced" />
             </div>
-            <VCheckbox class="checkbox-intense" label="Verbose" v-model="verbose"
-              hide-details density="compact" />
+            <VCheckboxBtn label="Verbose" v-model="verbose" density="compact" />
           </VCol>
         </VRow>
         <div v-if="!targetKind.verbs.includes('watch')"
@@ -539,10 +537,6 @@ watch(tab, (v) => v === 'explore' &&
 </template>
 
 <style scoped>
-:deep(.checkbox-intense > .v-input__control > .v-selection-control) {
-  min-height: unset !important;
-}
-
 :deep(td) {
   overflow-wrap: break-word;
 }
