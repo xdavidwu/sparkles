@@ -1,8 +1,9 @@
 <script lang="ts" setup>
 import {
-  VCard, VMenu,
-  VDataIterator, VList, VListItem,
+  VCard, VMenu, VDialog,
+  VCol, VDataIterator, VList, VListItem, VRow, VTable,
   VDivider, VProgressCircular,
+  VAutocomplete, VBtn, VCheckboxBtn,
 } from 'vuetify/components';
 import {
   computed, ref, watch,
@@ -67,6 +68,7 @@ const contextMenuPosition = computed(() => ({
   x: contextMenuAboutPosition.value.x + aboutX.value - containerX.value,
   y: contextMenuAboutPosition.value.y + aboutY.value - containerY.value,
 }));
+const changingPermission = ref(false);
 
 const configStore = useApiConfig();
 const api = new CoreV1Api(await configStore.getConfig());
@@ -301,10 +303,74 @@ onUnmounted(() => sftp.end());
               :content-props="{ style: `left: ${contextMenuPosition.x}px; top: ${contextMenuPosition.y}px`}"
               location-strategy="static" absolute attach>
               <VList density="compact">
-                <VListItem v-if="!contextMenuAbout!.stats.isDirectory?.()" title="Delete" @click="unlink(contextMenuAbout!)" />
+                <VListItem v-if="!contextMenuAbout!.stats.isDirectory?.()"
+                  title="Delete" @click="unlink(contextMenuAbout!)" />
+                <!-- TODO lsetstat@openssh.com -->
+                <VListItem v-if="!contextMenuAbout!.stats.isSymbolicLink?.()"
+                  title="Manage permissions" @click="changingPermission = true" />
                 <VListItem title="TODO: more actions" />
               </VList>
             </VMenu>
+            <VDialog v-model="changingPermission" width="auto">
+              <VCard :title="`Permissions of ${contextMenuAbout!.filename}`">
+                <template #text>
+                  TODO impl
+                  <VRow dense>
+                    <VCol>
+                      <VAutocomplete label="Owner" density="compact" />
+                    </VCol>
+                    <VCol>
+                      <VAutocomplete label="Group" density="compact" />
+                    </VCol>
+                  </VRow>
+                  <VTable density="compact" hover>
+                    <thead>
+                      <tr>
+                        <th></th>
+                        <th>Read</th>
+                        <th>Write</th>
+                        <th>Execute</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <th>Owner</th>
+                        <td><VCheckboxBtn /></td>
+                        <td><VCheckboxBtn /></td>
+                        <td><VCheckboxBtn /></td>
+                      </tr>
+                      <tr>
+                        <th>Group</th>
+                        <td><VCheckboxBtn /></td>
+                        <td><VCheckboxBtn /></td>
+                        <td><VCheckboxBtn /></td>
+                      </tr>
+                      <tr>
+                        <th>Others</th>
+                        <td><VCheckboxBtn /></td>
+                        <td><VCheckboxBtn /></td>
+                        <td><VCheckboxBtn /></td>
+                      </tr>
+                    </tbody>
+                  </VTable>
+                  <VRow class="mt-1" dense>
+                    <VCol>
+                      <VCheckboxBtn label="SUID" density="compact" />
+                    </VCol>
+                    <VCol>
+                      <VCheckboxBtn label="SGID" density="compact" />
+                    </VCol>
+                    <VCol>
+                      <VCheckboxBtn label="Sticky" density="compact" />
+                    </VCol>
+                  </VRow>
+                </template>
+                <template #actions>
+                  <VBtn variant="text" @click="changingPermission = false">Cancel</VBtn>
+                  <VBtn variant="text" color="primary">Save</VBtn>
+                </template>
+              </VCard>
+            </VDialog>
           </div>
         </template>
       </VDataIterator>
