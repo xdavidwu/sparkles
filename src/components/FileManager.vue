@@ -69,6 +69,9 @@ const contextMenuPosition = computed(() => ({
   y: contextMenuAboutPosition.value.y + aboutY.value - containerY.value,
 }));
 const changingPermission = ref(false);
+const modBits = ref((new Array(12)).fill(false));
+const mod = computed(() =>
+  modBits.value.toReversed().reduce((a, v) => (a << 1) | (v ? 1 : 0), 0));
 
 const configStore = useApiConfig();
 const api = new CoreV1Api(await configStore.getConfig());
@@ -223,6 +226,28 @@ const onContextMenu = (e: MouseEvent, i: Entry) => {
   contextMenu.value = true;
 };
 
+const editPermission = (i: Entry) => {
+  let mod = i.stats.mode!;
+  for (const k in modBits.value) {
+    modBits.value[k] = (mod & 1) == 1;
+    mod >>= 1;
+  }
+  changingPermission.value = true;
+};
+
+const savePermission = async (i: Entry) => {
+  const origMod = (i.stats.mode!) & 0o7777;
+  const stDiff: IStats = {};
+  if (mod.value != origMod) {
+    stDiff.mode = mod.value;
+  }
+  changingPermission.value = false;
+  if (Object.keys(stDiff).length > 0) {
+    await asPromise(sftp, 'setstat', [`${realroot}${cwd.value.length == 1 ? '' : cwd.value}/${i.filename}`, stDiff]);
+    await listdir(cwd.value, signal.value);
+  }
+};
+
 onErrorCaptured((e) => {
   if ((e as SftpError).errno != undefined) {
     const err = e as SftpError;
@@ -307,8 +332,7 @@ onUnmounted(() => sftp.end());
                   title="Delete" @click="unlink(contextMenuAbout!)" />
                 <!-- TODO lsetstat@openssh.com -->
                 <VListItem v-if="!contextMenuAbout!.stats.isSymbolicLink?.()"
-                  title="Manage permissions" @click="changingPermission = true" />
-                <VListItem title="TODO: more actions" />
+                  title="Manage permissions" @click="() => editPermission(contextMenuAbout!)" />
               </VList>
             </VMenu>
             <VDialog v-model="changingPermission" width="auto">
@@ -335,39 +359,40 @@ onUnmounted(() => sftp.end());
                     <tbody>
                       <tr>
                         <th>Owner</th>
-                        <td><VCheckboxBtn /></td>
-                        <td><VCheckboxBtn /></td>
-                        <td><VCheckboxBtn /></td>
+                        <td><VCheckboxBtn v-model="modBits[8]" /></td>
+                        <td><VCheckboxBtn v-model="modBits[7]" /></td>
+                        <td><VCheckboxBtn v-model="modBits[6]" /></td>
                       </tr>
                       <tr>
                         <th>Group</th>
-                        <td><VCheckboxBtn /></td>
-                        <td><VCheckboxBtn /></td>
-                        <td><VCheckboxBtn /></td>
+                        <td><VCheckboxBtn v-model="modBits[5]" /></td>
+                        <td><VCheckboxBtn v-model="modBits[4]" /></td>
+                        <td><VCheckboxBtn v-model="modBits[3]" /></td>
                       </tr>
                       <tr>
                         <th>Others</th>
-                        <td><VCheckboxBtn /></td>
-                        <td><VCheckboxBtn /></td>
-                        <td><VCheckboxBtn /></td>
+                        <td><VCheckboxBtn v-model="modBits[2]" /></td>
+                        <td><VCheckboxBtn v-model="modBits[1]" /></td>
+                        <td><VCheckboxBtn v-model="modBits[0]" /></td>
                       </tr>
                     </tbody>
                   </VTable>
                   <VRow class="mt-1" dense>
                     <VCol>
-                      <VCheckboxBtn label="SUID" density="compact" />
+                      <VCheckboxBtn label="SUID" v-model="modBits[11]" density="compact" />
                     </VCol>
                     <VCol>
-                      <VCheckboxBtn label="SGID" density="compact" />
+                      <VCheckboxBtn label="SGID" v-model="modBits[10]" density="compact" />
                     </VCol>
                     <VCol>
-                      <VCheckboxBtn label="Sticky" density="compact" />
+                      <VCheckboxBtn label="Sticky" v-model="modBits[9]" density="compact" />
                     </VCol>
                   </VRow>
                 </template>
                 <template #actions>
                   <VBtn variant="text" @click="changingPermission = false">Cancel</VBtn>
-                  <VBtn variant="text" color="primary">Save</VBtn>
+                  <VBtn variant="text" color="primary"
+                    @click="() => savePermission(contextMenuAbout!)">Save</VBtn>
                 </template>
               </VCard>
             </VDialog>
