@@ -43,6 +43,7 @@ interface DereferenceResult {
 };
 
 type Entry = IItem & Partial<DereferenceResult> & {
+  lpath: string;
   downloadProgress?: number,
 };
 
@@ -128,14 +129,15 @@ const listdir = async (p: string, signal: AbortSignal) => {
         signal.throwIfAborted();
 
         for (const r of res) {
+          const lpath = normalizeAbsPath(`${p}/${r.filename}`);
           if (r.stats.isSymbolicLink?.()) {
             symlinkPromises.push((async () => {
               const d = await dereference(p, r.filename).catch(() => undefined);
               signal.throwIfAborted();
-              entries.value.push({ ...r, ...d });
+              entries.value.push({ ...r, ...d, lpath });
             })());
           } else {
-            entries.value.push({ ...r });
+            entries.value.push({ ...r, lpath });
           }
         }
         [res] = await asPromise(sftp, 'readdir', [fd]);
@@ -158,7 +160,7 @@ const listdir = async (p: string, signal: AbortSignal) => {
 listdir('/', signal.value);
 
 const enter = async (e: Entry) => {
-  const path = e.realpath ?? normalizeAbsPath(`${cwd.value.length == 1 ? '' : cwd.value}/${e.filename}`);
+  const path = e.realpath ?? e.lpath;
   const st = (e.stats.isSymbolicLink?.() && e.target) ? e.target : e.stats;
   if (st.isDirectory?.()) {
     abort();
@@ -188,8 +190,7 @@ const enter = async (e: Entry) => {
 
 // XXX: EROFS is not obvious: sftp-server seems not to strerror and returns "Failure" (with SSH_FX_FAILURE) instead
 const unlink = async (e: Entry) => {
-  await asPromise(sftp, 'unlink',
-    [`${realroot}${cwd.value.length == 1 ? '' : cwd.value}/${e.filename}`]);
+  await asPromise(sftp, 'unlink', [`${realroot}${e.lpath}`]);
   await listdir(cwd.value, signal.value);
 };
 
@@ -243,7 +244,7 @@ const savePermission = async (i: Entry) => {
   }
   changingPermission.value = false;
   if (Object.keys(stDiff).length > 0) {
-    await asPromise(sftp, 'setstat', [`${realroot}${cwd.value.length == 1 ? '' : cwd.value}/${i.filename}`, stDiff]);
+    await asPromise(sftp, 'setstat', [`${realroot}${i.lpath}`, stDiff]);
     await listdir(cwd.value, signal.value);
   }
 };
