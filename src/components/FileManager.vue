@@ -72,7 +72,7 @@ const contextMenuPosition = computed(() => ({
 const changingPermission = ref(false);
 const modBits = ref((new Array(12)).fill(false));
 const mod = computed(() =>
-  modBits.value.toReversed().reduce((a, v) => (a << 1) | (v ? 1 : 0), 0));
+  modBits.value.reduceRight((a, v) => (a << 1) | (v ? 1 : 0), 0));
 
 const configStore = useApiConfig();
 const api = new CoreV1Api(await configStore.getConfig());
@@ -89,12 +89,14 @@ const token = await configStore.getBearerToken();
 const sftp = await sftpFromWsstream(connect(url, token));
 
 // plain stat is broken with /proc/<pid>/root
-// TODO loop detection
-const dereference = async (b: string, p: string): Promise<DereferenceResult> => {
+const dereference = async (b: string, p: string, c: number = 40): Promise<DereferenceResult> => {
+  if (c < 0) {
+    throw new Error('ELOOP');
+  }
   const [l] = await asPromise(sftp, 'readlink', [`${realroot}${b}/${p}`]);
   const path = normalizeAbsPath(l.startsWith('/') ? l : `${b}/${l}`);
   const [st] = await asPromise(sftp, 'lstat', [`${realroot}${path}`]);
-  const maybeDerefernce = (b: string, p: string) => dereference(b, p).catch(() => undefined);
+  const maybeDerefernce = (b: string, p: string) => dereference(b, p, c - 1).catch(() => undefined);
   if (st?.isSymbolicLink?.()) {
     if (path == '/') { // ?
       return { ...await maybeDerefernce(path, path), readlink: l };
