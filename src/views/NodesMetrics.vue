@@ -14,7 +14,7 @@ import {
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { listAndUnwaitedWatch } from '@/utils/watch';
 import { BaseColor, ColorVariant, colorToCode } from '@/utils/colors';
-import type { KubernetesList } from '@/utils/objects';
+import type { KubernetesList, KubernetesObject } from '@/utils/objects';
 import parseDuration from 'parse-duration';
 import { real } from '@ragnarpa/quantity';
 import { fromBytes } from '@tsmx/human-readable';
@@ -144,12 +144,17 @@ const metricsApi = {
   version: 'v1beta1',
 };
 
+type NodeMetrics = KubernetesObject & {
+  timestamp: string;
+  window: string;
+  usage: Record<string, string>;
+};
+
 const { load } = useApiLoader(async (signal) => {
   const response = await api.listClusterCustomObject(
     { ...metricsApi, plural: 'nodes' },
-    { signal }) as KubernetesList;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  response.items.forEach((i: any) => { // TODO
+    { signal }) as KubernetesList<NodeMetrics>;
+  response.items.forEach((i) => {
     const time = Math.floor(new Date(i.timestamp).valueOf() / 1000);
     let index = time - (latestSample - timeRange);
     if (index < 0) {
@@ -171,14 +176,14 @@ const { load } = useApiLoader(async (signal) => {
       cpu: number, mem: number,
       cpuPercentage?: number, memPercentage?: number,
     } = { cpu, mem };
-    nodes.value[i.metadata.name] ??= {};
-    if (nodes.value[i.metadata.name].cpu) {
-      metrics.cpuPercentage = metrics.cpu / nodes.value[i.metadata.name].cpu! * 100;
+    nodes.value[i.metadata!.name!] ??= {};
+    if (nodes.value[i.metadata!.name!].cpu) {
+      metrics.cpuPercentage = metrics.cpu / nodes.value[i.metadata!.name!].cpu! * 100;
     }
-    if (nodes.value[i.metadata.name].mem) {
-      metrics.memPercentage = metrics.mem / nodes.value[i.metadata.name].mem! * 100;
+    if (nodes.value[i.metadata!.name!].mem) {
+      metrics.memPercentage = metrics.mem / nodes.value[i.metadata!.name!].mem! * 100;
     }
-    samples.value[index][i.metadata.name] = metrics;
+    samples.value[index][i.metadata!.name!] = metrics;
 
     const d = parseDuration(i.window, 's')!;
     for (let j = 1; j < d; j++) {
@@ -186,7 +191,7 @@ const { load } = useApiLoader(async (signal) => {
       if (index < 0) {
         return;
       }
-      samples.value[index][i.metadata.name] = metrics;
+      samples.value[index][i.metadata!.name!] = metrics;
     }
   });
 });
