@@ -55,14 +55,9 @@ const request = <K extends keyof PromiseStore>(key: K): Required<PromiseStore>[K
   if (pendingPromises[key]) {
     return pendingPromises[key]!.promise;
   }
-  // TODO Promise.withResolvers() es2024
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let resolver: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const promise: Promise<any> = new Promise((resolve) => {
-    resolver = resolve;
-  });
-  pendingPromises[key] = { promise, resolver };
+  const { promise, resolve } = Promise.withResolvers<any>();
+  pendingPromises[key] = { promise, resolver: resolve };
   const msg: RequestDataOutboundMessage = { type: `request.${key}` };
   postMessage(msg);
   return promise;
