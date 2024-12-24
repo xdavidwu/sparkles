@@ -8,8 +8,8 @@ import { formatDateTime } from '@/utils/lang';
 import { gt } from 'semver';
 
 const props = defineProps<{
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  item: any,
+  // DataTableItem<Release>
+  item: Required<InstanceType<typeof VDataTableRow<Release>>['$props']>['item'],
   latestChart?: ChartVersion,
   expandable?: boolean,
   expanded?: boolean,
@@ -25,7 +25,7 @@ const emit = defineEmits<{
   (e: 'toggleExpand'): void;
 }>();
 
-const release = computed<Release>(() => props.item.raw);
+const release = computed(() => props.item.raw);
 const upgrade = computed(() =>
   (props.latestChart && gt(props.latestChart.version, release.value.chart.metadata.version)) ?
     props.latestChart : undefined);
