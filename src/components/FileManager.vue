@@ -3,7 +3,7 @@ import {
   VCard, VMenu, VDialog,
   VCol, VDataIterator, VList, VListItem, VRow, VTable,
   VDivider, VProgressCircular,
-  VAutocomplete, VBtn, VCheckboxBtn,
+  VBtn, VCheckboxBtn, VCombobox,
 } from 'vuetify/components';
 import {
   computed, ref, watch,
@@ -73,6 +73,8 @@ const changingPermission = ref(false);
 const modBits = ref((new Array(12)).fill(false));
 const mod = computed(() =>
   modBits.value.reduceRight((a, v) => (a << 1) | (v ? 1 : 0), 0));
+const wantedUser = ref<number | string>(0);
+const wantedGroup = ref<number | string>(0);
 
 const configStore = useApiConfig();
 const api = new CoreV1Api(await configStore.getConfig());
@@ -235,6 +237,8 @@ const editPermission = (i: Entry) => {
     modBits.value[k] = (mod & 1) == 1;
     mod >>= 1;
   }
+  wantedUser.value = i.stats.uid!;
+  wantedGroup.value = i.stats.gid!;
   changingPermission.value = true;
 };
 
@@ -344,10 +348,21 @@ onUnmounted(() => sftp.end());
                   TODO impl
                   <VRow dense>
                     <VCol>
-                      <VAutocomplete label="Owner" density="compact" />
+                      <!-- XXX id in title messes with input,
+                        but keeps the search highlight from vuetify -->
+                      <VCombobox label="Owner"
+                        v-model="wantedUser" :items="Object.values(passwd)"
+                        item-value="uid"
+                        :item-title="(i) => i.name ? `${i.name} (${i.uid})` : i"
+                        :return-object="false" />
+                      <!-- TODO make use of owner's group? -->
                     </VCol>
                     <VCol>
-                      <VAutocomplete label="Group" density="compact" />
+                      <VCombobox label="Group"
+                        v-model="wantedGroup" :items="Object.values(group)"
+                        item-value="gid"
+                        :item-title="(i) => i.groupName ? `${i.groupName} (${i.gid})` : i"
+                        :return-object="false" />
                     </VCol>
                   </VRow>
                   <VTable density="compact" hover>
