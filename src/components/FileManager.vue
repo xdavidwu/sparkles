@@ -377,81 +377,79 @@ onUnmounted(() => sftp.end());
                   title="Manage permissions" @click="() => editPermission(contextMenuAbout!)" />
               </VList>
             </VMenu>
-            <!-- TODO make the width stabler -->
-            <VDialog v-model="changingPermission" width="auto">
-              <VCard :title="`Permissions of ${contextMenuAbout!.filename}`">
-                <template #text>
-                  <VRow dense>
-                    <VCol>
-                      <!-- XXX id in title messes with input,
-                        but keeps the search highlight from vuetify -->
-                      <VCombobox label="Owner"
-                        v-model="wantedUser" :items="Object.values(passwd)"
-                        item-value="uid"
-                        :item-title="(i) => i.name ? `${i.name} (${i.uid})` : i"
-                        :return-object="false" />
-                      <!-- TODO make use of owner's group? -->
-                    </VCol>
-                    <VCol>
-                      <VCombobox label="Group"
-                        v-model="wantedGroup" :items="Object.values(group)"
-                        item-value="gid"
-                        :item-title="(i) => i.groupName ? `${i.groupName} (${i.gid})` : i"
-                        :return-object="false" />
-                    </VCol>
-                  </VRow>
-                  <VTable density="compact" hover>
-                    <thead>
-                      <tr>
-                        <th></th>
-                        <th>Read</th>
-                        <th>Write</th>
-                        <th>Execute</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <th>Owner</th>
-                        <td><VCheckboxBtn v-model="modBits[8]" /></td>
-                        <td><VCheckboxBtn v-model="modBits[7]" /></td>
-                        <td><VCheckboxBtn v-model="modBits[6]" /></td>
-                      </tr>
-                      <tr>
-                        <th>Group</th>
-                        <td><VCheckboxBtn v-model="modBits[5]" /></td>
-                        <td><VCheckboxBtn v-model="modBits[4]" /></td>
-                        <td><VCheckboxBtn v-model="modBits[3]" /></td>
-                      </tr>
-                      <tr>
-                        <th>Others</th>
-                        <td><VCheckboxBtn v-model="modBits[2]" /></td>
-                        <td><VCheckboxBtn v-model="modBits[1]" /></td>
-                        <td><VCheckboxBtn v-model="modBits[0]" /></td>
-                      </tr>
-                    </tbody>
-                  </VTable>
-                  <VRow class="mt-1" dense>
-                    <VCol>
-                      <VCheckboxBtn label="SUID" v-model="modBits[11]" density="compact" />
-                    </VCol>
-                    <VCol>
-                      <VCheckboxBtn label="SGID" v-model="modBits[10]" density="compact" />
-                    </VCol>
-                    <VCol>
-                      <VCheckboxBtn label="Sticky" v-model="modBits[9]" density="compact" />
-                    </VCol>
-                  </VRow>
-                </template>
-                <template #actions>
-                  <VBtn variant="text" @click="changingPermission = false">Cancel</VBtn>
-                  <VBtn variant="text" color="primary"
-                    @click="() => savePermission(contextMenuAbout!)">Save</VBtn>
-                </template>
-              </VCard>
-            </VDialog>
           </div>
         </template>
       </VDataIterator>
+      <!-- TODO make the width stabler -->
+      <VDialog v-model="changingPermission" width="auto">
+        <VCard :title="`Permissions of ${contextMenuAbout!.filename}`">
+          <template #text>
+            <VRow dense>
+              <VCol>
+                <!-- XXX id in title messes with input,
+                  but keeps the search highlight from vuetify -->
+                <VCombobox label="Owner" v-model="wantedUser"
+                  :items="Object.values(passwd)" item-value="uid"
+                  :item-title="(i) => i.name ? `${i.name} (${i.uid})` : i"
+                  :return-object="false" />
+                <!-- TODO make use of owner's group? -->
+              </VCol>
+              <VCol>
+                <VCombobox label="Group" v-model="wantedGroup"
+                  :items="Object.values(group)" item-value="gid"
+                  :item-title="(i) => i.groupName ? `${i.groupName} (${i.gid})` : i"
+                  :return-object="false" />
+              </VCol>
+            </VRow>
+            <VTable density="compact" hover>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Read</th>
+                  <th>Write</th>
+                  <th>Execute</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th>Owner</th>
+                  <td><VCheckboxBtn v-model="modBits[8]" /></td>
+                  <td><VCheckboxBtn v-model="modBits[7]" /></td>
+                  <td><VCheckboxBtn v-model="modBits[6]" /></td>
+                </tr>
+                <tr>
+                  <th>Group</th>
+                  <td><VCheckboxBtn v-model="modBits[5]" /></td>
+                  <td><VCheckboxBtn v-model="modBits[4]" /></td>
+                  <td><VCheckboxBtn v-model="modBits[3]" /></td>
+                </tr>
+                <tr>
+                  <th>Others</th>
+                  <td><VCheckboxBtn v-model="modBits[2]" /></td>
+                  <td><VCheckboxBtn v-model="modBits[1]" /></td>
+                  <td><VCheckboxBtn v-model="modBits[0]" /></td>
+                </tr>
+              </tbody>
+            </VTable>
+            <VRow class="mt-1" dense>
+              <VCol>
+                <VCheckboxBtn label="SUID" v-model="modBits[11]" density="compact" />
+              </VCol>
+              <VCol>
+                <VCheckboxBtn label="SGID" v-model="modBits[10]" density="compact" />
+              </VCol>
+              <VCol>
+                <VCheckboxBtn label="Sticky" v-model="modBits[9]" density="compact" />
+              </VCol>
+            </VRow>
+          </template>
+          <template #actions>
+            <VBtn variant="text" @click="changingPermission = false">Cancel</VBtn>
+            <VBtn variant="text" color="primary"
+              @click="() => savePermission(contextMenuAbout!)">Save</VBtn>
+          </template>
+        </VCard>
+      </VDialog>
     </template>
   </VCard>
 </template>
