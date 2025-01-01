@@ -5,6 +5,8 @@ import {
   VDivider, VProgressCircular,
   VBtn, VCheckboxBtn, VCombobox,
 } from 'vuetify/components';
+import SpeedDialBtn from '@/components/SpeedDialBtn.vue';
+import SpeedDialFab from '@/components/SpeedDialFab.vue';
 import {
   computed, ref, watch,
   onErrorCaptured, onMounted, onUnmounted,
@@ -380,6 +382,10 @@ onUnmounted(() => sftp.end());
           </div>
         </template>
       </VDataIterator>
+      <SpeedDialFab icon="$plus">
+        <SpeedDialBtn key="1" label="TODO Upload file" icon="mdi-upload" />
+        <SpeedDialBtn key="2" label="TODO New directory" icon="mdi-folder-plus-outline" />
+      </SpeedDialFab>
       <!-- TODO make the width stabler -->
       <VDialog v-model="changingPermission" width="auto">
         <VCard :title="`Permissions of ${contextMenuAbout!.filename}`">
