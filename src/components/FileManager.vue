@@ -242,16 +242,51 @@ const editPermission = (i: Entry) => {
   changingPermission.value = true;
 };
 
+const numericId = /^[1-9][0-9]*$/;
+const resolveIds = () => [
+  typeof wantedUser.value === 'number' ? wantedUser.value : (() => {
+    const v = (wantedUser.value as string).trim();
+    if (numericId.test(v)) {
+      return parseInt(v, 10);
+    }
+    const entry = Object.values(passwd.value).find((p) => p.name === v);
+    if (!entry) {
+      throw new PresentedError(`User ${v} does not exist`);
+    }
+    return entry.uid;
+  })(),
+  typeof wantedGroup.value === 'number' ? wantedGroup.value : (() => {
+    const v = (wantedGroup.value as string).trim();
+    if (numericId.test(v)) {
+      return parseInt(v, 10);
+    }
+    const entry = Object.values(group.value).find((p) => p.groupName === v);
+    if (!entry) {
+      throw new PresentedError(`Group ${v} does not exist`);
+    }
+    return entry.gid;
+  })(),
+];
+
 const savePermission = async (i: Entry) => {
-  const origMod = (i.stats.mode!) & 0o7777;
   const stDiff: IStats = {};
+
+  const origMod = (i.stats.mode!) & 0o7777;
   if (mod.value != origMod) {
     stDiff.mode = mod.value;
   }
-  changingPermission.value = false;
+  const [uid, gid] = resolveIds();
+  if (uid != i.stats.uid || gid != i.stats.gid) {
+    stDiff.uid = uid;
+    stDiff.gid = gid;
+  }
+
   if (Object.keys(stDiff).length > 0) {
     await asPromise(sftp, 'setstat', [`${realroot}${i.lpath}`, stDiff]);
+    changingPermission.value = false;
     await listdir(cwd.value, signal.value);
+  } else {
+    changingPermission.value = false;
   }
 };
 
@@ -342,10 +377,10 @@ onUnmounted(() => sftp.end());
                   title="Manage permissions" @click="() => editPermission(contextMenuAbout!)" />
               </VList>
             </VMenu>
+            <!-- TODO make the width stabler -->
             <VDialog v-model="changingPermission" width="auto">
               <VCard :title="`Permissions of ${contextMenuAbout!.filename}`">
                 <template #text>
-                  TODO impl
                   <VRow dense>
                     <VCol>
                       <!-- XXX id in title messes with input,
