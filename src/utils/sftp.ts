@@ -1,4 +1,4 @@
-import { SftpClientCore, MAX_READ_BLOCK_LENGTH } from '@xdavidwu/websocket-sftp/lib/sftp-client';
+import { SftpClientCore } from '@xdavidwu/websocket-sftp/lib/sftp-client';
 import type { IChannel } from '@xdavidwu/websocket-sftp/lib/channel';
 import type { IFilesystem } from '@xdavidwu/websocket-sftp/lib/fs-api';
 import type { SftpStatusCode } from '@xdavidwu/websocket-sftp/lib/sftp-enums';
@@ -101,7 +101,12 @@ export interface SftpError extends Error {
   toHandle?: any;
 };
 
-const chunkSize = MAX_READ_BLOCK_LENGTH;
+const OPENSSH_SFTP_MAX_MSG_LENGTH = 256 * 1024;
+// less then limits from library (MAX_READ/WRITE_BLOCK_LENGTH 1024 * 1024)
+const OPENSSH_SFTP_MAX_READ_LENGTH = OPENSSH_SFTP_MAX_MSG_LENGTH - 1024;
+// from process_extended_limits
+// const OPENSSH_SFTP_MAX_WRITE_LENGTH = OPENSSH_SFTP_MAX_MSG_LENGTH - 1024;
+
 export const readAsStream = (
   sftp: SftpClientCore, handle: Parameters<SftpClientCore['read']>[0],
   offset: number = 0, length: number = Number.POSITIVE_INFINITY,
@@ -111,7 +116,7 @@ export const readAsStream = (
   return new ReadableStream({
     pull: async (ctrl) => {
       if (length > 0) {
-        const wanted = length < chunkSize ? length : chunkSize;
+        const wanted = length < OPENSSH_SFTP_MAX_READ_LENGTH ? length : OPENSSH_SFTP_MAX_READ_LENGTH;
         try {
           const [buffer, read] = await asPromise(sftp, 'read', [handle, Buffer.alloc(wanted), 0, wanted, offset]);
           if (read == 0) {
