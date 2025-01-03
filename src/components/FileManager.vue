@@ -20,7 +20,7 @@ import { extractUrl, rawErrorIsAborted } from '@/utils/api';
 import { PresentedError } from '@/utils/PresentedError';
 import { connect } from '@/utils/wsstream';
 import {
-  type SftpError,
+  type SftpError, isSftpError,
   sftpFromWsstream, asPromise, readAsStream, writeFromBlob,
 } from '@/utils/sftp';
 import { normalizeAbsPath, modfmt, isExecutable } from '@/utils/posix';
@@ -310,15 +310,14 @@ const upload = async (e: Event) => {
 };
 
 onErrorCaptured((e) => {
-  if ((e as SftpError).errno != undefined) {
-    const err = e as SftpError;
-    for (const key in err) {
-      console.log(key, err[key as keyof SftpError]);
+  if (isSftpError(e)) {
+    for (const key in e) {
+      console.log(key, e[key as keyof SftpError]);
     }
-    const msg = err.path ?
-      `Accessing ${err.path.replace(realroot, '')}: ${err.description}` :
-      err.description;
-    throw new PresentedError(msg, { cause: err });
+    const msg = e.path ?
+      `Accessing ${e.path.replace(realroot, '')}: ${e.description}` :
+      e.description;
+    throw new PresentedError(msg, { cause: e });
   }
   throw e;
 });

@@ -101,7 +101,7 @@ export interface SftpError extends Error {
   toHandle?: any;
 };
 
-const isSftpError = (e: unknown): e is SftpError =>
+export const isSftpError = (e: unknown): e is SftpError =>
   (e as SftpError).errno != undefined;
 
 const OPENSSH_SFTP_MAX_MSG_LENGTH = 256 * 1024;
