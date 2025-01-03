@@ -19,7 +19,10 @@ import { useAbortController } from '@/composables/abortController';
 import { extractUrl, rawErrorIsAborted } from '@/utils/api';
 import { PresentedError } from '@/utils/PresentedError';
 import { connect } from '@/utils/wsstream';
-import { type SftpError, sftpFromWsstream, asPromise, readAsStream } from '@/utils/sftp';
+import {
+  type SftpError,
+  sftpFromWsstream, asPromise, readAsStream, writeFromBlob,
+} from '@/utils/sftp';
 import { normalizeAbsPath, modfmt, isExecutable } from '@/utils/posix';
 import { type Passwd, type Group, parsePasswdLine, parseGroupLine } from '@/utils/linux';
 import {
@@ -67,7 +70,7 @@ const { x: aboutX, y: aboutY, update: updateAboutBox } = useElementBounding(cont
 // XXX until there is sth like PositionObserver
 watch(entries, () => requestAnimationFrame(updateAboutBox));
 const contextMenuPosition = computed(() => ({
-  // XXX maybe relativeToContainer in https://github.com/vueuse/vueuse/pull/4368
+  // XXX maybe relativeToContainer in https://github.com/vueuse/vueuse/pull/4455
   x: contextMenuAboutPosition.value.x + aboutX.value - containerX.value,
   y: contextMenuAboutPosition.value.y + aboutY.value - containerY.value,
 }));
@@ -77,6 +80,8 @@ const mod = computed(() =>
   modBits.value.reduceRight((a, v) => (a << 1) | (v ? 1 : 0), 0));
 const wantedUser = ref<number | string>(0);
 const wantedGroup = ref<number | string>(0);
+
+const uploadFilesInput = useTemplateRef('files');
 
 const configStore = useApiConfig();
 const api = new CoreV1Api(await configStore.getConfig());
@@ -292,6 +297,18 @@ const savePermission = async (i: Entry) => {
   }
 };
 
+const upload = async (e: Event) => {
+  await Promise.all(Array.from((e.target as HTMLInputElement).files!).map(async (f) => {
+    // wx: WRITE | CREAT | EXCL
+    // TODO default owner/group from server looks wrong
+    const [fd] = await asPromise(sftp, 'open', [`${realroot}${cwd.value}/${f.name}`, 'wx', {}]);
+    // TODO handle name conflicts?
+    // TODO progress
+    await writeFromBlob(sftp, fd, f);
+  }));
+  await listdir(cwd.value, signal.value);
+};
+
 onErrorCaptured((e) => {
   if ((e as SftpError).errno != undefined) {
     const err = e as SftpError;
@@ -383,7 +400,9 @@ onUnmounted(() => sftp.end());
         </template>
       </VDataIterator>
       <SpeedDialFab icon="$plus">
-        <SpeedDialBtn key="1" label="TODO Upload file" icon="mdi-upload" />
+        <input type="file" ref="files" class="d-none" multiple
+          @click.stop @change="upload" />
+        <SpeedDialBtn key="1" label="TODO Upload file" icon="mdi-upload" @click.stop="uploadFilesInput!.click()" />
         <SpeedDialBtn key="2" label="TODO New directory" icon="mdi-folder-plus-outline" />
       </SpeedDialFab>
       <!-- TODO make the width stabler -->

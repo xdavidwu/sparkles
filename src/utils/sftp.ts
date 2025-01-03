@@ -101,11 +101,14 @@ export interface SftpError extends Error {
   toHandle?: any;
 };
 
+const isSftpError = (e: unknown): e is SftpError =>
+  (e as SftpError).errno != undefined;
+
 const OPENSSH_SFTP_MAX_MSG_LENGTH = 256 * 1024;
 // less then limits from library (MAX_READ/WRITE_BLOCK_LENGTH 1024 * 1024)
 const OPENSSH_SFTP_MAX_READ_LENGTH = OPENSSH_SFTP_MAX_MSG_LENGTH - 1024;
 // from process_extended_limits
-// const OPENSSH_SFTP_MAX_WRITE_LENGTH = OPENSSH_SFTP_MAX_MSG_LENGTH - 1024;
+const OPENSSH_SFTP_MAX_WRITE_LENGTH = OPENSSH_SFTP_MAX_MSG_LENGTH - 1024;
 
 export const readAsStream = (
   sftp: SftpClientCore, handle: Parameters<SftpClientCore['read']>[0],
@@ -147,4 +150,43 @@ export const readAsStream = (
       }
     },
   });
+};
+
+// ReadableStreamBYOBReader with min read may be easier to work with
+// when it gets widespread support
+// (less concern about buffer copies)
+export const writeFromBlob = async (sftp: SftpClientCore,
+  handle: Parameters<SftpClientCore['write']>[0],
+  blob: Blob,
+  offset: number = 0,
+  progress?: (offset: number) => unknown,
+) => {
+  let chunkSz = OPENSSH_SFTP_MAX_WRITE_LENGTH;
+
+  while (blob.size) {
+    chunkSz = chunkSz < blob.size ? chunkSz : blob.size;
+    const chunk = Buffer.from(await blob.slice(0, chunkSz).arrayBuffer());
+    try {
+      await asPromise(sftp, 'write', [handle, chunk, 0, chunkSz, offset]);
+      offset += chunkSz;
+      progress?.(offset);
+      blob = blob.slice(chunkSz);
+    } catch (e) {
+      // forwarded ambient const enum: SftpStatusCode.FAILURE
+      if (isSftpError(e) && e.nativeCode == 4) {
+        // possibly short write on openssh impl,
+        // no way to know how many was written, retry with shorter chunk
+        chunkSz = Math.floor(chunkSz / 2);
+
+        if (chunkSz < 1) { // shrug
+          await asPromise(sftp, 'close', [handle]);
+          throw e;
+        }
+      } else {
+        await asPromise(sftp, 'close', [handle]);
+        throw e;
+      }
+    }
+  }
+  await asPromise(sftp, 'close', [handle]);
 };
