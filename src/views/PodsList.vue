@@ -230,9 +230,12 @@ const createEphemeral = (
       gid = target.securityContext.runAsGroup;
     }
 
-    if (reducePrivilege && !fscredKnown) {
+    if (!fscredKnown) {
       progress('Finding out uid/gid of running container');
 
+      // instead of inspecting spec and image (which may requires auth),
+      // this also catch those entrypoint script that set(fs)?[ug]id,
+      // to get the actual credentials app is likely using for fs ops
       const inspectName = `spk-uid-${id}`; // keep length the same for ui
       const inspect: V1Pod = {
         apiVersion: 'v1',
@@ -298,15 +301,20 @@ const createEphemeral = (
           ...spec,
           name,
           targetContainerName: target.name,
-          securityContext: reducePrivilege ? {
-            ...restrictedSecurityContext,
+          securityContext: {
+            ...(reducePrivilege ? restrictedSecurityContext : {
+              // at least SYS_PTRACE for /proc/1/root,
+              // also want DAC_OVERRIDE for sftp, all other stuff for shell
+              privileged: true,
+            }),
+            // we want these to make behavior of two routes differ less
+            // e.g. credentials on open(2) O_CREAT
+            // user sees shells show $ as prompt but most privileged stuff just work
+            // but actually? a nice QoL tweak for file permissions
+            // TODO proper docs for this
+            // XXX fs[ug]id instead, when k8s actually let us just set it
             runAsUser: uid,
             runAsGroup: gid,
-          } : {
-            privileged: true,
-            capabilities: {
-              add: ['SYS_PTRACE'], // for /proc/1/root, left for reference
-            },
           },
         }],
       }

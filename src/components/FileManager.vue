@@ -196,6 +196,7 @@ const enter = async (e: Entry) => {
     a.click();
     // let click to be handled first
     setTimeout(() => URL.revokeObjectURL(url), 0);
+    // XXX if opened in browser, ctrl+s doesn't work
   };
 };
 
@@ -300,7 +301,6 @@ const savePermission = async (i: Entry) => {
 const upload = async (e: Event) => {
   await Promise.all(Array.from((e.target as HTMLInputElement).files!).map(async (f) => {
     // wx: WRITE | CREAT | EXCL
-    // TODO default owner/group from server looks wrong
     const [fd] = await asPromise(sftp, 'open', [`${realroot}${cwd.value}/${f.name}`, 'wx', {}]);
     // TODO handle name conflicts?
     // TODO progress
