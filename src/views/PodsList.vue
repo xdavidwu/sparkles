@@ -31,6 +31,7 @@ import {
 import {
   bySSA, mirrorPodAnnotation, restrictedSecurityContext, V1WatchEventType,
 } from '@/utils/api';
+import { containerFsuidAnnotationPrefix, containerFsgidAnnotationPrefix } from '@/utils/contracts';
 import { truncateStart } from '@/utils/text';
 import { listAndUnwaitedWatch, watchUntil } from '@/utils/watch';
 import { notifyListingWatchErrors } from '@/utils/errors';
@@ -223,11 +224,22 @@ const createEphemeral = (
     let uid = 65535, gid = 65535, fscredKnown = false;
 
     // assuming they don't switch if not from root
-    // XXX: is it safe enough?
+    // not really fs[ug]id, but close and probably safe enough
     if (target.securityContext?.runAsUser && target.securityContext?.runAsGroup) {
       fscredKnown = true;
       uid = target.securityContext.runAsUser;
       gid = target.securityContext.runAsGroup;
+    }
+
+    const [fsuidAnnotationKey, fsgidAnnotationKey] = [
+      `${containerFsuidAnnotationPrefix}${target.name}`,
+      `${containerFsgidAnnotationPrefix}${target.name}`,
+    ];
+    if (pod.metadata!.annotations?.[fsuidAnnotationKey] &&
+        pod.metadata!.annotations?.[fsgidAnnotationKey]) {
+      fscredKnown = true;
+      uid = parseInt(pod.metadata!.annotations[fsuidAnnotationKey], 10);
+      gid = parseInt(pod.metadata!.annotations[fsgidAnnotationKey], 10);
     }
 
     if (!fscredKnown) {
@@ -290,6 +302,23 @@ const createEphemeral = (
       const rows = log.split('\n');
       uid = parseInt(rows[0], 10);
       gid = parseInt(rows[1], 10);
+
+      const cache: V1Pod = {
+        apiVersion: 'v1',
+        kind: 'Pod',
+        metadata: {
+          annotations: {
+            [fsuidAnnotationKey]: uid.toString(),
+            [fsgidAnnotationKey]: gid.toString(),
+          },
+        },
+      };
+
+      api.patchNamespacedPod({
+        namespace: pod.metadata!.namespace!,
+        name: pod.metadata!.name!,
+        body: cache,
+      }, bySSA).catch((e) => console.log('unable to annotate pod for caching fscreds', e));
     }
 
     const update: V1Pod = {

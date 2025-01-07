@@ -13,3 +13,7 @@ export const defaultCustomValuesAnnotation = `${namespace}/default-custom-values
 export const tokenHandleSecretType = `${namespace}/token-handle`;
 export const tokenNoteAnnotation = `token.${namespace}/note`;
 export const tokenExpiresAtAnnotation = `token.${namespace}/expires-at`;
+
+// on Pod to cache fscreds inspection
+export const containerFsuidAnnotationPrefix = `fsuid.container.${namespace}/`;
+export const containerFsgidAnnotationPrefix = `fsgid.container.${namespace}/`;
