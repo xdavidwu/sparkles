@@ -2,7 +2,7 @@
 import {
   VCard, VMenu, VDialog,
   VCol, VDataIterator, VList, VListItem, VRow, VTable,
-  VDivider, VProgressCircular,
+  VDivider, VIcon, VProgressCircular,
   VBtn, VCheckboxBtn, VCombobox,
 } from 'vuetify/components';
 import SpeedDialBtn from '@/components/SpeedDialBtn.vue';
@@ -372,17 +372,13 @@ onUnmounted(() => sftp.end());
             <div v-for="{ raw: e }, index in items" :key="e.filename"
               @contextmenu.prevent="(ev: MouseEvent) => onContextMenu(ev, e)">
               <VDivider v-if="index && index != items.length" />
-              <VListItem :title="e.filename" :prepend-icon="getIcon(e)"
-                :active="contextMenu && contextMenuAbout == e"
+              <VListItem :active="contextMenu && contextMenuAbout == e"
                 @dblclick="enter(e)">
                 <template #title>
                   {{ e.filename }}
                   <span v-if="e.readlink" class="text-medium-emphasis text-caption">
                     → {{ e.readlink }}
                   </span>
-                  <VProgressCircular v-if="e.downloadProgress != undefined"
-                    class="ms-1" size="18" width="2"
-                    :model-value="e.downloadProgress"/>
                 </template>
                 <template #subtitle>
                   <pre>{{
@@ -393,6 +389,12 @@ onUnmounted(() => sftp.end());
                     formatDateTime(e.stats.mtime).padStart(32)
                   }}</pre>
                 </template>
+                <template #prepend>
+                  <VProgressCircular v-if="e.downloadProgress != undefined"
+                    class="me-8" size="21" width="2"
+                    :model-value="e.downloadProgress" />
+                  <VIcon v-else :icon="getIcon(e)" />
+                </template>
               </VListItem>
             </div>
             <div v-for="[name, progress] in uploading.get(cwd)" :key="name">
@@ -400,7 +402,7 @@ onUnmounted(() => sftp.end());
               <VListItem :title="name" prepend-icon="mdi-upload">
                 <template #subtitle><pre>Uploading...</pre></template>
                 <template #prepend>
-                  <VProgressCircular class="me-8" size="20" width="2"
+                  <VProgressCircular class="me-8" size="21" width="2"
                     :model-value="progress" />
                 </template>
               </VListItem>
