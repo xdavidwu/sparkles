@@ -55,6 +55,7 @@ type Entry = IItem & Partial<DereferenceResult> & {
 const realroot = '/proc/1/root';
 const cwd = ref('/');
 const entries = ref<Array<Entry>>([]);
+const uploading = ref<Map<string, Map<string, number>>>(new Map());
 const entriesLoading = ref(false);
 const passwd = ref<{ [uid: number]: Passwd }>({});
 const group = ref<{ [gid: number]: Group }>({});
@@ -299,14 +300,24 @@ const savePermission = async (i: Entry) => {
 };
 
 const upload = async (e: Event) => {
-  await Promise.all(Array.from((e.target as HTMLInputElement).files!).map(async (f) => {
+  const targetDir = cwd.value;
+  const targets = Array.from((e.target as HTMLInputElement).files!);
+  await Promise.all(targets.map(async (f) => {
     // wx: WRITE | CREAT | EXCL
-    const [fd] = await asPromise(sftp, 'open', [`${realroot}${cwd.value}/${f.name}`, 'wx', {}]);
+    const [fd] = await asPromise(sftp, 'open', [`${realroot}${targetDir}/${f.name}`, 'wx', {}]);
     // TODO handle name conflicts?
-    // TODO progress
-    await writeFromBlob(sftp, fd, f);
+
+    if (!uploading.value.has(targetDir)) {
+      uploading.value.set(targetDir, new Map());
+    }
+    await writeFromBlob(sftp, fd, f, 0,
+      (written) => uploading.value.get(targetDir)!.set(f.name, written / f.size * 100));
   }));
-  await listdir(cwd.value, signal.value);
+  // XXX reload before this may also see open'd entries
+  targets.forEach((f) => uploading.value.get(targetDir)!.delete(f.name));
+  if (cwd.value == targetDir) {
+    await listdir(cwd.value, signal.value);
+  }
 };
 
 onErrorCaptured((e) => {
@@ -384,6 +395,16 @@ onUnmounted(() => sftp.end());
                 </template>
               </VListItem>
             </div>
+            <div v-for="[name, progress] in uploading.get(cwd)" :key="name">
+              <VDivider />
+              <VListItem :title="name" prepend-icon="mdi-upload">
+                <template #subtitle><pre>Uploading...</pre></template>
+                <template #prepend>
+                  <VProgressCircular class="me-8" size="20" width="2"
+                    :model-value="progress" />
+                </template>
+              </VListItem>
+            </div>
             <VMenu v-model="contextMenu"
               :content-props="{ style: `left: ${contextMenuPosition.x}px; top: ${contextMenuPosition.y}px`}"
               location-strategy="static" absolute attach>
@@ -400,8 +421,9 @@ onUnmounted(() => sftp.end());
       </VDataIterator>
       <SpeedDialFab icon="$plus">
         <input type="file" ref="files" class="d-none" multiple
-          @click.stop @change="upload" />
-        <SpeedDialBtn key="1" label="TODO Upload file" icon="mdi-upload" @click.stop="uploadFilesInput!.click()" />
+          @change="upload" />
+        <SpeedDialBtn key="1" label="Upload files" icon="mdi-upload"
+          @click.stop="uploadFilesInput!.click()" />
         <SpeedDialBtn key="2" label="TODO New directory" icon="mdi-folder-plus-outline" />
       </SpeedDialFab>
       <!-- TODO make the width stabler -->
