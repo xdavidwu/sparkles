@@ -14,8 +14,8 @@ import {
 } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { listAndUnwaitedWatch } from '@/utils/watch';
 import { BaseColor, ColorVariant, colorToCode } from '@/utils/colors';
+import { durationToS } from '@/utils/duration';
 import type { KubernetesList, KubernetesObject } from '@/utils/objects';
-import parseDuration from 'parse-duration';
 import { real } from '@ragnarpa/quantity';
 import { fromBytes } from '@tsmx/human-readable';
 
@@ -185,7 +185,7 @@ const { load } = useApiLoader(async (signal) => {
     }
     samples.value[index][i.metadata!.name!] = metrics;
 
-    const d = parseDuration(i.window, 's')!;
+    const d = durationToS(i.window)!;
     for (let j = 1; j < d; j++) {
       index -= 1;
       if (index < 0) {

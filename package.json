@@ -45,7 +45,6 @@
     "mnemonic-id": "^3.2.7",
     "oidc-client-ts": "^3.0.0",
     "openapi-types": "^12.1.0",
-    "parse-duration": "^1.0.2",
     "pinia": "^2.0.21",
     "rfc6902": "^5.1.1",
     "semver": "^7.5.4",
