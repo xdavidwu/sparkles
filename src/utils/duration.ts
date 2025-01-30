@@ -30,7 +30,10 @@ export const humanDuration = (d: number): string => {
   return `${value}${currentUnit}`;
 };
 
-const suffixMap: { [key: string]: number } = {
+const unitMap: { [key: string]: number } = {
+  'ns': 1e-9,
+  'µs': 1e-6,
+  'ms': 1e-3,
   's': 1,
   'm': 60,
   'h': 60 * 60,
@@ -38,21 +41,35 @@ const suffixMap: { [key: string]: number } = {
   'y': 60 * 60 * 24 * 365,
 };
 
-export const humanDurationToS = (h?: string) => {
+// also compatible with time.Duration.String
+export const durationToS = (h?: string) => {
   let s = 0;
   let digits = '';
+  let unit = '';
+
+  // special case for time.Duration.String: 0 has no unit
+  if (h == '0') {
+    return 0;
+  }
+
   for (const c of h ?? '') {
-    if (c >= '0' && c <= '9') {
+    if (c >= '0' && c <= '9' || c == '-' || c == '.') {
       digits += c;
-    } else if (suffixMap[c]) {
-      if (!digits.length) {
-        return undefined;
-      }
-      s += parseInt(digits, 10) * suffixMap[c];
-      digits = '';
     } else {
-      return undefined;
+      unit += c;
+      if (unitMap[unit]) {
+        if (!digits.length) {
+          return undefined;
+        }
+        s += parseFloat(digits) * unitMap[unit];
+        digits = '';
+        unit = '';
+      }
     }
+  }
+
+  if (digits.length != 0) {
+    return undefined;
   }
   return s;
 };

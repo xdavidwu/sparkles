@@ -47,7 +47,7 @@ import { V2ResourceScope, type V2APIResourceDiscovery } from '@/utils/discoveryV
 import { uniqueKeyForObject, type KubernetesObject } from '@/utils/objects';
 import { listAndUnwaitedWatchTable } from '@/utils/watch';
 import { truncate } from '@/utils/text';
-import { humanDurationToS } from '@/utils/duration';
+import { durationToS } from '@/utils/duration';
 import { nonNullableRef } from '@/utils/reactivity';
 import { notifyListingWatchErrors } from '@/utils/errors';
 import type { JSONSchema4 } from 'json-schema';
@@ -195,7 +195,7 @@ const isRestarts = (c: V1TableColumnDefinition) => c.name === 'Restarts' &&
 // for where exact ts is not interesting enough for us to get from full object
 // TODO store estimated timestamp (need update ts tracking) and present from it?
 const sortHumanDuration = (a: string, b: string) =>
-  (humanDurationToS(a) ?? 0) - (humanDurationToS(b) ?? 0);
+  (durationToS(a) ?? 0) - (durationToS(b) ?? 0);
 // metrics.k8s.io/v1beta1 uses this (k8s.io/apimachinery/pkg/api/resource.Quantity)
 const sortQuantity = (a: string, b: string) => (real(a) ?? 0) - (real(b) ?? 0);
 const sortInteger = (a: string, b: string) => parseInt(a, 10) - parseInt(b, 10);
