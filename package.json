@@ -34,7 +34,6 @@
     "@xterm/addon-web-links": "^0.11.0",
     "@xterm/xterm": "^5.5.0",
     "buffer": "^6.0.3",
-    "change-case": "^5.1.2",
     "chartjs-adapter-date-std": "^0.1.8",
     "codemirror-json-schema": "^0.7.0",
     "dompurify": "^3.1.6",

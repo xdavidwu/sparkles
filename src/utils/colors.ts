@@ -1,5 +1,4 @@
 import actualColors from 'vuetify/util/colors';
-import { kebabCase } from 'change-case';
 
 export enum BaseColor {
   Red = 'red',
@@ -57,12 +56,19 @@ export const hashColor = async (str: string, baseColors: Array<BaseColor>,
   return { color: base, variant: variants[hash % variants.length] };
 };
 
+const kebabify = (s: BaseColor | ColorVariant) =>
+  Array.from(s).map((c) =>
+    (c >= 'A' && c <= 'Z') ? `-${c.toLowerCase()}` :
+    (c >= '0' && c <= '9') ? `-${c}` :
+    c
+  ).join('');
+
 // prefer this over css code when applicable
 // bg-* classes, which vuetify useColor uses, contains fixed fg colors
 // useColor also selects fg color by contrast if using css code for bg
 // but handpicked, fixed fg colors via classes should be better
 export const colorToClass = (color: Color): string => 
-  color.variant === ColorVariant.Base ? kebabCase(color.color) :
-    `${kebabCase(color.color)}-${color.variant.replace(/\d/, '-$&')}`;
+  color.variant === ColorVariant.Base ? kebabify(color.color) :
+    `${kebabify(color.color)}-${kebabify(color.variant)}`;
 
 export const colorToCode = (color: Color): string => actualColors[color.color][color.variant];
