@@ -6,7 +6,8 @@ import type { V1PartialObjectMetadata, V1Table } from '@/utils/AnyApi';
 import { isSameKubernetesObject, type KubernetesObject, type KubernetesList } from '@/utils/objects';
 import { rawErrorIsAborted, errorIsAborted, V1WatchEventType } from '@/utils/api';
 import {
-  createLineDelimitedStream, createChunkTransformStream, streamToGenerator,
+  createLineDelimitedStream, createChunkTransformStream,
+  catchStopGenerator, streamToGenerator,
   timeout,
 } from '@/utils/lang';
 import type { Ref } from 'vue';
@@ -37,7 +38,7 @@ const watch = async<T extends { metadata?: { resourceVersion?: string } }> (
   handler: (event: TypedV1WatchEvent<T>) => boolean | void,
   resourceVersion: string,
   expectAbort: boolean,
-): Promise<string | void> => {
+): Promise<string | undefined> => {
   let updates;
   try {
     updates = await watchResponse;
@@ -48,19 +49,16 @@ const watch = async<T extends { metadata?: { resourceVersion?: string } }> (
     throw e;
   }
 
+  const g = catchStopGenerator(
+    rawResponseToWatchEvents(updates, transformer),
+    (e) => (expectAbort && rawErrorIsAborted(e)) ||
+      console.log("error on watch:", e));
   let lastResourceVersion = resourceVersion;
-  try {
-    for await (const event of rawResponseToWatchEvents(updates, transformer)) {
-      lastResourceVersion = event.object.metadata!.resourceVersion!;
-      if (event.type !== V1WatchEventType.BOOKMARK && handler(event)) {
-        return;
-      }
-    }
-  } catch (e) {
-    if (expectAbort && rawErrorIsAborted(e)) {
+  for await (const event of g) {
+    lastResourceVersion = event.object.metadata!.resourceVersion!;
+    if (event.type !== V1WatchEventType.BOOKMARK && handler(event)) {
       return;
     }
-    console.log("error on watch:", e);
   }
   return lastResourceVersion;
 };

@@ -26,6 +26,20 @@ export async function* streamToGenerator<T>(r: ReadableStream<T>) {
   }
 }
 
+export async function* catchStopGenerator<T>(
+  g: AsyncGenerator<T>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  c: (e: any) => void,
+): AsyncGenerator<T> {
+  try {
+    for await (const r of g) {
+      yield r;
+    }
+  } catch (e) {
+    c(e);
+  }
+}
+
 export const createLineDelimitedStream = () => {
   let buffer = '';
   return new TransformStream({
