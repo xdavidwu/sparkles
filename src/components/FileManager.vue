@@ -27,8 +27,8 @@ import { normalizeAbsPath, modfmt, isExecutable } from '@/utils/posix';
 import { type Passwd, type Group, parsePasswdLine, parseGroupLine } from '@/utils/linux';
 import {
   createChunkTransformStream, createLineDelimitedStream, streamToGenerator,
-  formatDateTime,
 } from '@/utils/lang';
+import { formatDateTime } from '@/utils/time';
 import { fromBytes } from '@tsmx/human-readable';
 import mime from 'mime';
 import type { IItem, IStats } from '@xdavidwu/websocket-sftp/lib/fs-api';

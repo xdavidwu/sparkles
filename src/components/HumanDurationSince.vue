@@ -4,7 +4,7 @@ import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useTime } from '@/stores/time';
 import { humanDuration } from '@/utils/duration';
-import { formatDateTime } from '@/utils/lang';
+import { formatDateTime } from '@/utils/time';
 
 const props = defineProps<{
   since: Date | number,

@@ -79,30 +79,6 @@ export const ignore = async <T>(
 export const timeout = (t: number) =>
   new Promise((resolve) => setTimeout(resolve, t));
 
-// https://tc39.es/ecma402/#sec-createdatetimeformat
-const intlDateDefaults: Intl.DateTimeFormatOptions = {
-  year: 'numeric',
-  month: 'numeric',
-  day: 'numeric',
-};
-const intlTimeDefaults: Intl.DateTimeFormatOptions = {
-  hour: 'numeric',
-  minute: 'numeric',
-  second: 'numeric',
-};
-
-// a la Date.prototype.toLocaleDateString()
-export const dateFormatter = new Intl.DateTimeFormat(undefined, intlDateDefaults);
-// a la Date.prototype.toLocaleString()
-export const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
-  ...intlDateDefaults,
-  ...intlTimeDefaults,
-});
-
-// invalid date (NaN) throws unlike toLocale*String
-export const formatDate = dateFormatter.format;
-export const formatDateTime = dateTimeFormatter.format;
-
 // objects
 export type OnlyRequired<T> = { [K in keyof T as (undefined extends T[K] ? never : K)]: T[K] };
 export type MakePartial<T, C extends keyof T> = Omit<T, C> & Partial<Pick<T, C>>;

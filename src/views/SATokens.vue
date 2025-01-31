@@ -14,7 +14,7 @@ import {
   tokenHandleSecretType,
   tokenNoteAnnotation, tokenExpiresAtAnnotation,
 } from '@/utils/contracts';
-import { formatDate, formatDateTime } from '@/utils/lang';
+import { formatDate, formatDateTime } from '@/utils/time';
 import { listAndUnwaitedWatch } from '@/utils/watch';
 import { stringify } from '@/utils/yaml';
 import { notifyListingWatchErrors } from '@/utils/errors';
