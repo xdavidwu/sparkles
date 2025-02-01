@@ -15,6 +15,6 @@ defineOptions({ inheritAttrs: false });
   <div class="d-flex justify-end align-center">
     <VCard class="me-3 py-1 px-2 text-body-2"
       :class="{ 'text-disabled': props.disabled }">{{ props.label }}</VCard>
-    <VBtn v-bind="$attrs" :disabled="props.disabled" />
+    <VBtn v-bind="$attrs" class="me-1" :disabled="props.disabled" />
   </div>
 </template>

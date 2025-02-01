@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { VFab, VScaleTransition } from 'vuetify/components';
+import { VFab, VScaleTransition, VIcon } from 'vuetify/components';
 import { ref, inject } from 'vue';
 import { windowVisibilityInjectionKey } from '@/utils/keys';
 
@@ -11,17 +11,14 @@ const visible = inject(windowVisibilityInjectionKey, ref(true));
 <template>
   <!-- untie it with vwindow -->
   <Teleport to="main">
-    <!-- fab uses absolute positioning internally, container has no width -->
-    <VScaleTransition appear origin="24px center">
-      <VFab v-bind="$attrs" v-if="visible" color="primary" class="fixed-fab" />
+    <!-- XXX origin accuracy? -->
+    <VScaleTransition appear origin="bottom center">
+      <VFab v-bind="$attrs" v-if="visible" color="primary" app location="right bottom">
+        <!-- XXX maybe tsx or h so we can really fill vfab iff slot used -->
+        <slot>
+          <VIcon :icon="$attrs['icon'] as InstanceType<typeof VIcon>['$props']['icon']" />
+        </slot>
+      </VFab>
     </VScaleTransition>
   </Teleport>
 </template>
-
-<style scoped>
-.fixed-fab {
-  position: fixed;
-  bottom: 40px;
-  right: 64px;
-}
-</style>
