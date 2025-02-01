@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import XTerm from '@/components/XTerm.vue';
 import type { Terminal } from '@xterm/xterm';
-// @ts-expect-error Missing type definitions
 import { openpty } from 'xterm-pty';
 import { useAbortController } from '@/composables/abortController';
 import { useApiConfig } from '@/stores/apiConfig';
