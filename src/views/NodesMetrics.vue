@@ -124,12 +124,12 @@ const chartOptions = computed(() => {
     res.push(
       {
         plugins: { title: { display: true, text: 'CPU usage (%)' } },
-        scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
+        scales: { x: { type: 'time' }, y: { ticks: { format: { style: 'percent', notation: 'compact' } } } },
         parsing: { yAxisKey: 'cpuPercentage' },
       },
       {
         plugins: { title: { display: true, text: 'Memory usage (%)' } },
-        scales: { x: { type: 'time' }, y: { ticks: { callback: (v) => `${v}%` } } },
+        scales: { x: { type: 'time' }, y: { ticks: { format: { style: 'percent', notation: 'compact' } } } },
         parsing: { yAxisKey: 'memPercentage' },
       },
     );
@@ -178,10 +178,10 @@ const { load } = useApiLoader(async (signal) => {
     } = { cpu, mem };
     nodes.value[i.metadata!.name!] ??= {};
     if (nodes.value[i.metadata!.name!].cpu) {
-      metrics.cpuPercentage = metrics.cpu / nodes.value[i.metadata!.name!].cpu! * 100;
+      metrics.cpuPercentage = metrics.cpu / nodes.value[i.metadata!.name!].cpu!;
     }
     if (nodes.value[i.metadata!.name!].mem) {
-      metrics.memPercentage = metrics.mem / nodes.value[i.metadata!.name!].mem! * 100;
+      metrics.memPercentage = metrics.mem / nodes.value[i.metadata!.name!].mem!;
     }
     samples.value[index][i.metadata!.name!] = metrics;
 
