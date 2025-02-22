@@ -19,6 +19,11 @@ import type { KubernetesList, KubernetesObject } from '@/utils/objects';
 import { real } from '@ragnarpa/quantity';
 import { fromBytes } from '@tsmx/human-readable';
 
+interface Sample {
+  cpu: number, mem: number,
+  cpuRatio?: number, memRatio?: number,
+};
+
 const config = await useApiConfig().getConfig();
 const coreApi = new CoreV1Api(config);
 const api = new CustomObjectsApi(config);
@@ -26,9 +31,7 @@ const api = new CustomObjectsApi(config);
 const timeRange = 60 * 60;
 const _nodes = ref<Array<V1Node>>([]);
 const nodes = ref<{ [key: string]: { cpu?: number, mem?: number } }>({});
-const samples = ref<Array<{
-  [key: string]: { cpu: number, mem: number, cpuPercentage?: number, memPercentage?: number }
-}>>(Array(timeRange).fill(false).map(() => ({})));
+const samples = ref<Array<{ [key: string]: Sample}>>(Array(timeRange).fill(false).map(() => ({})));
 const stacked = ref(false);
 let latestSample = Math.floor(new Date().valueOf() / 1000);
 let capacityAvailable = true;
@@ -125,12 +128,12 @@ const chartOptions = computed(() => {
       {
         plugins: { title: { display: true, text: 'CPU usage (%)' } },
         scales: { x: { type: 'time' }, y: { ticks: { format: { style: 'percent', notation: 'compact' } } } },
-        parsing: { yAxisKey: 'cpuPercentage' },
+        parsing: { yAxisKey: 'cpuRatio' },
       },
       {
         plugins: { title: { display: true, text: 'Memory usage (%)' } },
         scales: { x: { type: 'time' }, y: { ticks: { format: { style: 'percent', notation: 'compact' } } } },
-        parsing: { yAxisKey: 'memPercentage' },
+        parsing: { yAxisKey: 'memRatio' },
       },
     );
   }
@@ -172,16 +175,13 @@ const { load } = useApiLoader(async (signal) => {
     }
 
     const cpu = real(i.usage.cpu)!, mem = real(i.usage.memory)!;
-    const metrics: {
-      cpu: number, mem: number,
-      cpuPercentage?: number, memPercentage?: number,
-    } = { cpu, mem };
+    const metrics: Sample = { cpu, mem };
     nodes.value[i.metadata!.name!] ??= {};
     if (nodes.value[i.metadata!.name!].cpu) {
-      metrics.cpuPercentage = metrics.cpu / nodes.value[i.metadata!.name!].cpu!;
+      metrics.cpuRatio = metrics.cpu / nodes.value[i.metadata!.name!].cpu!;
     }
     if (nodes.value[i.metadata!.name!].mem) {
-      metrics.memPercentage = metrics.mem / nodes.value[i.metadata!.name!].mem!;
+      metrics.memRatio = metrics.mem / nodes.value[i.metadata!.name!].mem!;
     }
     samples.value[index][i.metadata!.name!] = metrics;
 
