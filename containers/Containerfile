@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/alpine:3.20 as builder
+FROM public.ecr.aws/docker/library/alpine:3.22 as builder
 ARG SPARKLES_ENV=.env.apiserver-proxy
 ARG SPARKLES_BASE=/
 
@@ -16,7 +16,7 @@ RUN find dist -type f \( -name '*.css' -or -name '*.js' -or -name '*.wasm' \) -e
 RUN [ "$SPARKLES_BASE" = / ] || (mv dist _dist && mkdir dist && cp _dist/index.html dist && mv _dist dist/"$SPARKLES_BASE")
 RUN chmod -R a-w dist
 
-FROM public.ecr.aws/docker/library/alpine:3.20
+FROM public.ecr.aws/docker/library/alpine:3.22
 
 RUN apk add nginx # nginx-mod-http-brotli
 RUN sed -i '/user nginx;/d' /etc/nginx/nginx.conf && echo 'daemon off;error_log stderr warn;' >> /etc/nginx/nginx.conf

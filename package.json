@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "compile-wasm": "env GOOS=js GOARCH=wasm go build -o src/utils/helm.wasm -tags nethttpomithttp2,notest,jsoniter_sloppy,protoreflect -trimpath ./cmd/helm.wasm",
-    "copy-wasm-exec": "cp \"$(go env GOROOT)\"/misc/wasm/wasm_exec.js src/vendor/",
+    "copy-wasm-exec": "cp \"$(go env GOROOT)\"/lib/wasm/wasm_exec.js src/vendor/",
     "wasm": "npm run compile-wasm && npm run copy-wasm-exec",
     "dev": "npm run wasm && vite",
     "build": "npm run type-check && npm run build-only",
