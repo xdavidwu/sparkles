@@ -1,6 +1,6 @@
 # static busybox with CONFIG_FEATURE_PREFER_APPLETS
 
-FROM public.ecr.aws/docker/library/alpine:3.22 as builder
+FROM public.ecr.aws/docker/library/alpine:3.21 as builder
 
 ARG VERSION=1.37.0
 ARG SHA512=ad8fd06f082699774f990a53d7a73b189ed404fe0a2166aff13eae4d9d8ee5c9239493befe949c98801fe7897520dbff3ed0224faa7205854ce4fa975e18467e
