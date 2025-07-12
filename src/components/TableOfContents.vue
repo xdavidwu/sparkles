@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { VTreeview } from 'vuetify/labs/components';
+import { VTreeview } from 'vuetify/components';
 import ExpandableSidePanel from '@/components/ExpandableSidePanel.vue';
 
 const props = defineProps<{
