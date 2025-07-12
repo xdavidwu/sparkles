@@ -26,8 +26,8 @@
     "@openapi-contrib/openapi-schema-to-json-schema": "^5.1.0",
     "@ragnarpa/quantity": "^0.2.0",
     "@tsmx/human-readable": "^2.0.1",
-    "@vueuse/components": "^12.0.0",
-    "@vueuse/core": "^12.0.0",
+    "@vueuse/components": "^13.5.0",
+    "@vueuse/core": "^13.5.0",
     "@xdavidwu/kubernetes-client-typescript-fetch": "^0.4.0",
     "@xdavidwu/websocket-sftp": "^0.8.2",
     "@xterm/addon-fit": "^0.10.0",
@@ -61,16 +61,16 @@
     "@types/json-schema": "^7.0.15",
     "@types/markdown-it": "^14.1.1",
     "@types/semver": "^7.5.8",
-    "@vitejs/plugin-vue": "^5.2.1",
+    "@vitejs/plugin-vue": "^6.0.0",
     "@vue/eslint-config-typescript": "^14.0.0",
     "@vue/tsconfig": "^0.7.0",
-    "@vue/typescript-plugin": "^2.0.26",
+    "@vue/typescript-plugin": "^3.0.1",
     "eslint": "^9.19.0",
-    "eslint-plugin-vue": "^9.3.0",
+    "eslint-plugin-vue": "^10.3.0",
     "jiti": "^2.3.1",
     "typescript": "^5.7.2",
-    "vite": "^6.0.1",
+    "vite": "^7.0.4",
     "vite-plugin-markdown": "^2.2.0",
-    "vue-tsc": "^2.0.26"
+    "vue-tsc": "^3.0.1"
   }
 }
