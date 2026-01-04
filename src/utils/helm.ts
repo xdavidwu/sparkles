@@ -293,7 +293,8 @@ export const parseTarball = async (s: ReadableStream): Promise<RawFiles> => {
       continue;
     }
     const name = parts.slice(1).join('/');
-    rawFiles[name] = new Blob(await Array.fromAsync(entry.body));
+    // XXX it-tar should be more specific about backed buffer type of returned Uint8Array
+    rawFiles[name] = new Blob((await Array.fromAsync(entry.body)) as Array<Uint8Array<ArrayBuffer>>);
   }
   return rawFiles;
 };
