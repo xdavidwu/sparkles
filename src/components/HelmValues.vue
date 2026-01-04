@@ -4,13 +4,13 @@ import { VTabs } from 'vuetify/components';
 import MarkdownViewer from '@/components/MarkdownViewer.vue';
 import YAMLEditor from '@/components/YAMLEditor.vue';
 import { stringify } from '@/utils/yaml';
-import type { Chart, SerializedChart } from '@/utils/helm';
+import type { SerializedChart, DeserialzedChart } from '@/utils/helm';
 import type { JSONSchema4 } from 'json-schema';
 
 const props = defineProps<{
   height: string;
   schema?: JSONSchema4;
-  chart: Array<Chart> | SerializedChart;
+  chart: DeserialzedChart | SerializedChart;
   defaults?: string;
   disabled?: boolean;
   prependTabs?: Array<{ text: string, value: string }>,

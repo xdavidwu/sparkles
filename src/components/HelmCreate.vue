@@ -6,14 +6,14 @@ import HelmValues from '@/components/HelmValues.vue';
 import LoadingSuspense from '@/components/LoadingSuspense.vue';
 import { defaultCustomValuesAnnotation } from '@/utils/contracts';
 import {
-  type Chart, type ChartVersion,
+  type ChartVersion, type DeserialzedChart,
   extractValuesSchema, parseTarball, loadChartsFromFiles,
 } from '@/utils/helm';
 import { parseInput, stringify } from '@/utils/yaml';
 import { createNameId } from 'mnemonic-id';
 
 const emit = defineEmits<{
-  (e: 'apply', chart: Array<Chart>, values: object, name: string): void;
+  (e: 'apply', chart: DeserialzedChart, values: object, name: string): void;
   (e: 'cancel'): void;
 }>();
 
@@ -28,7 +28,7 @@ enum Step {
 }
 
 const selectedChart = ref<ChartVersion | undefined>();
-const parsedChart = ref<Array<Chart> | undefined>();
+const parsedChart = ref<DeserialzedChart | undefined>();
 const step = ref<Step>(Step.SELECT_CHART);
 const values = ref('');
 const defaults = ref('');

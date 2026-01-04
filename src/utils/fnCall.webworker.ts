@@ -58,7 +58,7 @@ export const handleFnCall = <T extends AnyFuncsImpl>(fns: T) =>
       if (!fns[data.func]) {
         throw new Error(`unimplemented ${JSON.stringify(data)}`);
       }
-      message = await fns[data.func](...data.args);
+      message = await fns[data.func]!(...data.args);
     } catch (_e) {
       let e = _e;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

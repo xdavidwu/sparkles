@@ -119,11 +119,11 @@ const groupVersions = computed(() => rawGroups.map((g) => {
   }).filter((v) => v.resources.length);
 }).flat());
 // TODO handle targetGroupVersion nolonger in groupVersions
-const targetGroupVersion = nonNullableRef(groupVersions.value[0]);
+const targetGroupVersion = nonNullableRef(groupVersions.value[0]!);
 
 const kinds = computed(() => targetGroupVersion.value.resources);
 const defaultTargetKind = () =>
-  kinds.value.find((v) => v.verbs.includes('watch')) ?? kinds.value[0];
+  kinds.value.find((v) => v.verbs.includes('watch')) ?? kinds.value[0]!;
 const targetKind = nonNullableRef(defaultTargetKind());
 const isEvents = computed(() => targetKind.value.resource === 'events' &&
   (targetGroupVersion.value.groupVersion === 'v1' ||

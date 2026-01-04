@@ -73,7 +73,7 @@ export const resolveGVK = (groups: Array<V2APIGroupDiscovery>,
 export const resolveObject =
   (groups: Array<V2APIGroupDiscovery>, r: KubernetesObject) => {
     const split = r.apiVersion!.split('/');
-    const gv = split.length == 1 ? { version: r.apiVersion! } : { group: split[0], version: split[1] };
+    const gv = split.length == 1 ? { version: r.apiVersion! } : { group: split[0], version: split[1]! };
     const info = resolveGVK(groups, gv.group, gv.version, r.kind!);
     return info ? {
       ...gv,

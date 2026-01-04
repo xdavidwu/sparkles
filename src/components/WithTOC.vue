@@ -32,7 +32,7 @@ const detectPosition = () => {
   const position = div.value!.scrollTop;
   let i = 0;
   for (;i < toc.value.length; i += 1) {
-    const el = div.value!.querySelector(`#${CSS.escape(toc.value[i].id)}`)! as HTMLElement;
+    const el = div.value!.querySelector(`#${CSS.escape(toc.value[i]!.id)}`)! as HTMLElement;
     // offsetTop may change due to e.g. tabs
     if (position < el.offsetTop - 2) {
       break;

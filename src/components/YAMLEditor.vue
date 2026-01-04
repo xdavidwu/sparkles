@@ -89,11 +89,11 @@ const codemirrorReady = ({ view }: { view: EditorView }) => {
         if (abort) {
           return false;
         }
-        if (n.type.name === 'Pair' && target[findIndex].kind === 'YAMLMap') {
+        if (n.type.name === 'Pair' && target[findIndex]!.kind === 'YAMLMap') {
           const literal = n.node.firstChild?.firstChild;
           if (literal) {
             const str = view.state.doc.sliceString(literal.from, literal.to);
-            if (str === target[findIndex].index) {
+            if (str === target[findIndex]!.index) {
               findIndex++;
               if (findIndex === target.length) {
                 abort = true;

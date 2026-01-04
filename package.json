@@ -63,7 +63,7 @@
     "@types/semver": "^7.5.8",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vue/eslint-config-typescript": "^14.0.0",
-    "@vue/tsconfig": "^0.7.0",
+    "@vue/tsconfig": "^0.8.1",
     "@vue/typescript-plugin": "^3.0.1",
     "eslint": "^9.19.0",
     "eslint-plugin-vue": "^10.3.0",

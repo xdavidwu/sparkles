@@ -47,13 +47,13 @@ export const hashColor = async (str: string, baseColors: Array<BaseColor>,
   if (!cache.has(str)) {
     cache.set(str, (async () => {
       const data = (new TextEncoder()).encode(str);
-      return (new Uint32Array(await window.crypto.subtle.digest('SHA-1', data)))[0];
+      return (new Uint32Array(await window.crypto.subtle.digest('SHA-1', data)))[0]!;
     })());
   }
   let hash = await cache.get(str)!;
-  const base = baseColors[hash % baseColors.length];
+  const base = baseColors[hash % baseColors.length]!;
   hash = Math.floor(hash / baseColors.length);
-  return { color: base, variant: variants[hash % variants.length] };
+  return { color: base, variant: variants[hash % variants.length]! };
 };
 
 const kebabify = (s: BaseColor | ColorVariant) =>

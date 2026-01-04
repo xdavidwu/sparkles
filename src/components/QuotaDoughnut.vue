@@ -28,12 +28,12 @@ const color = computed(() => {
 const data = computed(() => props.details ?? { Used: props.used })
 
 const chartData = computed(() => {
-  const items = Object.keys(data.value).sort((a, b) => data.value[a] - data.value[b]);
+  const items = Object.entries(data.value).sort((a, b) => a[1] - b[1]);
 
   return {
-    labels: items.concat(['Unused']),
+    labels: items.map(([k]) => k).concat(['Unused']),
     datasets: [{
-      data: items.map((k) => data.value[k]).concat([Math.max(props.total - props.used, 0)]),
+      data: items.map(kv => kv[1]).concat([Math.max(props.total - props.used, 0)]),
       backgroundColor: items.map(() => color.value).concat(['#0000']),
       borderColor: items.map(() => '#fff7').concat(['#fff1']),
       hoverBorderColor: items.map(() => '#fffc').concat(['#fff2']),
@@ -73,11 +73,11 @@ const tooltipHandler = (context: { tooltip: TooltipModel<'doughnut'> }) => {
             <div class="d-flex align-center">
               <div class="d-inline-block mr-1 legend-bg">
                 <div class="legend" :style="{
-                  'background-color': tooltip!.labelColors[i].backgroundColor as string,
-                  'border-color': tooltip!.labelColors[i].borderColor as string,
+                  'background-color': tooltip!.labelColors[i]!.backgroundColor as string,
+                  'border-color': tooltip!.labelColors[i]!.borderColor as string,
                 }" />
               </div>
-              {{ tooltip!.body[i].lines.join('') }}
+              {{ tooltip!.body[i]!.lines.join('') }}
             </div>
           </div>
         </TooltipContent>

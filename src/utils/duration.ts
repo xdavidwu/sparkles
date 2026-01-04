@@ -61,7 +61,7 @@ export const durationToS = (h?: string) => {
         if (!digits.length) {
           return undefined;
         }
-        s += parseFloat(digits) * unitMap[unit];
+        s += parseFloat(digits) * unitMap[unit]!;
         digits = '';
         unit = '';
       }

@@ -13,13 +13,14 @@ import { useApiConfig } from '@/stores/apiConfig';
 import { useHelmRepository } from '@/stores/helmRepository';
 import { useNamespaces } from '@/stores/namespaces';
 import { useApiLoader } from '@/composables/apiLoader';
+import type { NonEmptyArray } from '@/utils/lang';
 import { stringify } from '@/utils/yaml';
 import { CoreV1Api, type V1Secret, V1SecretFromJSON } from '@xdavidwu/kubernetes-client-typescript-fetch';
 import { listAndUnwaitedWatch } from '@/utils/watch';
 import { notifyListingWatchErrors } from '@/utils/errors';
 import { withProgress } from '@/utils/progressReport';
 import {
-  type Chart, type Metadata, type Release,
+  type DeserialzedChart, type Metadata, type Release,
   parseSecret, secretsFieldSelector, secretsLabelSelector, secretName,
 } from '@/utils/helm';
 import type { InboundMessage } from '@/utils/helm.webworker';
@@ -183,7 +184,7 @@ const rollback = (target: Release) => withProgress(
   (progress) => workerOp(progress, {
     type: 'call',
     func: 'rollback',
-    args: [toRaw(target), toRaw(releases.value.filter((r) => r.name == target.name))],
+    args: [toRaw(target), toRaw(releases.value.filter((r) => r.name == target.name)) as NonEmptyArray<Release>],
   }),
 );
 
@@ -199,7 +200,7 @@ const findBuffers = (o: unknown): Array<ArrayBuffer> => {
   return [];
 }
 
-const install = (chart: Array<Chart>, values: object, name: string) =>
+const install = (chart: DeserialzedChart, values: object, name: string) =>
   withProgress(`Installing release ${name}`, async (progress) => {
     const secret = await workerOp(progress, {
       type: 'call',
@@ -234,7 +235,7 @@ const prepareUpgrade = async (intent: 'values' | 'upgrade', target: Release) => 
   upgrading.value = true;
 };
 
-const upgrade = (chart: Array<Chart>, values: object, target: Release) =>
+const upgrade = (chart: DeserialzedChart, values: object, target: Release) =>
   withProgress(
     `Upgrade release ${target.name} to chart ${chart[0].metadata.version}`,
     async (progress) => {
@@ -242,7 +243,7 @@ const upgrade = (chart: Array<Chart>, values: object, target: Release) =>
         type: 'call',
         func: 'upgrade',
         args: [toRaw(chart), toRaw(values), toRaw(target),
-          toRaw(releases.value.filter((r) => r.name == target.name))],
+          toRaw(releases.value.filter((r) => r.name == target.name)) as NonEmptyArray<Release>],
       });
       upgrading.value = false;
 

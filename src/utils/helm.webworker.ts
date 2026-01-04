@@ -19,11 +19,11 @@ import {
   V1PodStatusPhase, V1WatchEventType, V1DeletePropagation,
   bySSA,
 } from '@/utils/api';
-import { fetchBase64Data, ignore } from '@/utils/lang';
+import { fetchBase64Data, ignore, type NonEmptyArray } from '@/utils/lang';
 import { PresentedError } from '@/utils/PresentedError';
 import {
   secretName, releaseSecretType,
-  type Chart, type File, type Hook, type Release, type SerializedChart, type SerializedFile,
+  type DeserialzedChart, type File, type Hook, type Release, type SerializedChart, type SerializedFile,
   DeletePolicy, Event, Phase, Status,
 } from '@/utils/helm';
 import { type V2APIGroupDiscovery, resolveObject } from '@/utils/discoveryV2';
@@ -126,7 +126,7 @@ const parseAnnotationList = <T extends string>(e: { [k: string]: T }, s?: string
   .filter((v): v is T => Object.values(e).includes(v as T));
 
 const renderTemplate = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery>,
-    chart: Array<Chart>, value: object, opts: ReleaseOptions) => {
+    chart: DeserialzedChart, value: object, opts: ReleaseOptions) => {
   const result = await _helm_renderTemplate(
     chart.map((c) => JSON.stringify(c, arrayBufferReplacer)),
     JSON.stringify(value),
@@ -139,7 +139,7 @@ const renderTemplate = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery>
   // helm seems to allow fooNOTES.txt?
   Object.keys(result.files).filter((f) => f.endsWith('NOTES.txt')).forEach((f) => {
     if (f == `${chart[0].metadata.name}/templates/NOTES.txt`) {
-      notes = result.files[f];
+      notes = result.files[f]!;
     }
     // XXX do something with subnotes? but that's not helm default
     delete result.files[f];
@@ -155,7 +155,7 @@ const renderTemplate = async (anyApi: AnyApi, groups: Array<V2APIGroupDiscovery>
 
   const hooks = manifestsAndHooks.filter((r) => r.resource.metadata!.annotations?.['helm.sh/hook'])
     .map((r): Hook => {
-      const w = parseInt(r.resource.metadata!.annotations!['helm.sh/hook-weight']);
+      const w = parseInt(r.resource.metadata!.annotations!['helm.sh/hook-weight'] ?? '');
       return {
         name: r.resource.metadata!.name!,
         kind: r.resource.kind!,
@@ -585,7 +585,7 @@ const fns = {
   },
   // helm.sh/helm/v3/pkg/action.Rollback.Run
   // expect lastest state at first of history (reverse time order)
-  rollback: async (release: Release, history: Array<Release>) => {
+  rollback: async (release: Release, history: NonEmptyArray<Release>) => {
     const { api, batchApi, anyApi } = await setupClients();
     const groups = await getGroups();
 
@@ -636,7 +636,7 @@ const fns = {
     // TODO history retention
   },
   // helm.sh/helm/v3/pkg/action.Install.RunWithContext
-  install: async (chart: Array<Chart>, values: object, name: string, namespace: string) => {
+  install: async (chart: DeserialzedChart, values: object, name: string, namespace: string) => {
     await setupGo();
     const { api, batchApi, extensionsApi, anyApi } = await setupClients();
     const groups = await getGroups();
@@ -773,7 +773,7 @@ const fns = {
 
     return secretName(release);
   },
-  upgrade: async (chart: Array<Chart>, values: object, oldRelease: Release, history: Array<Release>) => {
+  upgrade: async (chart: DeserialzedChart, values: object, oldRelease: Release, history: NonEmptyArray<Release>) => {
     await setupGo();
     const { api, batchApi, anyApi } = await setupClients();
     const groups = await getGroups();

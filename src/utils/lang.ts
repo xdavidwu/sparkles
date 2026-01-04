@@ -83,6 +83,9 @@ export const timeout = (t: number) =>
 export type OnlyRequired<T> = { [K in keyof T as (undefined extends T[K] ? never : K)]: T[K] };
 export type MakePartial<T, C extends keyof T> = Omit<T, C> & Partial<Pick<T, C>>;
 
+// arrays
+export type NonEmptyArray<T> = [T, ...T[]];
+
 // tuples
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Last<T extends Array<any>>  = T extends [ ...any, infer L ] ? L : never;

@@ -4,13 +4,13 @@ import { VBtn, VCard } from 'vuetify/components';
 import HelmValues from '@/components/HelmValues.vue';
 import { parseInput, stringify } from '@/utils/yaml';
 import {
-  type Release, type Chart, type ChartVersion,
+  type ChartVersion, type DeserialzedChart, type Release,
   extractValuesSchema, loadChartsFromFiles, parseTarball,
 } from '@/utils/helm';
 
 const emit = defineEmits<{
   (e: 'cancel'): void;
-  (e: 'upgrade', chart: Array<Chart>, values: object, release: Release): void;
+  (e: 'upgrade', chart: DeserialzedChart, values: object, release: Release): void;
 }>();
 
 const props = defineProps<{

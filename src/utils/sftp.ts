@@ -24,7 +24,7 @@ export const sftpFromWsstream = async (ws: WebSocket): Promise<SftpClientCore> =
             buffer = Buffer.concat([buffer, msg], buffer.length + msg.length);
 
             while (buffer.length > 4) {
-              const size = buffer[0] * 0x1000000 + buffer[1] * 0x10000 + buffer[2] * 0x100 + buffer[3];
+              const size = buffer[0]! * 0x1000000 + buffer[1]! * 0x10000 + buffer[2]! * 0x100 + buffer[3]!;
               if (buffer.length >= size + 4) {
                 console.log('packet', size, buffer.slice(0, size + 4));
                 callback(buffer.slice(0, size + 4));

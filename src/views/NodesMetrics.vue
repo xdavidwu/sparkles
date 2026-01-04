@@ -49,8 +49,8 @@ const { load: loadNodes } = useApiLoader(async (signal) => {
   watch(_nodes, () => {
     _nodes.value.forEach((n) => {
       nodes.value[n.metadata!.name!] = {
-        cpu: real(n.status!.capacity!.cpu)!,
-        mem: real(n.status!.capacity!.memory)!,
+        cpu: real(n.status!.capacity!.cpu!)!,
+        mem: real(n.status!.capacity!.memory!)!,
       };
     });
   }, { immediate: true });
@@ -81,7 +81,7 @@ const colors = [
 
 const datasetMetadata = computed(() => Object.fromEntries(Object.keys(nodes.value).map((n, i) => {
   const color = colorToCode({
-    color: colors[i % colors.length],
+    color: colors[i % colors.length]!,
     variant: ColorVariant.Base,
   });
   return [n, {
@@ -174,16 +174,16 @@ const { load } = useApiLoader(async (signal) => {
       index = time - (latestSample - timeRange);
     }
 
-    const cpu = real(i.usage.cpu)!, mem = real(i.usage.memory)!;
+    const cpu = real(i.usage.cpu!)!, mem = real(i.usage.memory!)!;
     const metrics: Sample = { cpu, mem };
     nodes.value[i.metadata!.name!] ??= {};
-    if (nodes.value[i.metadata!.name!].cpu) {
-      metrics.cpuRatio = metrics.cpu / nodes.value[i.metadata!.name!].cpu!;
+    if (nodes.value[i.metadata!.name!]!.cpu) {
+      metrics.cpuRatio = metrics.cpu / nodes.value[i.metadata!.name!]!.cpu!;
     }
-    if (nodes.value[i.metadata!.name!].mem) {
-      metrics.memRatio = metrics.mem / nodes.value[i.metadata!.name!].mem!;
+    if (nodes.value[i.metadata!.name!]!.mem) {
+      metrics.memRatio = metrics.mem / nodes.value[i.metadata!.name!]!.mem!;
     }
-    samples.value[index][i.metadata!.name!] = metrics;
+    samples.value[index]![i.metadata!.name!] = metrics;
 
     const d = durationToS(i.window)!;
     for (let j = 1; j < d; j++) {
@@ -191,7 +191,7 @@ const { load } = useApiLoader(async (signal) => {
       if (index < 0) {
         return;
       }
-      samples.value[index][i.metadata!.name!] = metrics;
+      samples.value[index]![i.metadata!.name!] = metrics;
     }
   });
 });

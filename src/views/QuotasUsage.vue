@@ -98,9 +98,9 @@ const quotas = computed(() => _quotas.value.map((quota) => {
     name = nameOverriden(name) ? displayNames[name] : name;
 
     parsed[category] ??= {};
-    parsed[category][canonical] = {
+    parsed[category]![canonical] = {
       name,
-      value: quota.spec!.hard[id],
+      value: quota.spec!.hard[id]!,
       used: quota.status?.used?.[id] ?? '0',
     };
   }
@@ -136,14 +136,14 @@ const podsResourceUsage = computed(() => {
         const quotaId = `limits.${type}`;
 
         res[quotaId] ??= {};
-        res[quotaId][identifier] = real(resources!.limits[type])!;
+        res[quotaId][identifier] = real(resources!.limits[type]!)!;
       }
 
       for (const type in resources?.requests) {
         const quotaId = `requests.${type}`;
 
         res[quotaId] ??= {};
-        res[quotaId][identifier] = real(resources!.requests[type])!;
+        res[quotaId][identifier] = real(resources!.requests[type]!)!;
       }
     });
   });
@@ -155,13 +155,13 @@ const pvcsResourceUsage = computed(() => {
   const res: { [key: string]: { [key: string]: number } } = { 'requests.storage': {} };
   pvcs.value.forEach((pvc) => {
     // k8s.io/kubernetes/pkg/quota/v1/evaluator/core.pvcEvaluator.getStorageUsage()
-    const fromSpec = real(pvc.spec!.resources!.requests!.storage)!;
+    const fromSpec = real(pvc.spec!.resources!.requests!.storage!)!;
     // behind RecoverVolumeExpansionFailure
     const allocated = real(pvc.status?.allocatedResources?.storage ?? '0')!;
     const usage = allocated > fromSpec ? allocated : fromSpec;
     const id = `PersistentVolumeClaim: ${pvc.metadata!.name}`;
 
-    res['requests.storage'][id] = usage;
+    res['requests.storage']![id] = usage;
 
     // k8s.io/component-helpers/storage/volume.GetPersistentVolumeClaimClass()
     const sc = pvc.metadata!.annotations?.['volume.beta.kubernetes.io/storage-class'] ??

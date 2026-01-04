@@ -299,7 +299,7 @@ const createEphemeral = (
         container: inspectName,
       });
 
-      const rows = log.split('\n');
+      const rows = log.split('\n') as [string, string];
       uid = parseInt(rows[0], 10);
       gid = parseInt(rows[1], 10);
 
@@ -418,7 +418,7 @@ const sftp = async (target: ContainerData, pod: V1Pod) => {
 };
 
 const bell = (index: number) => {
-  const bellingTab = tabs.value[index];
+  const bellingTab = tabs.value[index]!;
   if (bellingTab.bellTimeoutID) {
     clearTimeout(bellingTab.bellTimeoutID);
   }

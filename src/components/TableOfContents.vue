@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { VTreeview } from 'vuetify/components';
 import ExpandableSidePanel from '@/components/ExpandableSidePanel.vue';
+import type { NonEmptyArray } from '@/utils/lang';
 
 const props = defineProps<{
   toc: Array<{
@@ -23,13 +24,13 @@ interface TreeItem {
 }
 
 const tree = computed(() => {
-  const stack: Array<Array<TreeItem & { missing?: boolean }>> = [[]];
+  const stack: NonEmptyArray<Array<TreeItem & { missing?: boolean }>> = [[]];
   props.toc.forEach((t) => {
     let level = Number(t.level);
     const expected = stack.length;
     while (level > expected) {
       const item = { id: '', title: 'Unknown', children: [], missing: true };
-      stack[stack.length - 1].push(item);
+      stack[stack.length - 1]!.push(item);
       stack.push(item.children);
       level--;
     }
@@ -39,7 +40,7 @@ const tree = computed(() => {
     }
 
     const item = { id: t.id, title: t.title, children: [] };
-    stack[stack.length - 1].push(item);
+    stack[stack.length - 1]!.push(item);
     stack.push(item.children);
   });
   const trim = (item: TreeItem) => {
@@ -52,15 +53,15 @@ const tree = computed(() => {
   stack[0].forEach(trim);
 
   let rebased = stack[0];
-  while (rebased.length == 1 && rebased[0].missing && rebased[0].children) {
-    rebased = rebased[0].children;
+  while (rebased.length == 1 && rebased[0]!.missing && rebased[0]!.children) {
+    rebased = rebased[0]!.children;
   }
   return rebased;
 });
 
 const navigate = (ids: unknown) => {
   const s = ids as Array<string>;
-  emit('navigate', s[0]);
+  emit('navigate', s[0]!);
 };
 </script>
 

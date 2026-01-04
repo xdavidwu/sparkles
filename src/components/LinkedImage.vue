@@ -34,19 +34,20 @@ const url = computed(() => {
     image = match.groups!.image;
   } else {
     // github.com/containers/image/v5/docker/reference.splitDockerDomain, without :port
-    const firstslash = match.groups!.image.indexOf('/');
+    const specifiedImage = match.groups!.image!;
+    const firstslash = specifiedImage.indexOf('/');
     const dockerHub = 'docker.io';
 
     if (firstslash === -1) {
       host = dockerHub;
-      image = match.groups!.image;
+      image = specifiedImage;
     } else {
-      host = match.groups!.image.slice(0, firstslash);
+      host = specifiedImage.slice(0, firstslash);
       if (host.indexOf('.') === -1 && host != 'localhost') {
         host = dockerHub;
-        image = match.groups!.image;
+        image = specifiedImage;
       } else {
-        image = match.groups!.image.slice(firstslash + 1);
+        image = specifiedImage.slice(firstslash + 1);
       }
     }
     if (host == 'index.docker.io') {

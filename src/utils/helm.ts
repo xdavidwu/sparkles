@@ -1,5 +1,5 @@
 import type { V1Secret } from '@xdavidwu/kubernetes-client-typescript-fetch';
-import { fetchBase64Data, streamToGenerator } from '@/utils/lang';
+import { fetchBase64Data, streamToGenerator, type NonEmptyArray } from '@/utils/lang';
 import { extract } from 'it-tar';
 import { parse } from 'yaml';
 // XXX: the library helm uses support v4,6,7, but codemirror-json-schema uses v4
@@ -171,7 +171,7 @@ export interface Release extends ReleaseWithoutLabels {
 
 // helm.sh/helm/v3/pkg/repo.ChartVersion
 export interface ChartVersion extends Metadata {
-  urls: Array<string>;
+  urls: NonEmptyArray<string>;
   created?: string;
   removed?: boolean;
   digest?: string; // sha256sum
@@ -183,13 +183,17 @@ export interface IndexFile {
   apiVersion: string;
   generated: string;
   entries: {
-    [key: string]: Array<ChartVersion>;
+    [key: string]: NonEmptyArray<ChartVersion>;
   };
   publicKeys?: Array<string>;
   annotations: {
     [key: string]: string;
   };
 }
+
+// TODO: refactor chart + deps representation
+// current NonEmptyArray<Chart> approach is confusing and awkward in typescript 
+export type DeserialzedChart = NonEmptyArray<Chart>;
 
 // helm.sh/helm/v3/pkg/storage/driver.Secrets.List
 export const secretsLabelSelector = 'owner=helm';
@@ -213,14 +217,14 @@ export interface RawFiles {
 
 // helm.sh/v3/pkg/chart/loader.LoadFiles
 // deps are in private fields, not deserializable, do parse but handle them in go
-export const loadChartsFromFiles = async (_rawFiles: RawFiles): Promise<Chart[]> => {
+export const loadChartsFromFiles = async (_rawFiles: RawFiles): Promise<DeserialzedChart> => {
   const rawFiles = { ..._rawFiles };
   const extractFile = (name: string) => {
     const data = rawFiles[name];
     if (data) {
       delete rawFiles[name];
     }
-    return data;
+    return data!;
   };
   const optionalYaml = async (name: string) => {
     const data = extractFile(name);
@@ -249,9 +253,9 @@ export const loadChartsFromFiles = async (_rawFiles: RawFiles): Promise<Chart[]>
     if (!name.includes('/')) {
       return;
     }
-    const parts = name.split('/');
+    const parts = name.split('/') as NonEmptyArray<string>;
     subcharts[parts[0]] ??= {};
-    subcharts[parts[0]][name.substring(parts[0].length + 1)] = data;
+    subcharts[parts[0]]![name.substring(parts[0].length + 1)] = data;
   }));
 
   parsedSubcharts.push(
@@ -307,7 +311,7 @@ const utf8Decoder = new TextDecoder();
 
 const parseJSONBuffer = (b: ArrayBuffer) => JSON.parse(utf8Decoder.decode(b));
 
-export const extractValuesSchema = (chart: Array<Chart>): JSONSchema4 => {
+export const extractValuesSchema = (chart: DeserialzedChart): JSONSchema4 => {
   const schemas: Array<JSONSchema4> = [];
   let title;
   if (chart[0].schema) {
