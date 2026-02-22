@@ -2,14 +2,11 @@
 import WithTOC from '@/components/WithTOC.vue';
 import { VueComponent as Content } from '@/assets/docs.md';
 import { onMounted, useTemplateRef } from 'vue';
+import { externalizeLinks } from '@/utils/markdown';
 
 const div = useTemplateRef('div');
 
-onMounted(() => {
-  div.value?.querySelectorAll('a[href*="//"]').forEach((a) => {
-    a.setAttribute('target', '_blank');
-  });
-});
+onMounted(() => externalizeLinks(div.value!));
 
 const navigate = (id: string) => window.location.hash = `#${id}`;
 </script>
