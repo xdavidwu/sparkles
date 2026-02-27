@@ -7,7 +7,9 @@ import { Mode, plugin as markdown } from 'vite-plugin-markdown';
 import { renderer } from './src/utils/markdown';
 
 // for markdown code highlighting
-GlobalRegistrator.register();
+if (!globalThis.document) {
+  GlobalRegistrator.register();
+}
 
 const KUBECTL_PROXY = 'http://127.0.0.1:8001';
 
