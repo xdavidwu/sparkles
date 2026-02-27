@@ -40,6 +40,6 @@ For duration fields (e.g. `Age`), if we are able to obtain its timestamp (e.g. `
 
 ### Notes and limitations of specific feature
 
-### Container image link generation
+#### Container image link generation
 
 Image registries serve web pages about images in different path formats. This is currently detected case-by-case, and fallbacks to raw manifest URLs of OCI distribution spec.
