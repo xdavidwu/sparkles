@@ -1,10 +1,13 @@
 import { fileURLToPath, URL } from 'node:url';
 import { execSync } from 'node:child_process';
+import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { Mode, plugin as markdown } from 'vite-plugin-markdown';
-import markdownit from 'markdown-it';
-import anchor from 'markdown-it-anchor';
+import { renderer } from './src/utils/markdown';
+
+// for markdown code highlighting
+GlobalRegistrator.register();
 
 const KUBECTL_PROXY = 'http://127.0.0.1:8001';
 
@@ -20,7 +23,7 @@ export default defineConfig({
     vue(),
     markdown({
       mode: [Mode.VUE],
-      markdownIt: markdownit({ html: true }).use(anchor),
+      markdownIt: renderer,
     }),
     {
       name: 'app-version',
