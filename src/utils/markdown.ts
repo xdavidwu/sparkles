@@ -1,6 +1,8 @@
 import markdownit, { type PluginSimple } from 'markdown-it';
 import anchor from 'markdown-it-anchor';
 import { oneDarkHighlightStyle } from '@codemirror/theme-one-dark';
+// @ts-expect-error no type definition
+import { parser as shellParser } from '@fig/lezer-bash';
 import type { LRParser } from '@lezer/lr'
 import { parser as yamlParser } from '@lezer/yaml';
 
@@ -9,8 +11,11 @@ import { parser as yamlParser } from '@lezer/yaml';
 import { highlight } from './lezer';
 
 const parsers: { [k in string]: LRParser } = {
-  // maybe this is enough, we will see
   yaml: yamlParser,
+
+  console: shellParser,
+  sh: shellParser,
+  bash: shellParser,
 };
 
 type RuleNames = keyof markdownit['renderer']['rules'];
