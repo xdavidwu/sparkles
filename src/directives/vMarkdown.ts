@@ -1,4 +1,4 @@
-import type { ObjectDirective } from 'vue';
+import type { FunctionDirective } from 'vue';
 import {
   renderer,
   softenFragmentNavigation, externalizeLinks, unarmRelativeLinks,
@@ -7,14 +7,17 @@ import DOMPurify from 'dompurify';
 import { oneDarkHighlightStyle } from '@codemirror/theme-one-dark';
 import { StyleModule } from 'style-mod';
 
-export const vMarkdown: ObjectDirective<HTMLDivElement> = {
-  created: (el, binding) => {
-    StyleModule.mount(document, oneDarkHighlightStyle.module!);
-    const rendered = DOMPurify.sanitize(renderer.render(binding.value));
-    el.innerHTML = rendered;
+StyleModule.mount(document, oneDarkHighlightStyle.module!);
 
-    softenFragmentNavigation(el);
-    externalizeLinks(el);
-    unarmRelativeLinks(el);
-  },
+export const vMarkdown: FunctionDirective<HTMLDivElement> = (el, binding) => {
+  if (binding.value === binding.oldValue) {
+    return;
+  }
+
+  const rendered = DOMPurify.sanitize(renderer.render(binding.value));
+  el.innerHTML = rendered;
+
+  softenFragmentNavigation(el);
+  externalizeLinks(el);
+  unarmRelativeLinks(el);
 };
