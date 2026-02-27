@@ -4,7 +4,7 @@ import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { Mode, plugin as markdown } from 'vite-plugin-markdown';
-import { renderer } from './src/utils/markdown';
+import { trustedRenderer } from './src/utils/markdown';
 
 // for markdown code highlighting
 if (!globalThis.document) {
@@ -25,7 +25,7 @@ export default defineConfig({
     vue(),
     markdown({
       mode: [Mode.VUE],
-      markdownIt: renderer,
+      markdownIt: trustedRenderer,
     }),
     {
       name: 'app-version',
