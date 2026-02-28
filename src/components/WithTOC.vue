@@ -47,7 +47,7 @@ const detectPosition = () => {
     <div class="overflow-y-auto h-100" ref="div" @scroll="detectPosition">
       <slot />
     </div>
-    <TableOfContents :toc="toc" :offset="0" :pos="currentId"
+    <TableOfContents :toc="toc" :offset="tocOffset" :pos="currentId"
       @navigate="navigate" />
   </div>
 </template>
