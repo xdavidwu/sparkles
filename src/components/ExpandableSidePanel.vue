@@ -22,8 +22,8 @@ useResizeObserver(container, () => {
 </script>
 
 <template>
-  <div class="holder">
-    <VCard class="panel" :class="{ expanded }">
+  <div class="position-sticky overflow-visible float-right top-0 h-0">
+    <VCard class="panel mt-4" :class="{ expanded }">
       <div class="d-flex align-start">
         <div class="d-flex flex-column align-center justify-center py-2 align-self-stretch cursor-pointer"
           :class="{ 'text-medium-emphasis': !expanded, 'px-1': underOverlayScrollbar }"
@@ -43,14 +43,6 @@ useResizeObserver(container, () => {
 </template>
 
 <style scoped>
-.holder {
-  position: sticky;
-  overflow: visible;
-  float: right;
-  top: 8px;
-  height: 0px;
-}
-
 .panel {
   background-color: rgba(54, 54, 54, var(--v-medium-emphasis-opacity));
 }
