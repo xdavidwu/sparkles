@@ -2,40 +2,56 @@
 import { ref } from 'vue';
 import { VCard, VIcon } from 'vuetify/components';
 import { Ripple as vRipple } from 'vuetify/directives';
-
-const expanded = ref(false);
+import { useParentElement, useResizeObserver } from '@vueuse/core';
 
 defineProps<{
   title?: string;
-  offset?: number;
 }>();
+
+const expanded = ref(false);
+const container = useParentElement();
+// enables padding, to make sure not getting occluded
+const underOverlayScrollbar = ref(false);
+
+useResizeObserver(container, () => {
+  const c = container.value! as HTMLElement;
+  const overflows = c.scrollHeight > c.clientHeight;
+  const hasClassicScrollbar = (c.offsetWidth - c.clientWidth) > 0;
+  underOverlayScrollbar.value = overflows && !hasClassicScrollbar;
+});
 </script>
 
 <template>
-  <VCard class="panel" :class="{ expanded }"
-    :style='`right: ${offset ?? 0}px`'>
-    <div class="d-flex align-center">
-      <div class="d-flex flex-column align-center justify-center py-2 align-self-stretch cursor-pointer"
-        :class="{ 'text-medium-emphasis': !expanded }"
-        v-ripple @click="expanded = !expanded">
-        <VIcon :icon="`mdi-chevron-${expanded ? 'right' : 'left'}`"
-          variant="plain" size="x-small" />
-        <div v-if="title" class="mt-1 text-vertical text-caption text-uppercase">
-          {{ title }}
+  <div class="holder">
+    <VCard class="panel" :class="{ expanded }">
+      <div class="d-flex align-center">
+        <div class="d-flex flex-column align-center justify-center py-2 align-self-stretch cursor-pointer"
+          :class="{ 'text-medium-emphasis': !expanded, 'px-1': underOverlayScrollbar }"
+          v-ripple @click="expanded = !expanded">
+          <VIcon :icon="`mdi-chevron-${expanded ? 'right' : 'left'}`"
+            variant="plain" size="x-small" />
+          <div v-if="title" class="mt-1 text-vertical text-caption text-uppercase">
+            {{ title }}
+          </div>
+        </div>
+        <div v-show="expanded" class="ps-1">
+          <slot />
         </div>
       </div>
-      <div v-show="expanded" class="ps-1">
-        <slot />
-      </div>
-    </div>
-  </VCard>
+    </VCard>
+  </div>
 </template>
 
 <style scoped>
-.panel {
-  position: absolute;
+.holder {
+  position: sticky;
+  overflow: visible;
+  float: right;
   top: 8px;
-  z-index: 1000;
+  height: 0px;
+}
+
+.panel {
   background-color: rgba(54, 54, 54, var(--v-medium-emphasis-opacity));
 }
 
