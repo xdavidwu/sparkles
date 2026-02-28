@@ -301,6 +301,11 @@ a:not([class^="v-"]):active, a:not([class^="v-"]):visited:active {
   padding: 4px 8px;
 }
 
+.disable-selection {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 td.v-data-table__td:empty::before {
   content: '(None)';
   opacity: var(--v-disabled-opacity);

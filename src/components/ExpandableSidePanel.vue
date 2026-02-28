@@ -30,7 +30,7 @@ useResizeObserver(container, () => {
           v-ripple @click="expanded = !expanded">
           <VIcon :icon="`mdi-chevron-${expanded ? 'right' : 'left'}`"
             variant="plain" size="x-small" />
-          <div v-if="title" class="mt-1 text-vertical text-caption text-uppercase">
+          <div v-if="title" class="mt-1 text-vertical text-caption text-uppercase disable-selection">
             {{ title }}
           </div>
         </div>
