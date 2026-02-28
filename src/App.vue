@@ -247,6 +247,21 @@ a:not([class^="v-"]):active, a:not([class^="v-"]):visited:active {
   --markdown-code-background: black;
 }
 
+@keyframes highlight {
+  from {
+    outline: 1px rgb(var(--v-theme-primary)) solid;
+    border-radius: 2px;
+  }
+  to {
+    outline: 0px rgba(var(--v-theme-primary), 0) solid;
+    border-radius: 2px;
+  }
+}
+
+.markdown :is(:target, .highlight) {
+  animation: highlight 2s ease-in;
+}
+
 .markdown :is(h1, h2, h3, h4, h5, h6, p, table):first-child {
   margin-top: 0;
 }

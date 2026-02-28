@@ -82,13 +82,20 @@ const makeRenderer = () => {
 export const trustedRenderer = makeRenderer();
 export const renderer = makeRenderer().use(unarmRelativeLinks);
 
+export const softNavigate = (el: HTMLElement, id: string) => {
+  const target = el.querySelector(`#${CSS.escape(id)}`);
+  target?.scrollIntoView();
+  target?.classList.add('highlight');
+  setTimeout(() => target?.classList.remove('highlight'), 2000);
+};
+
 // fragment navigation without affecting current URL
 // this needs to be handled after rendering to make sanitizing easier
 export const softenFragmentNavigation = (el: HTMLElement) =>
   el.querySelectorAll('a[href^="#"]').forEach((a) => {
     a.addEventListener('click', (e) => {
-      const id = a.getAttribute('href')!;
-      el.querySelector(`#${CSS.escape(decodeURIComponent(id).substring(1))}`)?.scrollIntoView();
+      const hash = a.getAttribute('href')!;
+      softNavigate(el, decodeURIComponent(hash).substring(1));
       e.preventDefault();
     });
   });
