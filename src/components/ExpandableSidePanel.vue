@@ -24,7 +24,7 @@ useResizeObserver(container, () => {
 <template>
   <div class="holder">
     <VCard class="panel" :class="{ expanded }">
-      <div class="d-flex align-center">
+      <div class="d-flex align-start">
         <div class="d-flex flex-column align-center justify-center py-2 align-self-stretch cursor-pointer"
           :class="{ 'text-medium-emphasis': !expanded, 'px-1': underOverlayScrollbar }"
           v-ripple @click="expanded = !expanded">
