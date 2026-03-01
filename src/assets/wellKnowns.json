@@ -1,0 +1,1416 @@
+[
+  {
+    "key": "apf.kubernetes.io/autoupdate-spec",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>apf.kubernetes.io/autoupdate-spec: \"true\"</code></p><p>Used on: <a href=\"https://kubernetes.io/docs/concepts/cluster-administration/flow-control/#defaults\" target=\"_blank\"><code>FlowSchema</code> and <code>PriorityLevelConfiguration</code> Objects</a></p><p>If this annotation is set to true on a FlowSchema or PriorityLevelConfiguration, the <code>spec</code> for that object\nis managed by the kube-apiserver. If the API server does not recognize an APF object, and you annotate it\nfor automatic update, the API server deletes the entire object. Otherwise, the API server does not manage the\nobject spec.\nFor more details, read <a href=\"https://kubernetes.io/docs/concepts/cluster-administration/flow-control/#maintenance-of-the-mandatory-and-suggested-configuration-objects\" target=\"_blank\">Maintenance of the Mandatory and Suggested Configuration Objects</a>.</p>"
+  },
+  {
+    "key": "app.kubernetes.io/component",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>app.kubernetes.io/component: \"database\"</code></p><p>Used on: All Objects (typically used on <a href=\"https://kubernetes.io/docs/reference/kubernetes-api/workload-resources\" target=\"_blank\">workload resources</a>).</p><p>The component within the application architecture.</p><p>One of the <a href=\"https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/#labels\" target=\"_blank\">recommended labels</a>.</p>"
+  },
+  {
+    "key": "app.kubernetes.io/created-by",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>app.kubernetes.io/created-by: \"controller-manager\"</code></p><p>Used on: All Objects (typically used on <a href=\"https://kubernetes.io/docs/reference/kubernetes-api/workload-resources\" target=\"_blank\">workload resources</a>).</p><p>The controller/user who created this resource.</p><div role=\"note\"><h4>Note:</h4>Starting from v1.9, this label is deprecated.</div>"
+  },
+  {
+    "key": "app.kubernetes.io/instance",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>app.kubernetes.io/instance: \"mysql-abcxyz\"</code></p><p>Used on: All Objects (typically used on\n<a href=\"https://kubernetes.io/docs/reference/kubernetes-api/workload-resources\" target=\"_blank\">workload resources</a>).</p><p>A unique name identifying the instance of an application.\nTo assign a non-unique name, use <a>app.kubernetes.io/name</a>.</p><p>One of the <a href=\"https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/#labels\" target=\"_blank\">recommended labels</a>.</p>"
+  },
+  {
+    "key": "app.kubernetes.io/managed-by",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>app.kubernetes.io/managed-by: \"helm\"</code></p><p>Used on: All Objects (typically used on\n<a href=\"https://kubernetes.io/docs/reference/kubernetes-api/workload-resources\" target=\"_blank\">workload resources</a>).</p><p>The tool being used to manage the operation of an application.</p><p>One of the <a href=\"https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/#labels\" target=\"_blank\">recommended labels</a>.</p>"
+  },
+  {
+    "key": "app.kubernetes.io/name",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>app.kubernetes.io/name: \"mysql\"</code></p><p>Used on: All Objects (typically used on\n<a href=\"https://kubernetes.io/docs/reference/kubernetes-api/workload-resources\" target=\"_blank\">workload resources</a>).</p><p>The name of the application.</p><p>One of the <a href=\"https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/#labels\" target=\"_blank\">recommended labels</a>.</p>"
+  },
+  {
+    "key": "app.kubernetes.io/part-of",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>app.kubernetes.io/part-of: \"wordpress\"</code></p><p>Used on: All Objects (typically used on\n<a href=\"https://kubernetes.io/docs/reference/kubernetes-api/workload-resources\" target=\"_blank\">workload resources</a>).</p><p>The name of a higher-level application this object is part of.</p><p>One of the <a href=\"https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/#labels\" target=\"_blank\">recommended labels</a>.</p>"
+  },
+  {
+    "key": "app.kubernetes.io/version",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>app.kubernetes.io/version: \"5.7.21\"</code></p><p>Used on: All Objects (typically used on\n<a href=\"https://kubernetes.io/docs/reference/kubernetes-api/workload-resources\" target=\"_blank\">workload resources</a>).</p><p>The current version of the application.</p><p>Common forms of values include:</p><ul><li><a href=\"https://semver.org/spec/v1.0.0.html\" target=\"_blank\">semantic version</a></li><li>the Git <a href=\"https://git-scm.com/book/en/v2/Git-Tools-Revision-Selection#_single_revisions\" target=\"_blank\">revision hash</a>\nfor the source code.</li></ul><p>One of the <a href=\"https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/#labels\" target=\"_blank\">recommended labels</a>.</p>"
+  },
+  {
+    "key": "applyset.kubernetes.io/additional-namespaces",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>applyset.kubernetes.io/additional-namespaces: \"namespace1,namespace2\"</code></p><p>Used on: Objects being used as ApplySet parents.</p><p>Use of this annotation is Alpha.\nFor Kubernetes version 1.35, you can use this annotation on Secrets,\nConfigMaps, or custom resources if the\n<a title=\"Custom code that defines a resource to add to your Kubernetes API server without building a complete custom server.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/\" target=\"_blank\" aria-label=\"CustomResourceDefinition\">CustomResourceDefinition</a>\ndefining them has the <code>applyset.kubernetes.io/is-parent-type</code> label.</p><p>Part of the specification used to implement\n<a href=\"https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/#alternative-kubectl-apply-f-directory-prune\" target=\"_blank\">ApplySet-based pruning in kubectl</a>.\nThis annotation is applied to the parent object used to track an ApplySet to extend the scope of\nthe ApplySet beyond the parent object's own namespace (if any).\nThe value is a comma-separated list of the names of namespaces other than the parent's namespace\nin which objects are found.</p>"
+  },
+  {
+    "key": "applyset.kubernetes.io/contains-group-kinds",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>applyset.kubernetes.io/contains-group-kinds: \"certificates.cert-manager.io,configmaps,deployments.apps,secrets,services\"</code></p><p>Used on: Objects being used as ApplySet parents.</p><p>Use of this annotation is Alpha.\nFor Kubernetes version 1.35, you can use this annotation on Secrets, ConfigMaps,\nor custom resources if the CustomResourceDefinition\ndefining them has the <code>applyset.kubernetes.io/is-parent-type</code> label.</p><p>Part of the specification used to implement\n<a href=\"https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/#alternative-kubectl-apply-f-directory-prune\" target=\"_blank\">ApplySet-based pruning in kubectl</a>.\nThis annotation is applied to the parent object used to track an ApplySet to optimize listing of\nApplySet member objects. It is optional in the ApplySet specification, as tools can perform discovery\nor use a different optimization. However, as of Kubernetes version 1.35,\nit is required by kubectl. When present, the value of this annotation must be a comma separated list\nof the group-kinds, in the fully-qualified name format, i.e. <code>&lt;resource&gt;.&lt;group&gt;</code>.</p>"
+  },
+  {
+    "key": "applyset.kubernetes.io/contains-group-resources",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>applyset.kubernetes.io/contains-group-resources: \"certificates.cert-manager.io,configmaps,deployments.apps,secrets,services\"</code></p><p>Used on: Objects being used as ApplySet parents.</p><p>For Kubernetes version 1.35, you can use this annotation on Secrets, ConfigMaps,\nor custom resources if the CustomResourceDefinition\ndefining them has the <code>applyset.kubernetes.io/is-parent-type</code> label.</p><p>Part of the specification used to implement\n<a href=\"https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/#alternative-kubectl-apply-f-directory-prune\" target=\"_blank\">ApplySet-based pruning in kubectl</a>.\nThis annotation is applied to the parent object used to track an ApplySet to optimize listing of\nApplySet member objects. It is optional in the ApplySet specification, as tools can perform discovery\nor use a different optimization. However, in Kubernetes version 1.35,\nit is required by kubectl. When present, the value of this annotation must be a comma separated list\nof the group-kinds, in the fully-qualified name format, i.e. <code>&lt;resource&gt;.&lt;group&gt;</code>.</p><div role=\"note\"><h4>Note:</h4>This annotation is currently deprecated and replaced by <a><code>applyset.kubernetes.io/contains-group-kinds</code></a>,\nsupport for this will be removed in applyset beta or GA.</div>"
+  },
+  {
+    "key": "applyset.kubernetes.io/id",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>applyset.kubernetes.io/id: \"applyset-0eFHV8ySqp7XoShsGvyWFQD3s96yqwHmzc4e0HR1dsY-v1\"</code></p><p>Used on: Objects being used as ApplySet parents.</p><p>Use of this label is Alpha.\nFor Kubernetes version 1.35, you can use this label on Secrets, ConfigMaps,\nor custom resources if the CustomResourceDefinition\ndefining them has the <code>applyset.kubernetes.io/is-parent-type</code> label.</p><p>Part of the specification used to implement\n<a href=\"https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/#alternative-kubectl-apply-f-directory-prune\" target=\"_blank\">ApplySet-based pruning in kubectl</a>.\nThis label is what makes an object an ApplySet parent object.\nIts value is the unique ID of the ApplySet, which is derived from the identity of the parent\nobject itself. This ID <strong>must</strong> be the base64 encoding (using the URL safe encoding of RFC4648) of\nthe hash of the group-kind-name-namespace of the object it is on, in the form:\n<code>&lt;base64(sha256(&lt;name&gt;.&lt;namespace&gt;.&lt;kind&gt;.&lt;group&gt;))&gt;</code>.\nThere is no relation between the value of this label and object UID.</p>"
+  },
+  {
+    "key": "applyset.kubernetes.io/is-parent-type",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>applyset.kubernetes.io/is-parent-type: \"true\"</code></p><p>Used on: Custom Resource Definition (CRD)</p><p>Use of this label is Alpha.\nPart of the specification used to implement\n<a href=\"https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/#alternative-kubectl-apply-f-directory-prune\" target=\"_blank\">ApplySet-based pruning in kubectl</a>.\nYou can set this label on a CustomResourceDefinition (CRD) to identify the custom resource type it\ndefines (not the CRD itself) as an allowed parent for an ApplySet.\nThe only permitted value for this label is <code>\"true\"</code>; if you want to mark a CRD as\nnot being a valid parent for ApplySets, omit this label.</p>"
+  },
+  {
+    "key": "applyset.kubernetes.io/part-of",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>applyset.kubernetes.io/part-of: \"applyset-0eFHV8ySqp7XoShsGvyWFQD3s96yqwHmzc4e0HR1dsY-v1\"</code></p><p>Used on: All objects.</p><p>Use of this label is Alpha.\nPart of the specification used to implement\n<a href=\"https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/#alternative-kubectl-apply-f-directory-prune\" target=\"_blank\">ApplySet-based pruning in kubectl</a>.\nThis label is what makes an object a member of an ApplySet.\nThe value of the label <strong>must</strong> match the value of the <code>applyset.kubernetes.io/id</code>\nlabel on the parent object.</p>"
+  },
+  {
+    "key": "applyset.kubernetes.io/tooling",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>applyset.kubernetes.io/tooling: \"kubectl/v1.35\"</code></p><p>Used on: Objects being used as ApplySet parents.</p><p>Use of this annotation is Alpha.\nFor Kubernetes version 1.35, you can use this annotation on Secrets,\nConfigMaps, or custom resources if the CustomResourceDefinitiondefining them has the\n<code>applyset.kubernetes.io/is-parent-type</code> label.</p><p>Part of the specification used to implement\n<a href=\"https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/#alternative-kubectl-apply-f-directory-prune\" target=\"_blank\">ApplySet-based pruning in kubectl</a>.\nThis annotation is applied to the parent object used to track an ApplySet to indicate which\ntooling manages that ApplySet. Tooling should refuse to mutate ApplySets belonging to other tools.\nThe value must be in the format <code>&lt;toolname&gt;/&lt;semver&gt;</code>.</p>"
+  },
+  {
+    "key": "apps.kubernetes.io/pod-index",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>apps.kubernetes.io/pod-index: \"0\"</code></p><p>Used on: Pod</p><p>When a StatefulSet controller creates a Pod for the StatefulSet, it sets this label on that Pod.\nThe value of the label is the ordinal index of the pod being created.</p><p>See <a href=\"https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-index-label\" target=\"_blank\">Pod Index Label</a>\nin the StatefulSet topic for more details.\nNote the <a href=\"https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates\" target=\"_blank\">PodIndexLabel</a>\nfeature gate must be enabled for this label to be added to pods.</p>"
+  },
+  {
+    "key": "resource.kubernetes.io/pod-claim-name",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>resource.kubernetes.io/pod-claim-name: \"my-pod-claim\"</code></p><p>Used on: ResourceClaim</p><p>This annotation is assigned to generated ResourceClaims.\nIts value corresponds to the name of the resource claim in the <code>.spec</code> of any Pod(s) for which the ResourceClaim was created.\nThis annotation is an internal implementation detail of <a href=\"https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation\" target=\"_blank\">dynamic resource allocation</a>.\nYou should not need to read or modify the value of this annotation.</p>"
+  },
+  {
+    "key": "cluster-autoscaler.kubernetes.io/safe-to-evict",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>cluster-autoscaler.kubernetes.io/safe-to-evict: \"true\"</code></p><p>Used on: Pod</p><p>When this annotation is set to <code>\"true\"</code>, the cluster autoscaler is allowed to evict a Pod\neven if other rules would normally prevent that.\nThe cluster autoscaler never evicts Pods that have this annotation explicitly set to\n<code>\"false\"</code>; you could set that on an important Pod that you want to keep running.\nIf this annotation is not set then the cluster autoscaler follows its Pod-level behavior.</p>"
+  },
+  {
+    "key": "config.kubernetes.io/local-config",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>config.kubernetes.io/local-config: \"true\"</code></p><p>Used on: All objects</p><p>This annotation is used in manifests to mark an object as local configuration that\nshould not be submitted to the Kubernetes API.</p><p>A value of <code>\"true\"</code> for this annotation declares that the object is only consumed by\nclient-side tooling and should not be submitted to the API server.</p><p>A value of <code>\"false\"</code> can be used to declare that the object should be submitted to\nthe API server even when it would otherwise be assumed to be local.</p><p>This annotation is part of the Kubernetes Resource Model (KRM) Functions Specification,\nwhich is used by Kustomize and similar third-party tools.\nFor example, Kustomize removes objects with this annotation from its final build output.</p>"
+  },
+  {
+    "key": "deployment.kubernetes.io/desired-replicas",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>deployment.kubernetes.io/desired-replicas: \"3\"</code></p><p>Used on: ReplicaSet</p><p>This annotation is set by the Deployment controller on ReplicaSets it manages.\nThe value represents the desired number of replicas (<code>.spec.replicas</code>) from the Deployment\nthat owns this ReplicaSet. The Deployment controller uses this annotation to track the\ndesired state during rolling updates and scaling operations.</p><p>This is an internal annotation used by the Deployment controller and should not be\nmodified manually.</p>"
+  },
+  {
+    "key": "deployment.kubernetes.io/max-replicas",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>deployment.kubernetes.io/max-replicas: \"5\"</code></p><p>Used on: ReplicaSet</p><p>This annotation is set by the Deployment controller on ReplicaSets it manages.\nThe value represents the maximum number of replicas that this ReplicaSet is allowed to have\nduring a rolling update. This is used to implement the <code>maxSurge</code> parameter of the\nDeployment's rolling update strategy, which controls how many extra Pods can be created\nabove the desired number during an update.</p><p>This is an internal annotation used by the Deployment controller and should not be\nmodified manually.</p>"
+  },
+  {
+    "key": "deployment.kubernetes.io/revision",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>deployment.kubernetes.io/revision: \"2\"</code></p><p>Used on: ReplicaSet</p><p>This annotation is set by the Deployment controller on ReplicaSets it manages.\nThe value represents the revision number of the Deployment. Each time the Deployment's\nPod template (<code>.spec.template</code>) is changed, the revision number is incremented.\nThis annotation is used to track the rollout history and enables rollback to previous\nrevisions using <code>kubectl rollout undo</code>.</p><p>The revision number is also visible when running <code>kubectl rollout history deployment/&lt;name&gt;</code>.</p><p>This is an internal annotation used by the Deployment controller and should not be\nmodified manually.</p>"
+  },
+  {
+    "key": "internal.config.kubernetes.io/path",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>internal.config.kubernetes.io/path: \"relative/file/path.yaml\"</code></p><p>Used on: All objects</p><p>This annotation records the slash-delimited, OS-agnostic, relative path to the manifest file the\nobject was loaded from. The path is relative to a fixed location on the filesystem, determined by\nthe orchestrator tool.</p><p>This annotation is part of the Kubernetes Resource Model (KRM) Functions Specification, which is\nused by Kustomize and similar third-party tools.</p><p>A KRM Function <strong>should not</strong> modify this annotation on input objects unless it is modifying the\nreferenced files. A KRM Function <strong>may</strong> include this annotation on objects it generates.</p>"
+  },
+  {
+    "key": "internal.config.kubernetes.io/index",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>internal.config.kubernetes.io/index: \"2\"</code></p><p>Used on: All objects</p><p>This annotation records the zero-indexed position of the YAML document that contains the object\nwithin the manifest file the object was loaded from. Note that YAML documents are separated by\nthree dashes (<code>---</code>) and can each contain one object. When this annotation is not specified, a\nvalue of 0 is implied.</p><p>This annotation is part of the Kubernetes Resource Model (KRM) Functions Specification,\nwhich is used by Kustomize and similar third-party tools.</p><p>A KRM Function <strong>should not</strong> modify this annotation on input objects unless it is modifying the\nreferenced files. A KRM Function <strong>may</strong> include this annotation on objects it generates.</p>"
+  },
+  {
+    "key": "kube-scheduler-simulator.sigs.k8s.io/bind-result",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kube-scheduler-simulator.sigs.k8s.io/bind-result: '{\"DefaultBinder\":\"success\"}'</code></p><p>Used on: Pod</p><p>This annotation records the result of bind scheduler plugins, used by <a href=\"https://sigs.k8s.io/kube-scheduler-simulator\" target=\"_blank\">https://sigs.k8s.io/kube-scheduler-simulator</a>.</p>"
+  },
+  {
+    "key": "kube-scheduler-simulator.sigs.k8s.io/filter-result",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example:</p><div><pre tabindex=\"0\" style=\"background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4\"><code data-lang=\"yaml\"><span style=\"display:flex\"><span><span style=\"color:green;font-weight:700\">kube-scheduler-simulator.sigs.k8s.io/filter-result</span>:<span style=\"color:#bbb\"> </span>&gt;-<span style=\"color:#b44;font-style:italic\">\n</span></span></span><span style=\"display:flex\"><span><span style=\"color:#b44;font-style:italic\">      {\"node-282x7\":{\"AzureDiskLimits\":\"passed\",\"EBSLimits\":\"passed\",\"GCEPDLimits\":\"passed\",\"InterPodAffinity\":\"passed\",\"NodeAffinity\":\"passed\",\"NodeName\":\"passed\",\"NodePorts\":\"passed\",\"NodeResourcesFit\":\"passed\",\"NodeUnschedulable\":\"passed\",\"NodeVolumeLimits\":\"passed\",\"PodTopologySpread\":\"passed\",\"TaintToleration\":\"passed\",\"VolumeBinding\":\"passed\",\"VolumeRestrictions\":\"passed\",\"VolumeZone\":\"passed\"},\"node-gp9t4\":{\"AzureDiskLimits\":\"passed\",\"EBSLimits\":\"passed\",\"GCEPDLimits\":\"passed\",\"InterPodAffinity\":\"passed\",\"NodeAffinity\":\"passed\",\"NodeName\":\"passed\",\"NodePorts\":\"passed\",\"NodeResourcesFit\":\"passed\",\"NodeUnschedulable\":\"passed\",\"NodeVolumeLimits\":\"passed\",\"PodTopologySpread\":\"passed\",\"TaintToleration\":\"passed\",\"VolumeBinding\":\"passed\",\"VolumeRestrictions\":\"passed\",\"VolumeZone\":\"passed\"}}</span><span style=\"color:#bbb\">      \n</span></span></span></code></pre></div><p>Used on: Pod</p><p>This annotation records the result of filter scheduler plugins, used by <a href=\"https://sigs.k8s.io/kube-scheduler-simulator\" target=\"_blank\">https://sigs.k8s.io/kube-scheduler-simulator</a>.</p>"
+  },
+  {
+    "key": "kube-scheduler-simulator.sigs.k8s.io/finalscore-result",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example:</p><div><pre tabindex=\"0\" style=\"background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4\"><code data-lang=\"yaml\"><span style=\"display:flex\"><span><span style=\"color:green;font-weight:700\">kube-scheduler-simulator.sigs.k8s.io/finalscore-result</span>:<span style=\"color:#bbb\"> </span>&gt;-<span style=\"color:#b44;font-style:italic\">\n</span></span></span><span style=\"display:flex\"><span><span style=\"color:#b44;font-style:italic\">      {\"node-282x7\":{\"ImageLocality\":\"0\",\"InterPodAffinity\":\"0\",\"NodeAffinity\":\"0\",\"NodeNumber\":\"0\",\"NodeResourcesBalancedAllocation\":\"76\",\"NodeResourcesFit\":\"73\",\"PodTopologySpread\":\"200\",\"TaintToleration\":\"300\",\"VolumeBinding\":\"0\"},\"node-gp9t4\":{\"ImageLocality\":\"0\",\"InterPodAffinity\":\"0\",\"NodeAffinity\":\"0\",\"NodeNumber\":\"0\",\"NodeResourcesBalancedAllocation\":\"76\",\"NodeResourcesFit\":\"73\",\"PodTopologySpread\":\"200\",\"TaintToleration\":\"300\",\"VolumeBinding\":\"0\"}}</span><span style=\"color:#bbb\">      \n</span></span></span></code></pre></div><p>Used on: Pod</p><p>This annotation records the final scores that the scheduler calculates from the scores from score scheduler plugins,\nused by <a href=\"https://sigs.k8s.io/kube-scheduler-simulator\" target=\"_blank\">https://sigs.k8s.io/kube-scheduler-simulator</a>.</p>"
+  },
+  {
+    "key": "kube-scheduler-simulator.sigs.k8s.io/permit-result",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kube-scheduler-simulator.sigs.k8s.io/permit-result: '{\"CustomPermitPlugin\":\"success\"}'</code></p><p>Used on: Pod</p><p>This annotation records the result of permit scheduler plugins, used by <a href=\"https://sigs.k8s.io/kube-scheduler-simulator\" target=\"_blank\">https://sigs.k8s.io/kube-scheduler-simulator</a>.</p>"
+  },
+  {
+    "key": "kube-scheduler-simulator.sigs.k8s.io/permit-result-timeout",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kube-scheduler-simulator.sigs.k8s.io/permit-result-timeout: '{\"CustomPermitPlugin\":\"10s\"}'</code></p><p>Used on: Pod</p><p>This annotation records the timeouts returned from permit scheduler plugins, used by <a href=\"https://sigs.k8s.io/kube-scheduler-simulator\" target=\"_blank\">https://sigs.k8s.io/kube-scheduler-simulator</a>.</p>"
+  },
+  {
+    "key": "kube-scheduler-simulator.sigs.k8s.io/postfilter-result",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kube-scheduler-simulator.sigs.k8s.io/postfilter-result: '{\"DefaultPreemption\":\"success\"}'</code></p><p>Used on: Pod</p><p>This annotation records the result of postfilter scheduler plugins, used by <a href=\"https://sigs.k8s.io/kube-scheduler-simulator\" target=\"_blank\">https://sigs.k8s.io/kube-scheduler-simulator</a>.</p>"
+  },
+  {
+    "key": "kube-scheduler-simulator.sigs.k8s.io/prebind-result",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kube-scheduler-simulator.sigs.k8s.io/prebind-result: '{\"VolumeBinding\":\"success\"}'</code></p><p>Used on: Pod</p><p>This annotation records the result of prebind scheduler plugins, used by <a href=\"https://sigs.k8s.io/kube-scheduler-simulator\" target=\"_blank\">https://sigs.k8s.io/kube-scheduler-simulator</a>.</p>"
+  },
+  {
+    "key": "kube-scheduler-simulator.sigs.k8s.io/prefilter-result",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kube-scheduler-simulator.sigs.k8s.io/prebind-result: '{\"NodeAffinity\":\"[\\\"node-\\a\"]\"}'</code></p><p>Used on: Pod</p><p>This annotation records the PreFilter result of prefilter scheduler plugins, used by <a href=\"https://sigs.k8s.io/kube-scheduler-simulator\" target=\"_blank\">https://sigs.k8s.io/kube-scheduler-simulator</a>.</p>"
+  },
+  {
+    "key": "kube-scheduler-simulator.sigs.k8s.io/prefilter-result-status",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example:</p><div><pre tabindex=\"0\" style=\"background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4\"><code data-lang=\"yaml\"><span style=\"display:flex\"><span><span style=\"color:green;font-weight:700\">kube-scheduler-simulator.sigs.k8s.io/prefilter-result-status</span>:<span style=\"color:#bbb\"> </span>&gt;-<span style=\"color:#b44;font-style:italic\">\n</span></span></span><span style=\"display:flex\"><span><span style=\"color:#b44;font-style:italic\">      {\"InterPodAffinity\":\"success\",\"NodeAffinity\":\"success\",\"NodePorts\":\"success\",\"NodeResourcesFit\":\"success\",\"PodTopologySpread\":\"success\",\"VolumeBinding\":\"success\",\"VolumeRestrictions\":\"success\"}</span><span style=\"color:#bbb\">      \n</span></span></span></code></pre></div><p>Used on: Pod</p><p>This annotation records the result of prefilter scheduler plugins, used by <a href=\"https://sigs.k8s.io/kube-scheduler-simulator\" target=\"_blank\">https://sigs.k8s.io/kube-scheduler-simulator</a>.</p>"
+  },
+  {
+    "key": "kube-scheduler-simulator.sigs.k8s.io/prescore-result",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example:</p><div><pre tabindex=\"0\" style=\"background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4\"><code data-lang=\"yaml\"><span style=\"display:flex\"><span><span style=\"color:#bbb\">    </span><span style=\"color:green;font-weight:700\">kube-scheduler-simulator.sigs.k8s.io/prescore-result</span>:<span style=\"color:#bbb\"> </span>&gt;-<span style=\"color:#b44;font-style:italic\">\n</span></span></span><span style=\"display:flex\"><span><span style=\"color:#b44;font-style:italic\">      {\"InterPodAffinity\":\"success\",\"NodeAffinity\":\"success\",\"NodeNumber\":\"success\",\"PodTopologySpread\":\"success\",\"TaintToleration\":\"success\"}</span><span style=\"color:#bbb\">      \n</span></span></span></code></pre></div><p>Used on: Pod</p><p>This annotation records the result of prefilter scheduler plugins, used by <a href=\"https://sigs.k8s.io/kube-scheduler-simulator\" target=\"_blank\">https://sigs.k8s.io/kube-scheduler-simulator</a>.</p>"
+  },
+  {
+    "key": "kube-scheduler-simulator.sigs.k8s.io/reserve-result",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kube-scheduler-simulator.sigs.k8s.io/reserve-result: '{\"VolumeBinding\":\"success\"}'</code></p><p>Used on: Pod</p><p>This annotation records the result of reserve scheduler plugins, used by <a href=\"https://sigs.k8s.io/kube-scheduler-simulator\" target=\"_blank\">https://sigs.k8s.io/kube-scheduler-simulator</a>.</p>"
+  },
+  {
+    "key": "kube-scheduler-simulator.sigs.k8s.io/result-history",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kube-scheduler-simulator.sigs.k8s.io/result-history: '[]'</code></p><p>Used on: Pod</p><p>This annotation records all the past scheduling results from scheduler plugins, used by <a href=\"https://sigs.k8s.io/kube-scheduler-simulator\" target=\"_blank\">https://sigs.k8s.io/kube-scheduler-simulator</a>.</p>"
+  },
+  {
+    "key": "kube-scheduler-simulator.sigs.k8s.io/score-result",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<div><pre tabindex=\"0\" style=\"background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4\"><code data-lang=\"yaml\"><span style=\"display:flex\"><span><span style=\"color:#bbb\">    </span><span style=\"color:green;font-weight:700\">kube-scheduler-simulator.sigs.k8s.io/score-result</span>:<span style=\"color:#bbb\"> </span>&gt;-<span style=\"color:#b44;font-style:italic\">\n</span></span></span><span style=\"display:flex\"><span><span style=\"color:#b44;font-style:italic\">      {\"node-282x7\":{\"ImageLocality\":\"0\",\"InterPodAffinity\":\"0\",\"NodeAffinity\":\"0\",\"NodeNumber\":\"0\",\"NodeResourcesBalancedAllocation\":\"76\",\"NodeResourcesFit\":\"73\",\"PodTopologySpread\":\"0\",\"TaintToleration\":\"0\",\"VolumeBinding\":\"0\"},\"node-gp9t4\":{\"ImageLocality\":\"0\",\"InterPodAffinity\":\"0\",\"NodeAffinity\":\"0\",\"NodeNumber\":\"0\",\"NodeResourcesBalancedAllocation\":\"76\",\"NodeResourcesFit\":\"73\",\"PodTopologySpread\":\"0\",\"TaintToleration\":\"0\",\"VolumeBinding\":\"0\"}}</span><span style=\"color:#bbb\">      \n</span></span></span></code></pre></div><p>Used on: Pod</p><p>This annotation records the result of score scheduler plugins, used by <a href=\"https://sigs.k8s.io/kube-scheduler-simulator\" target=\"_blank\">https://sigs.k8s.io/kube-scheduler-simulator</a>.</p>"
+  },
+  {
+    "key": "kube-scheduler-simulator.sigs.k8s.io/selected-node",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kube-scheduler-simulator.sigs.k8s.io/selected-node: node-282x7</code></p><p>Used on: Pod</p><p>This annotation records the node that is selected by the scheduling cycle, used by <a href=\"https://sigs.k8s.io/kube-scheduler-simulator\" target=\"_blank\">https://sigs.k8s.io/kube-scheduler-simulator</a>.</p>"
+  },
+  {
+    "key": "kubernetes.io/arch",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/arch: \"amd64\"</code></p><p>Used on: Node</p><p>The Kubelet populates this with <code>runtime.GOARCH</code> as defined by Go.\nThis can be handy if you are mixing ARM and x86 nodes.</p>"
+  },
+  {
+    "key": "kubernetes.io/os",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/os: \"linux\"</code></p><p>Used on: Node, Pod</p><p>For nodes, the kubelet populates this with <code>runtime.GOOS</code> as defined by Go. This can be handy if you are\nmixing operating systems in your cluster (for example: mixing Linux and Windows nodes).</p><p>You can also set this label on a Pod. Kubernetes allows you to set any value for this label;\nif you use this label, you should nevertheless set it to the Go <code>runtime.GOOS</code> string for the operating\nsystem that this Pod actually works with.</p><p>When the <code>kubernetes.io/os</code> label value for a Pod does not match the label value on a Node,\nthe kubelet on the node will not admit the Pod. However, this is not taken into account by\nthe kube-scheduler. Alternatively, the kubelet refuses to run a Pod where you have specified a Pod OS, if\nthis isn't the same as the operating system for the node where that kubelet is running. Just\nlook for <a href=\"https://kubernetes.io/docs/concepts/workloads/pods/#pod-os\" target=\"_blank\">Pods OS</a> for more details.</p>"
+  },
+  {
+    "key": "kubernetes.io/metadata.name",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/metadata.name: \"mynamespace\"</code></p><p>Used on: Namespaces</p><p>The Kubernetes API server (part of the <a title=\"The container orchestration layer that exposes the API and interfaces to define, deploy, and manage the lifecycle of containers.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/reference/glossary/?all=true#term-control-plane\" target=\"_blank\" aria-label=\"control plane\">control plane</a>)\nsets this label on all namespaces. The label value is set\nto the name of the namespace. You can't change this label's value.</p><p>This is useful if you want to target a specific namespace with a label\n<a title=\"Allows users to filter a list of resources based on labels.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/\" target=\"_blank\" aria-label=\"selector\">selector</a>.</p>"
+  },
+  {
+    "key": "kubernetes.io/limit-ranger",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/limit-ranger: \"LimitRanger plugin set: cpu, memory request for container nginx; cpu, memory limit for container nginx\"</code></p><p>Used on: Pod</p><p>Kubernetes by default doesn't provide any resource limit, that means unless you explicitly define\nlimits, your container can consume unlimited CPU and memory.\nYou can define a default request or default limit for pods. You do this by creating a LimitRange\nin the relevant namespace. Pods deployed after you define a LimitRange will have these limits\napplied to them.\nThe annotation <code>kubernetes.io/limit-ranger</code> records that resource defaults were specified for the Pod,\nand they were applied successfully.\nFor more details, read about <a href=\"https://kubernetes.io/docs/concepts/policy/limit-range\" target=\"_blank\">LimitRanges</a>.</p>"
+  },
+  {
+    "key": "kubernetes.io/config.hash",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/config.hash: \"df7cc47f8477b6b1226d7d23a904867b\"</code></p><p>Used on: Pod</p><p>When the kubelet creates a static Pod based on a given manifest, it attaches this annotation\nto the static Pod. The value of the annotation is the UID of the Pod.\nNote that the kubelet also sets the <code>.spec.nodeName</code> to the current node name as if the Pod\nwas scheduled to the node.</p>"
+  },
+  {
+    "key": "kubernetes.io/config.mirror",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/config.mirror: \"df7cc47f8477b6b1226d7d23a904867b\"</code></p><p>Used on: Pod</p><p>For a static Pod created by the kubelet on a node, a <a title=\"An object in the API server that tracks a static pod on a kubelet.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/reference/glossary/?all=true#term-mirror-pod\" target=\"_blank\" aria-label=\"mirror Pod\">mirror Pod</a>\nis created on the API server. The kubelet adds an annotation to indicate that this Pod is\nactually a mirror Pod. The annotation value is copied from the <a><code>kubernetes.io/config.hash</code></a>\nannotation, which is the UID of the Pod.</p><p>When updating a Pod with this annotation set, the annotation cannot be changed or removed.\nIf a Pod doesn't have this annotation, it cannot be added during a Pod update.</p>"
+  },
+  {
+    "key": "kubernetes.io/config.source",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/config.source: \"file\"</code></p><p>Used on: Pod</p><p>This annotation is added by the kubelet to indicate where the Pod comes from.\nFor static Pods, the annotation value could be one of <code>file</code> or <code>http</code> depending\non where the Pod manifest is located. For a Pod created on the API server and then\nscheduled to the current node, the annotation value is <code>api</code>.</p>"
+  },
+  {
+    "key": "kubernetes.io/config.seen",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/config.seen: \"2023-10-27T04:04:56.011314488Z\"</code></p><p>Used on: Pod</p><p>When the kubelet sees a Pod for the first time, it may add this annotation to\nthe Pod with a value of current timestamp in the RFC3339 format.</p>"
+  },
+  {
+    "key": "addonmanager.kubernetes.io/mode",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>addonmanager.kubernetes.io/mode: \"Reconcile\"</code></p><p>Used on: All objects</p><p>To specify how an add-on should be managed, you can use the <code>addonmanager.kubernetes.io/mode</code> label.\nThis label can have one of three values: <code>Reconcile</code>, <code>EnsureExists</code>, or <code>Ignore</code>.</p><ul><li><code>Reconcile</code>: Addon resources will be periodically reconciled with the expected state.\nIf there are any differences, the add-on manager will recreate, reconfigure or delete\nthe resources as needed. This is the default mode if no label is specified.</li><li><code>EnsureExists</code>: Addon resources will be checked for existence only but will not be modified\nafter creation. The add-on manager will create or re-create the resources when there is\nno instance of the resource with that name.</li><li><code>Ignore</code>: Addon resources will be ignored. This mode is useful for add-ons that are not\ncompatible with the add-on manager or that are managed by another controller.</li></ul><p>For more details, see <a href=\"https://github.com/kubernetes/kubernetes/blob/master/cluster/addons/addon-manager/README.md\" target=\"_blank\">Addon-manager</a>.</p>"
+  },
+  {
+    "key": "beta.kubernetes.io/arch",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>This label has been deprecated. Please use <a><code>kubernetes.io/arch</code></a> instead.</p>"
+  },
+  {
+    "key": "beta.kubernetes.io/os",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>This label has been deprecated. Please use <a><code>kubernetes.io/os</code></a> instead.</p>"
+  },
+  {
+    "key": "kube-aggregator.kubernetes.io/automanaged",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>kube-aggregator.kubernetes.io/automanaged: \"onstart\"</code></p><p>Used on: APIService</p><p>The <code>kube-apiserver</code> sets this label on any APIService object that the API server\nhas created automatically. The label marks how the control plane should manage that\nAPIService. You should not add, modify, or remove this label by yourself.</p><div role=\"note\"><h4>Note:</h4>Automanaged APIService objects are deleted by kube-apiserver when it has no built-in\nor custom resource API corresponding to the API group/version of the APIService.</div><p>There are two possible values:</p><ul><li><code>onstart</code>: The APIService should be reconciled when an API server starts up, but not otherwise.</li><li><code>true</code>: The API server should reconcile this APIService continuously.</li></ul>"
+  },
+  {
+    "key": "service.alpha.kubernetes.io/tolerate-unready-endpoints",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Used on: Service</p><p>This annotation was formerly used to indicate that the Endpoints controller\nshould create Endpoints for unready Pods. Since Kubernetes 1.11, the preferred\nAPI for this feature has been the <code>.publishNotReadyAddresses</code> field on the\n<a title=\"A way to expose an application running on a set of Pods as a network service.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/concepts/services-networking/service/\" target=\"_blank\" aria-label=\"Service\">Service</a>. This annotation has no effect in\nKubernetes 1.35.</p>"
+  },
+  {
+    "key": "autoscaling.alpha.kubernetes.io/behavior",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Used on: HorizontalPodAutoscaler</p><p>This annotation was used to configure the scaling behavior for a HorizontalPodAutoscaler (HPA) in earlier Kubernetes versions.\nIt allowed you to specify how the HPA should scale pods up or down, including setting stabilization windows and scaling policies.\nSetting this annotation has no effect in any supported release of Kubernetes.</p>"
+  },
+  {
+    "key": "kubernetes.io/hostname",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/hostname: \"ip-172-20-114-199.ec2.internal\"</code></p><p>Used on: Node</p><p>The Kubelet populates this label with the hostname of the node. Note that the hostname\ncan be changed from the \"actual\" hostname by passing the <code>--hostname-override</code> flag to\nthe <code>kubelet</code>.</p><p>This label is also used as part of the topology hierarchy.\nSee <a>topology.kubernetes.io/zone</a> for more information.</p>"
+  },
+  {
+    "key": "kubernetes.io/change-cause",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/change-cause: \"kubectl edit --record deployment foo\"</code></p><p>Used on: All Objects</p><p>This annotation is a best guess at why something was changed.</p><p>It is populated when adding <code>--record</code> to a <code>kubectl</code> command that may change an object.</p>"
+  },
+  {
+    "key": "kubernetes.io/description",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/description: \"Description of K8s object.\"</code></p><p>Used on: All Objects</p><p>This annotation is used for describing specific behaviour of given object.</p>"
+  },
+  {
+    "key": "kubernetes.io/enforce-mountable-secrets",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/enforce-mountable-secrets: \"true\"</code></p><p>Used on: ServiceAccount</p><div role=\"note\"><h4>Note:</h4><code>kubernetes.io/enforce-mountable-secrets</code> is deprecated since Kubernetes v1.32. Use separate namespaces to isolate access to mounted secrets.</div><p>The value for this annotation must be <strong>true</strong> to take effect.\nWhen you set this annotation to \"true\", Kubernetes enforces the following rules for\nPods running as this ServiceAccount:</p><ol><li>Secrets mounted as volumes must be listed in the ServiceAccount's <code>secrets</code> field.</li><li>Secrets referenced in <code>envFrom</code> for containers (including sidecar containers and init containers)\nmust also be listed in the ServiceAccount's secrets field.\nIf any container in a Pod references a Secret not listed in the ServiceAccount's <code>secrets</code> field\n(and even if the reference is marked as <code>optional</code>), then the Pod will fail to start,\nand an error indicating the non-compliant secret reference will be generated.</li><li>Secrets referenced in a Pod's <code>imagePullSecrets</code> must be present in the\nServiceAccount's <code>imagePullSecrets</code> field, the Pod will fail to start,\nand an error indicating the non-compliant image pull secret reference will be generated.</li></ol><p>When you create or update a Pod, these rules are checked. If a Pod doesn't follow them, it won't start and you'll see an error message.\nIf a Pod is already running and you change the <code>kubernetes.io/enforce-mountable-secrets</code> annotation\nto true, or you edit the associated ServiceAccount to remove the reference to a Secret\nthat the Pod is already using, the Pod continues to run.</p>"
+  },
+  {
+    "key": "node.alpha.kubernetes.io/ttl",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>node.alpha.kubernetes.io/ttl: \"0\"</code></p><p>Used on: Node</p><p>This label was used historically by some tools (such as minikube) to set a time-to-live\nvalue for nodes. The label is deprecated and should not be used in new deployments.</p><div role=\"note\"><h4>Note:</h4>This label is deprecated and has no effect in current Kubernetes versions.\nIt may still be set by older tools for backward compatibility.</div>"
+  },
+  {
+    "key": "node.kubernetes.io/exclude-from-external-load-balancers",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>node.kubernetes.io/exclude-from-external-load-balancers</code></p><p>Used on: Node</p><p>You can add labels to particular worker nodes to exclude them from the list of backend servers used by external load balancers.\nThe following command can be used to exclude a worker node from the list of backend servers in a\nbackend set:</p><div><pre tabindex=\"0\" style=\"background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4\"><code data-lang=\"shell\"><span style=\"display:flex\"><span>kubectl label nodes &lt;node-name&gt; node.kubernetes.io/exclude-from-external-load-balancers<span style=\"color:#666\">=</span><span style=\"color:#a2f\">true</span>\n</span></span></code></pre></div>"
+  },
+  {
+    "key": "controller.kubernetes.io/pod-deletion-cost",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>controller.kubernetes.io/pod-deletion-cost: \"10\"</code></p><p>Used on: Pod</p><p>This annotation is used to set <a href=\"https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/#pod-deletion-cost\" target=\"_blank\">Pod Deletion Cost</a>\nwhich allows users to influence ReplicaSet downscaling order.\nThe annotation value parses into an <code>int32</code> type.</p>"
+  },
+  {
+    "key": "cluster-autoscaler.kubernetes.io/enable-ds-eviction",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>cluster-autoscaler.kubernetes.io/enable-ds-eviction: \"true\"</code></p><p>Used on: Pod</p><p>This annotation controls whether a DaemonSet pod should be evicted by a ClusterAutoscaler.\nThis annotation needs to be specified on DaemonSet pods in a DaemonSet manifest.\nWhen this annotation is set to <code>\"true\"</code>, the ClusterAutoscaler is allowed to evict\na DaemonSet Pod, even if other rules would normally prevent that.\nTo disallow the ClusterAutoscaler from evicting DaemonSet pods,\nyou can set this annotation to <code>\"false\"</code> for important DaemonSet pods.\nIf this annotation is not set, then the ClusterAutoscaler follows its overall behavior\n(i.e evict the DaemonSets based on its configuration).</p><div role=\"note\"><h4>Note:</h4>This annotation only impacts DaemonSet Pods.</div>"
+  },
+  {
+    "key": "kubernetes.io/ingress-bandwidth",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/ingress-bandwidth: 10M</code></p><p>Used on: Pod</p><p>You can apply quality-of-service traffic shaping to a pod and effectively limit its available\nbandwidth. Ingress traffic to a Pod is handled by shaping queued packets to effectively\nhandle data. To limit the bandwidth on a Pod, write an object definition JSON file and specify\nthe data traffic speed using <code>kubernetes.io/ingress-bandwidth</code> annotation. The unit used for\nspecifying ingress rate is bits per second, as a\n<a href=\"https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity\" target=\"_blank\">Quantity</a>.\nFor example, <code>10M</code> means 10 megabits per second.</p><div role=\"note\"><h4>Note:</h4>Ingress traffic shaping annotation is an experimental feature.\nIf you want to enable traffic shaping support, you must add the <code>bandwidth</code> plugin to your CNI\nconfiguration file (default <code>/etc/cni/net.d</code>) and ensure that the binary is included in your CNI\nbin dir (default <code>/opt/cni/bin</code>).</div>"
+  },
+  {
+    "key": "kubernetes.io/egress-bandwidth",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/egress-bandwidth: 10M</code></p><p>Used on: Pod</p><p>Egress traffic from a Pod is handled by policing, which simply drops packets in excess of the\nconfigured rate. The limits you place on a Pod do not affect the bandwidth of other Pods.\nTo limit the bandwidth on a Pod, write an object definition JSON file and specify the data traffic\nspeed using <code>kubernetes.io/egress-bandwidth</code> annotation. The unit used for specifying egress rate\nis bits per second, as a <a href=\"https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity\" target=\"_blank\">Quantity</a>.\nFor example, <code>10M</code> means 10 megabits per second.</p><div role=\"note\"><h4>Note:</h4>Egress traffic shaping annotation is an experimental feature.\nIf you want to enable traffic shaping support, you must add the <code>bandwidth</code> plugin to your CNI\nconfiguration file (default <code>/etc/cni/net.d</code>) and ensure that the binary is included in your CNI\nbin dir (default <code>/opt/cni/bin</code>).</div>"
+  },
+  {
+    "key": "beta.kubernetes.io/instance-type",
+    "types": [
+      "labels"
+    ],
+    "desc": "<div role=\"note\"><h4>Note:</h4>Starting in v1.17, this label is deprecated in favor of\n<a>node.kubernetes.io/instance-type</a>.</div>"
+  },
+  {
+    "key": "node.kubernetes.io/instance-type",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>node.kubernetes.io/instance-type: \"m3.medium\"</code></p><p>Used on: Node</p><p>The Kubelet populates this with the instance type as defined by the cloud provider.\nThis will be set only if you are using a cloud provider. This setting is handy\nif you want to target certain workloads to certain instance types, but typically you want\nto rely on the Kubernetes scheduler to perform resource-based scheduling.\nYou should aim to schedule based on properties rather than on instance types\n(for example: require a GPU, instead of requiring a <code>g2.2xlarge</code>).</p>"
+  },
+  {
+    "key": "failure-domain.beta.kubernetes.io/region",
+    "types": [
+      "labels"
+    ],
+    "desc": "<div role=\"note\"><h4>Note:</h4>Starting in v1.17, this label is deprecated in favor of\n<a>topology.kubernetes.io/region</a>.</div>"
+  },
+  {
+    "key": "failure-domain.beta.kubernetes.io/zone",
+    "types": [
+      "labels"
+    ],
+    "desc": "<div role=\"note\"><h4>Note:</h4>Starting in v1.17, this label is deprecated in favor of\n<a>topology.kubernetes.io/zone</a>.</div>"
+  },
+  {
+    "key": "pv.kubernetes.io/bind-completed",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>pv.kubernetes.io/bind-completed: \"yes\"</code></p><p>Used on: PersistentVolumeClaim</p><p>When this annotation is set on a PersistentVolumeClaim (PVC), that indicates that the lifecycle\nof the PVC has passed through initial binding setup. When present, that information changes\nhow the control plane interprets the state of PVC objects.\nThe value of this annotation does not matter to Kubernetes.</p>"
+  },
+  {
+    "key": "pv.kubernetes.io/bound-by-controller",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>pv.kubernetes.io/bound-by-controller: \"yes\"</code></p><p>Used on: PersistentVolume, PersistentVolumeClaim</p><p>If this annotation is set on a PersistentVolume or PersistentVolumeClaim, it indicates that a\nstorage binding (PersistentVolume → PersistentVolumeClaim, or PersistentVolumeClaim → PersistentVolume)\nwas installed by the <a title=\"A control loop that watches the shared state of the cluster through the apiserver and makes changes attempting to move the current state towards the desired state.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/concepts/architecture/controller/\" target=\"_blank\" aria-label=\"controller\">controller</a>.\nIf the annotation isn't set, and there is a storage binding in place, the absence of that\nannotation means that the binding was done manually.\nThe value of this annotation does not matter.</p>"
+  },
+  {
+    "key": "pv.kubernetes.io/provisioned-by",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>pv.kubernetes.io/provisioned-by: \"kubernetes.io/rbd\"</code></p><p>Used on: PersistentVolume</p><p>This annotation is added to a PersistentVolume(PV) that has been dynamically provisioned by Kubernetes.\nIts value is the name of volume plugin that created the volume. It serves both users (to show where a PV\ncomes from) and Kubernetes (to recognize dynamically provisioned PVs in its decisions).</p>"
+  },
+  {
+    "key": "pv.kubernetes.io/migrated-to",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>pv.kubernetes.io/migrated-to: pd.csi.storage.gke.io</code></p><p>Used on: PersistentVolume, PersistentVolumeClaim</p><p>It is added to a PersistentVolume(PV) and PersistentVolumeClaim(PVC) that is supposed to be\ndynamically provisioned/deleted by its corresponding CSI driver through the <code>CSIMigration</code> feature gate.\nWhen this annotation is set, the Kubernetes components will \"stand-down\" and the\n<code>external-provisioner</code> will act on the objects.</p>"
+  },
+  {
+    "key": "statefulset.kubernetes.io/pod-name",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>statefulset.kubernetes.io/pod-name: \"mystatefulset-7\"</code></p><p>Used on: Pod</p><p>When a StatefulSet controller creates a Pod for the StatefulSet, the control plane\nsets this label on that Pod. The value of the label is the name of the Pod being created.</p><p>See <a href=\"https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-name-label\" target=\"_blank\">Pod Name Label</a>\nin the StatefulSet topic for more details.</p>"
+  },
+  {
+    "key": "scheduler.alpha.kubernetes.io/node-selector",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>scheduler.alpha.kubernetes.io/node-selector: \"name-of-node-selector\"</code></p><p>Used on: Namespace</p><p>The <a href=\"https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#podnodeselector\" target=\"_blank\">PodNodeSelector</a>\nuses this annotation key to assign node selectors to pods in namespaces.</p>"
+  },
+  {
+    "key": "topology.kubernetes.io/region",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>topology.kubernetes.io/region: \"us-east-1\"</code></p><p>Used on: Node, PersistentVolume</p><p>See <a>topology.kubernetes.io/zone</a>.</p>"
+  },
+  {
+    "key": "topology.kubernetes.io/zone",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>topology.kubernetes.io/zone: \"us-east-1c\"</code></p><p>Used on: Node, PersistentVolume</p><p><strong>On Node</strong>: The <code>kubelet</code> or the external <code>cloud-controller-manager</code> populates this\nwith the information from the cloud provider. This will be set only if you are using\na cloud provider. However, you can consider setting this on nodes if it makes sense\nin your topology.</p><p><strong>On PersistentVolume</strong>: topology-aware volume provisioners will automatically set\nnode affinity constraints on a <code>PersistentVolume</code>.</p><p>A zone represents a logical failure domain. It is common for Kubernetes clusters to\nspan multiple zones for increased availability. While the exact definition of a zone\nis left to infrastructure implementations, common properties of a zone include\nvery low network latency within a zone, no-cost network traffic within a zone, and\nfailure independence from other zones.\nFor example, nodes within a zone might share a network switch, but nodes in different\nzones should not.</p><p>A region represents a larger domain, made up of one or more zones.\nIt is uncommon for Kubernetes clusters to span multiple regions,\nWhile the exact definition of a zone or region is left to infrastructure implementations,\ncommon properties of a region include higher network latency between them than within them,\nnon-zero cost for network traffic between them, and failure independence from other zones or regions.\nFor example, nodes within a region might share power infrastructure (e.g. a UPS or generator),\nbut nodes in different regions typically would not.</p><p>Kubernetes makes a few assumptions about the structure of zones and regions:</p><ol><li>regions and zones are hierarchical: zones are strict subsets of regions and\nno zone can be in 2 regions</li><li>zone names are unique across regions; for example region \"africa-east-1\" might be comprised\nof zones \"africa-east-1a\" and \"africa-east-1b\"</li></ol><p>It should be safe to assume that topology labels do not change.\nEven though labels are strictly mutable, consumers of them can assume that a given node\nis not going to be moved between zones without being destroyed and recreated.</p><p>Kubernetes can use this information in various ways.\nFor example, the scheduler automatically tries to spread the Pods in a ReplicaSet across nodes\nin a single-zone cluster (to reduce the impact of node failures, see\n<a>kubernetes.io/hostname</a>).\nWith multiple-zone clusters, this spreading behavior also applies to zones (to reduce the impact of zone failures).\nThis is achieved via <em>SelectorSpreadPriority</em>.</p><p><em>SelectorSpreadPriority</em> is a best effort placement. If the zones in your cluster are\nheterogeneous (for example: different numbers of nodes, different types of nodes, or different pod\nresource requirements), this placement might prevent equal spreading of your Pods across zones.\nIf desired, you can use homogeneous zones (same number and types of nodes) to reduce the probability\nof unequal spreading.</p><p>The scheduler (through the <em>VolumeZonePredicate</em> predicate) also will ensure that Pods,\nthat claim a given volume, are only placed into the same zone as that volume.\nVolumes cannot be attached across zones.</p><p>If <code>PersistentVolumeLabel</code> does not support automatic labeling of your PersistentVolumes,\nyou should consider adding the labels manually (or adding support for <code>PersistentVolumeLabel</code>).\nWith <code>PersistentVolumeLabel</code>, the scheduler prevents Pods from mounting volumes in a different zone.\nIf your infrastructure doesn't have this constraint, you don't need to add the zone labels to the volumes at all.</p>"
+  },
+  {
+    "key": "volume.beta.kubernetes.io/storage-provisioner",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>volume.beta.kubernetes.io/storage-provisioner: \"k8s.io/minikube-hostpath\"</code></p><p>Used on: PersistentVolumeClaim</p><p>This annotation has been deprecated since v1.23.\nSee <a>volume.kubernetes.io/storage-provisioner</a>.</p>"
+  },
+  {
+    "key": "volume.beta.kubernetes.io/storage-class",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>volume.beta.kubernetes.io/storage-class: \"example-class\"</code></p><p>Used on: PersistentVolume, PersistentVolumeClaim</p><p>This annotation can be used for PersistentVolume(PV) or PersistentVolumeClaim(PVC)\nto specify the name of <a href=\"https://kubernetes.io/docs/concepts/storage/storage-classes\" target=\"_blank\">StorageClass</a>.\nWhen both the <code>storageClassName</code> attribute and the <code>volume.beta.kubernetes.io/storage-class</code>\nannotation are specified, the annotation <code>volume.beta.kubernetes.io/storage-class</code>\ntakes precedence over the <code>storageClassName</code> attribute.</p><p>This annotation has been deprecated. Instead, set the\n<a href=\"https://kubernetes.io/docs/concepts/storage/persistent-volumes/#class\" target=\"_blank\"><code>storageClassName</code> field</a>\nfor the PersistentVolumeClaim or PersistentVolume.</p>"
+  },
+  {
+    "key": "volume.beta.kubernetes.io/mount-options",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example : <code>volume.beta.kubernetes.io/mount-options: \"ro,soft\"</code></p><p>Used on: PersistentVolume</p><p>A Kubernetes administrator can specify additional\n<a href=\"https://kubernetes.io/docs/concepts/storage/persistent-volumes/#mount-options\" target=\"_blank\">mount options</a>\nfor when a PersistentVolume is mounted on a node.</p>"
+  },
+  {
+    "key": "volume.kubernetes.io/storage-provisioner",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Used on: PersistentVolumeClaim</p><p>This annotation is added to a PVC that is supposed to be dynamically provisioned.\nIts value is the name of a volume plugin that is supposed to provision a volume\nfor this PVC.</p>"
+  },
+  {
+    "key": "volume.kubernetes.io/selected-node",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Used on: PersistentVolumeClaim</p><p>This annotation is added to a PVC that is triggered by a scheduler to be\ndynamically provisioned. Its value is the name of the selected node.</p>"
+  },
+  {
+    "key": "volumes.kubernetes.io/controller-managed-attach-detach",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Used on: Node</p><p>If a node has the annotation <code>volumes.kubernetes.io/controller-managed-attach-detach</code>,\nits storage attach and detach operations are being managed by the <em>volume attach/detach</em>\n<a title=\"A control loop that watches the shared state of the cluster through the apiserver and makes changes attempting to move the current state towards the desired state.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/concepts/architecture/controller/\" target=\"_blank\" aria-label=\"controller\">controller</a>.</p><p>The value of the annotation isn't important.</p>"
+  },
+  {
+    "key": "node.kubernetes.io/windows-build",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>node.kubernetes.io/windows-build: \"10.0.17763\"</code></p><p>Used on: Node</p><p>When the kubelet is running on Microsoft Windows, it automatically labels its Node\nto record the version of Windows Server in use.</p><p>The label's value is in the format \"MajorVersion.MinorVersion.BuildNumber\".</p>"
+  },
+  {
+    "key": "storage.alpha.kubernetes.io/migrated-plugins",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example:<code>storage.alpha.kubernetes.io/migrated-plugins: \"kubernetes.io/cinder\"</code></p><p>Used on: CSINode (an extension API)</p><p>This annotation is automatically added for the CSINode object that maps to a node that\ninstalls CSIDriver. This annotation shows the in-tree plugin name of the migrated plugin. Its\nvalue depends on your cluster's in-tree cloud provider storage type.</p><p>For example, if the in-tree cloud provider storage type is <code>CSIMigrationvSphere</code>, the CSINodes instance for the node should be updated with:\n<code>storage.alpha.kubernetes.io/migrated-plugins: \"kubernetes.io/vsphere-volume\"</code></p>"
+  },
+  {
+    "key": "service.kubernetes.io/headless",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>service.kubernetes.io/headless: \"\"</code></p><p>Used on: EndpointSlice, Endpoints</p><p>The <a title=\"The container orchestration layer that exposes the API and interfaces to define, deploy, and manage the lifecycle of containers.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/reference/glossary/?all=true#term-control-plane\" target=\"_blank\" aria-label=\"control plane\">control plane</a> adds\nthis <a title=\"Tags objects with identifying attributes that are meaningful and relevant to users.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/concepts/overview/working-with-objects/labels\" target=\"_blank\" aria-label=\"label\">label</a> to EndpointSlice and\nEndpoints objects when the owning <a title=\"A way to expose an application running on a set of Pods as a network service.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/concepts/services-networking/service/\" target=\"_blank\" aria-label=\"Service\">Service</a> is\nheadless (as a hint to the service proxy that it can ignore these endpoints). To\nlearn more, read <a href=\"https://kubernetes.io/docs/concepts/services-networking/service/#headless-services\" target=\"_blank\">Headless\nServices</a>.</p>"
+  },
+  {
+    "key": "service.kubernetes.io/topology-aware-hints",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.kubernetes.io/topology-aware-hints: \"Auto\"</code></p><p>Used on: Service</p><p>This is a deprecated alias for the\n<a><code>service.kubernetes.io/topology-mode</code></a>\nannotation, which has the same functionality.</p>"
+  },
+  {
+    "key": "service.kubernetes.io/topology-mode",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.kubernetes.io/topology-mode: Auto</code></p><p>Used on: Service</p><p>This annotation provides a way to define how Services handle network topology;\nfor example, you can configure a Service so that Kubernetes prefers keeping traffic between\na client and server within a single topology zone.\nIn some cases this can help reduce costs or improve network performance.</p><p>See <a href=\"https://kubernetes.io/docs/concepts/services-networking/topology-aware-routing\" target=\"_blank\">Topology Aware Routing</a>\nfor more details.</p>"
+  },
+  {
+    "key": "kubernetes.io/service-name",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/service-name: \"my-website\"</code></p><p>Used on: EndpointSlice</p><p>Kubernetes associates <a href=\"https://kubernetes.io/docs/concepts/services-networking/endpoint-slices\" target=\"_blank\">EndpointSlices</a> with\n<a href=\"https://kubernetes.io/docs/concepts/services-networking/service\" target=\"_blank\">Services</a> using this label.</p><p>This label records the <a title=\"A client-provided string that refers to an object in a resource URL, such as /api/v1/pods/some-name.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/concepts/overview/working-with-objects/names\" target=\"_blank\" aria-label=\"name\">name</a> of the\nService that the EndpointSlice is backing. All EndpointSlices should have this label set to\nthe name of their associated Service.</p>"
+  },
+  {
+    "key": "kubernetes.io/service-account.name",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/service-account.name: \"sa-name\"</code></p><p>Used on: Secret</p><p>This annotation records the <a title=\"A client-provided string that refers to an object in a resource URL, such as /api/v1/pods/some-name.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/concepts/overview/working-with-objects/names\" target=\"_blank\" aria-label=\"name\">name</a> of the\nServiceAccount that the token (stored in the Secret of type <code>kubernetes.io/service-account-token</code>)\nrepresents.</p>"
+  },
+  {
+    "key": "kubernetes.io/service-account.uid",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/service-account.uid: da68f9c6-9d26-11e7-b84e-002dc52800da</code></p><p>Used on: Secret</p><p>This annotation records the <a title=\"A Kubernetes systems-generated string to uniquely identify objects.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/concepts/overview/working-with-objects/names\" target=\"_blank\" aria-label=\"unique ID\">unique ID</a> of the\nServiceAccount that the token (stored in the Secret of type <code>kubernetes.io/service-account-token</code>)\nrepresents.</p>"
+  },
+  {
+    "key": "kubernetes.io/legacy-token-last-used",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/legacy-token-last-used: 2022-10-24</code></p><p>Used on: Secret</p><p>The control plane only adds this label to Secrets that have the type\n<code>kubernetes.io/service-account-token</code>.\nThe value of this label records the date (ISO 8601 format, UTC time zone) when the control plane\nlast saw a request where the client authenticated using the service account token.</p><p>If a legacy token was last used before the cluster gained the feature (added in Kubernetes v1.26),\nthen the label isn't set.</p>"
+  },
+  {
+    "key": "kubernetes.io/legacy-token-invalid-since",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/legacy-token-invalid-since: 2023-10-27</code></p><p>Used on: Secret</p><p>The control plane automatically adds this label to auto-generated Secrets that\nhave the type <code>kubernetes.io/service-account-token</code>. This label marks the\nSecret-based token as invalid for authentication. The value of this label\nrecords the date (ISO 8601 format, UTC time zone) when the control plane detects\nthat the auto-generated Secret has not been used for a specified duration\n(defaults to one year).</p>"
+  },
+  {
+    "key": "endpoints.kubernetes.io/managed-by",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>endpoints.kubernetes.io/managed-by: endpoint-controller</code></p><p>Used on: Endpoints</p><p>This label is used internally to mark Endpoints objects that were created by\nKubernetes (as opposed to Endpoints created by users or external controllers).</p><div role=\"note\"><h4>Note:</h4>The <a href=\"https://kubernetes.io/docs/reference/kubernetes-api/service-resources/endpoints-v1\" target=\"_blank\">Endpoints</a>\nAPI is deprecated in favor of\n<a href=\"https://kubernetes.io/docs/reference/kubernetes-api/service-resources/endpoint-slice-v1\" target=\"_blank\">EndpointSlice</a>.</div>"
+  },
+  {
+    "key": "endpointslice.kubernetes.io/managed-by",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io</code></p><p>Used on: EndpointSlices</p><p>The label is used to indicate the controller or entity that manages the EndpointSlice. This label\naims to enable different EndpointSlice objects to be managed by different controllers or entities\nwithin the same cluster. The value <code>endpointslice-controller.k8s.io</code> indicates an\nEndpointSlice object that was created automatically by Kubernetes for a Service with a\n<a title=\"Allows users to filter a list of resources based on labels.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/\" target=\"_blank\" aria-label=\"selectors\">selectors</a>.</p>"
+  },
+  {
+    "key": "endpointslice.kubernetes.io/skip-mirror",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>endpointslice.kubernetes.io/skip-mirror: \"true\"</code></p><p>Used on: Endpoints</p><p>The label can be set to <code>\"true\"</code> on an Endpoints resource to indicate that the\nEndpointSliceMirroring controller should not mirror this resource with EndpointSlices.</p>"
+  },
+  {
+    "key": "service.kubernetes.io/service-proxy-name",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>service.kubernetes.io/service-proxy-name: \"foo-bar\"</code></p><p>Used on: Service</p><p>Setting a value for this label tells kube-proxy to ignore this service for proxying purposes.\nThis allows for use of alternative proxy implementations for this service (e.g. running\na DaemonSet that manages nftables its own way). Multiple alternative proxy implementations\ncould be active simultaneously using this field, e.g. by having a value unique to each\nalternative proxy implementation to be responsible for their respective services.</p>"
+  },
+  {
+    "key": "experimental.windows.kubernetes.io/isolation-type",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>experimental.windows.kubernetes.io/isolation-type: \"hyperv\"</code></p><p>Used on: Pod</p><p>The annotation is used to run Windows containers with Hyper-V isolation.</p><div role=\"note\"><h4>Note:</h4>Starting from v1.20, this annotation is deprecated.\nExperimental Hyper-V support was removed in 1.21.</div>"
+  },
+  {
+    "key": "gateway.networking.k8s.io/generator",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>gateway.networking.k8s.io/generator: \"ingress2gateway\"</code></p><p>Used on: Gateway, HTTPRoute, and other Gateway API resources</p><p>This annotation is added by tools that automatically generate\n<a href=\"https://kubernetes.io/docs/concepts/services-networking/gateway\" target=\"_blank\">Gateway API</a> resources.\nThe value identifies the tool that created the resource (for example,\n<code>ingress2gateway</code>). The annotation is informational only and does not\naffect the behavior of any Gateway API implementation.</p>"
+  },
+  {
+    "key": "ingressclass.kubernetes.io/is-default-class",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>ingressclass.kubernetes.io/is-default-class: \"true\"</code></p><p>Used on: IngressClass</p><p>When a IngressClass resource has this annotation set to <code>\"true\"</code>, new Ingress resource\nwithout a class specified will be assigned this default class.</p>"
+  },
+  {
+    "key": "kubernetes.io/ingress.class",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Used on: Ingress</p><div role=\"note\"><h4>Note:</h4>Starting in v1.18, this annotation is deprecated in favor of <code>spec.ingressClassName</code>.</div>"
+  },
+  {
+    "key": "kubernetes.io/cluster-service",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/cluster-service: \"true\"</code></p><p>Used on: Service</p><p>This label indicates that the Service provides a service to the cluster, if the value is set to true.\nWhen you run <code>kubectl cluster-info</code>, the tool queries for Services with this label set to true.</p><p>However, setting this label on any Service is deprecated.</p>"
+  },
+  {
+    "key": "storageclass.kubernetes.io/is-default-class",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>storageclass.kubernetes.io/is-default-class: \"true\"</code></p><p>Used on: StorageClass</p><p>When a single StorageClass resource has this annotation set to <code>\"true\"</code>, new PersistentVolumeClaim\nresource without a class specified will be assigned this default class.</p>"
+  },
+  {
+    "key": "alpha.kubernetes.io/provided-node-ip",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>alpha.kubernetes.io/provided-node-ip: \"10.0.0.1\"</code></p><p>Used on: Node</p><p>The kubelet can set this annotation on a Node to denote its configured IPv4 and/or IPv6 address.</p><p>When kubelet is started with the <code>--cloud-provider</code> flag set to any value (includes both external\nand legacy in-tree cloud providers), it sets this annotation on the Node to denote an IP address\nset from the command line flag (<code>--node-ip</code>). This IP is verified with the cloud provider as valid\nby the cloud-controller-manager.</p>"
+  },
+  {
+    "key": "batch.kubernetes.io/job-completion-index",
+    "types": [
+      "labels",
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>batch.kubernetes.io/job-completion-index: \"3\"</code></p><p>Used on: Pod</p><p>The Job controller in the kube-controller-manager sets this as a label and annotation for Pods\ncreated with Indexed <a href=\"https://kubernetes.io/docs/concepts/workloads/controllers/job/#completion-mode\" target=\"_blank\">completion mode</a>.</p><p>Note the <a href=\"https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates\" target=\"_blank\">PodIndexLabel</a>\nfeature gate must be enabled for this to be added as a pod <strong>label</strong>,\notherwise it will just be an annotation.</p>"
+  },
+  {
+    "key": "batch.kubernetes.io/cronjob-scheduled-timestamp",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>batch.kubernetes.io/cronjob-scheduled-timestamp: \"2016-05-19T03:00:00-07:00\"</code></p><p>Used on: Jobs and Pods controlled by CronJobs</p><p>This annotation is used to record the original (expected) creation timestamp for a Job,\nwhen that Job is part of a CronJob.\nThe control plane sets the value to that timestamp in RFC3339 format. If the Job belongs to a CronJob\nwith a timezone specified, then the timestamp is in that timezone. Otherwise, the timestamp is in controller-manager's local time.</p>"
+  },
+  {
+    "key": "kubectl.kubernetes.io/default-container",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubectl.kubernetes.io/default-container: \"front-end-app\"</code></p><p>The value of the annotation is the container name that is default for this Pod.\nFor example, <code>kubectl logs</code> or <code>kubectl exec</code> without <code>-c</code> or <code>--container</code> flag\nwill use this default container.</p>"
+  },
+  {
+    "key": "kubectl.kubernetes.io/default-logs-container",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubectl.kubernetes.io/default-logs-container: \"front-end-app\"</code></p><p>The value of the annotation is the container name that is the default logging container for this\nPod. For example, <code>kubectl logs</code> without <code>-c</code> or <code>--container</code> flag will use this default\ncontainer.</p><div role=\"note\"><h4>Note:</h4>This annotation is deprecated. You should use the\n<a><code>kubectl.kubernetes.io/default-container</code></a>\nannotation instead. Kubernetes versions 1.25 and newer ignore this annotation.</div>"
+  },
+  {
+    "key": "kubectl.kubernetes.io/last-applied-configuration",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <em>see following snippet</em></p><div><pre tabindex=\"0\" style=\"background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4\"><code data-lang=\"yaml\"><span style=\"display:flex\"><span><span style=\"color:#bbb\">    </span><span style=\"color:green;font-weight:700\">kubectl.kubernetes.io/last-applied-configuration</span>:<span style=\"color:#bbb\"> </span>&gt;<span style=\"color:#b44;font-style:italic\">\n</span></span></span><span style=\"display:flex\"><span><span style=\"color:#b44;font-style:italic\">      {\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"name\":\"example\",\"namespace\":\"default\"},\"spec\":{\"selector\":{\"matchLabels\":{\"app.kubernetes.io/name\":foo}},\"template\":{\"metadata\":{\"labels\":{\"app.kubernetes.io/name\":\"foo\"}},\"spec\":{\"containers\":[{\"image\":\"container-registry.example/foo-bar:1.42\",\"name\":\"foo-bar\",\"ports\":[{\"containerPort\":42}]}]}}}}</span><span style=\"color:#bbb\">      \n</span></span></span></code></pre></div><p>Used on: all objects</p><p>The kubectl command line tool uses this annotation as a legacy mechanism\nto track changes. That mechanism has been superseded by\n<a href=\"https://kubernetes.io/docs/reference/using-api/server-side-apply\" target=\"_blank\">Server-side apply</a>.</p>"
+  },
+  {
+    "key": "kubectl.kubernetes.io/restartedAt",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubectl.kubernetes.io/restartedAt: \"2024-06-21T17:27:41Z\"</code></p><p>Used on: Deployment, ReplicaSet, StatefulSet, DaemonSet, Pod</p><p>This annotation contains the latest restart time of a resource (Deployment, ReplicaSet, StatefulSet or DaemonSet),\nwhere kubectl triggered a rollout in order to force creation of new Pods.\nThe command <code>kubectl rollout restart &lt;RESOURCE&gt;</code> triggers a restart by patching the template\nmetadata of all the pods of resource with this annotation. In above example the latest restart time is shown as 21st June 2024 at 17:27:41 UTC.</p><p>You should not assume that this annotation represents the date / time of the most recent update;\na separate change could have been made since the last manually triggered rollout.</p><p>If you manually set this annotation on a Pod, nothing happens. The restarting side effect comes from\nhow workload management and Pod templating works.</p>"
+  },
+  {
+    "key": "endpoints.kubernetes.io/over-capacity",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>endpoints.kubernetes.io/over-capacity: truncated</code></p><p>Used on: Endpoints</p><p>The <a title=\"The container orchestration layer that exposes the API and interfaces to define, deploy, and manage the lifecycle of containers.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/reference/glossary/?all=true#term-control-plane\" target=\"_blank\" aria-label=\"control plane\">control plane</a> adds this annotation to\nan <a href=\"https://kubernetes.io/docs/concepts/services-networking/service/#endpoints\" target=\"_blank\">Endpoints</a> object if the associated\n<a title=\"A way to expose an application running on a set of Pods as a network service.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/concepts/services-networking/service/\" target=\"_blank\" aria-label=\"Service\">Service</a> has more than 1000 backing endpoints.\nThe annotation indicates that the Endpoints object is over capacity and the number of endpoints\nhas been truncated to 1000.</p><p>If the number of backend endpoints falls below 1000, the control plane removes this annotation.</p><div role=\"note\"><h4>Note:</h4>The <a href=\"https://kubernetes.io/docs/reference/kubernetes-api/service-resources/endpoints-v1\" target=\"_blank\">Endpoints</a>\nAPI is deprecated in favor of\n<a href=\"https://kubernetes.io/docs/reference/kubernetes-api/service-resources/endpoint-slice-v1\" target=\"_blank\">EndpointSlice</a>.\nA Service can have multiple EndpointSlice objects. As a result, EndpointSlices do not require truncation.</div>"
+  },
+  {
+    "key": "endpoints.kubernetes.io/last-change-trigger-time",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>endpoints.kubernetes.io/last-change-trigger-time: \"2023-07-20T04:45:21Z\"</code></p><p>Used on: Endpoints</p><p>This annotation set to an <a href=\"https://kubernetes.io/docs/concepts/services-networking/service/#endpoints\" target=\"_blank\">Endpoints</a> object that\nrepresents the timestamp (The timestamp is stored in RFC 3339 date-time string format. For example, '2018-10-22T19:32:52.1Z'). This is timestamp\nof the last change in some Pod or Service object, that triggered the change to the Endpoints object.</p><div role=\"note\"><h4>Note:</h4>The <a href=\"https://kubernetes.io/docs/reference/kubernetes-api/service-resources/endpoints-v1\" target=\"_blank\">Endpoints</a>\nAPI is deprecated in favor of\n<a href=\"https://kubernetes.io/docs/reference/kubernetes-api/service-resources/endpoint-slice-v1\" target=\"_blank\">EndpointSlice</a>.</div>"
+  },
+  {
+    "key": "control-plane.alpha.kubernetes.io/leader",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>control-plane.alpha.kubernetes.io/leader={\"holderIdentity\":\"controller-0\",\"leaseDurationSeconds\":15,\"acquireTime\":\"2023-01-19T13:12:57Z\",\"renewTime\":\"2023-01-19T13:13:54Z\",\"leaderTransitions\":1}</code></p><p>Used on: Endpoints</p><p>The <a title=\"The container orchestration layer that exposes the API and interfaces to define, deploy, and manage the lifecycle of containers.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/reference/glossary/?all=true#term-control-plane\" target=\"_blank\" aria-label=\"control plane\">control plane</a> previously used\nan <a href=\"https://kubernetes.io/docs/concepts/services-networking/service/#endpoints\" target=\"_blank\">Endpoints</a> object to\ncoordinate leader assignment for the Kubernetes control plane. This Endpoints\nobject included an annotation with the following detail:</p><ul><li>Who is the current leader.</li><li>The time when the current leadership was acquired.</li><li>The duration of the lease (of the leadership) in seconds.</li><li>The time the current lease (the current leadership) should be renewed.</li><li>The number of leadership transitions that happened in the past.</li></ul><p>Kubernetes now uses <a href=\"https://kubernetes.io/docs/concepts/architecture/leases\" target=\"_blank\">Leases</a> to\nmanage leader assignment for the Kubernetes control plane.</p>"
+  },
+  {
+    "key": "batch.kubernetes.io/job-tracking",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>batch.kubernetes.io/job-tracking: \"\"</code></p><p>Used on: Jobs</p><p>The presence of this annotation on a Job used to indicate that the control plane is\n<a href=\"https://kubernetes.io/docs/concepts/workloads/controllers/job/#job-tracking-with-finalizers\" target=\"_blank\">tracking the Job status using finalizers</a>.\nAdding or removing this annotation no longer has an effect (Kubernetes v1.27 and later)\nAll Jobs are tracked with finalizers.</p>"
+  },
+  {
+    "key": "job-name",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>job-name: \"pi\"</code></p><p>Used on: Jobs and Pods controlled by Jobs</p><div role=\"note\"><h4>Note:</h4>Starting from Kubernetes 1.27, this label is deprecated.\nKubernetes 1.27 and newer ignore this label and use the prefixed <code>job-name</code> label.</div>"
+  },
+  {
+    "key": "controller-uid",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>controller-uid: \"$UID\"</code></p><p>Used on: Jobs and Pods controlled by Jobs</p><div role=\"note\"><h4>Note:</h4>Starting from Kubernetes 1.27, this label is deprecated.\nKubernetes 1.27 and newer ignore this label and use the prefixed <code>controller-uid</code> label.</div>"
+  },
+  {
+    "key": "batch.kubernetes.io/job-name",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>batch.kubernetes.io/job-name: \"pi\"</code></p><p>Used on: Jobs and Pods controlled by Jobs</p><p>This label is used as a user-friendly way to get Pods corresponding to a Job.\nThe <code>job-name</code> comes from the <code>name</code> of the Job and allows for an easy way to\nget Pods corresponding to the Job.</p>"
+  },
+  {
+    "key": "batch.kubernetes.io/controller-uid",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>batch.kubernetes.io/controller-uid: \"$UID\"</code></p><p>Used on: Jobs and Pods controlled by Jobs</p><p>This label is used as a programmatic way to get all Pods corresponding to a Job.<br>The <code>controller-uid</code> is a unique identifier that gets set in the <code>selector</code> field so the Job\ncontroller can get all the corresponding Pods.</p>"
+  },
+  {
+    "key": "scheduler.alpha.kubernetes.io/defaultTolerations",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>scheduler.alpha.kubernetes.io/defaultTolerations: '[{\"operator\": \"Equal\", \"value\": \"value1\", \"effect\": \"NoSchedule\", \"key\": \"dedicated-node\"}]'</code></p><p>Used on: Namespace</p><p>This annotation requires the <a href=\"https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#podtolerationrestriction\" target=\"_blank\">PodTolerationRestriction</a>\nadmission controller to be enabled. This annotation key allows assigning tolerations to a\nnamespace and any new pods created in this namespace would get these tolerations added.</p>"
+  },
+  {
+    "key": "scheduler.alpha.kubernetes.io/tolerationsWhitelist",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>scheduler.alpha.kubernetes.io/tolerationsWhitelist: '[{\"operator\": \"Exists\", \"effect\": \"NoSchedule\", \"key\": \"dedicated-node\"}]'</code></p><p>Used on: Namespace</p><p>This annotation is only useful when the (Alpha)\n<a href=\"https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#podtolerationrestriction\" target=\"_blank\">PodTolerationRestriction</a>\nadmission controller is enabled. The annotation value is a JSON document that defines a list of\nallowed tolerations for the namespace it annotates. When you create a Pod or modify its\ntolerations, the API server checks the tolerations to see if they are mentioned in the allow list.\nThe pod is admitted only if the check succeeds.</p>"
+  },
+  {
+    "key": "scheduler.alpha.kubernetes.io/preferAvoidPods",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Used on: Node</p><p>This annotation requires the <a href=\"https://kubernetes.io/docs/reference/scheduling/config/#scheduling-plugins\" target=\"_blank\">NodePreferAvoidPods scheduling plugin</a>\nto be enabled. The plugin is deprecated since Kubernetes 1.22.\nUse <a href=\"https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration\" target=\"_blank\">Taints and Tolerations</a> instead.</p>"
+  },
+  {
+    "key": "node.kubernetes.io/not-ready",
+    "types": [
+      "taints"
+    ],
+    "desc": "<p>Example: <code>node.kubernetes.io/not-ready: \"NoExecute\"</code></p><p>Used on: Node</p><p>The Node controller detects whether a Node is ready by monitoring its health\nand adds or removes this taint accordingly.</p>"
+  },
+  {
+    "key": "node.kubernetes.io/unreachable",
+    "types": [
+      "taints"
+    ],
+    "desc": "<p>Example: <code>node.kubernetes.io/unreachable: \"NoExecute\"</code></p><p>Used on: Node</p><p>The Node controller adds the taint to a Node corresponding to the\n<a href=\"https://kubernetes.io/docs/concepts/architecture/nodes/#condition\" target=\"_blank\">NodeCondition</a> <code>Ready</code> being <code>Unknown</code>.</p>"
+  },
+  {
+    "key": "node.kubernetes.io/unschedulable",
+    "types": [
+      "taints"
+    ],
+    "desc": "<p>Example: <code>node.kubernetes.io/unschedulable: \"NoSchedule\"</code></p><p>Used on: Node</p><p>The taint will be added to a node when initializing the node to avoid race condition.</p>"
+  },
+  {
+    "key": "node.kubernetes.io/memory-pressure",
+    "types": [
+      "taints"
+    ],
+    "desc": "<p>Example: <code>node.kubernetes.io/memory-pressure: \"NoSchedule\"</code></p><p>Used on: Node</p><p>The kubelet detects memory pressure based on <code>memory.available</code> and <code>allocatableMemory.available</code>\nobserved on a Node. The observed values are then compared to the corresponding thresholds that can\nbe set on the kubelet to determine if the Node condition and taint should be added/removed.</p>"
+  },
+  {
+    "key": "node.kubernetes.io/disk-pressure",
+    "types": [
+      "taints"
+    ],
+    "desc": "<p>Example: <code>node.kubernetes.io/disk-pressure :\"NoSchedule\"</code></p><p>Used on: Node</p><p>The kubelet detects disk pressure based on <code>imagefs.available</code>, <code>imagefs.inodesFree</code>,\n<code>nodefs.available</code> and <code>nodefs.inodesFree</code>(Linux only) observed on a Node.\nThe observed values are then compared to the corresponding thresholds that can be set on the\nkubelet to determine if the Node condition and taint should be added/removed.</p>"
+  },
+  {
+    "key": "node.kubernetes.io/network-unavailable",
+    "types": [
+      "taints"
+    ],
+    "desc": "<p>Example: <code>node.kubernetes.io/network-unavailable: \"NoSchedule\"</code></p><p>Used on: Node</p><p>This is initially set by the kubelet when the cloud provider used indicates a requirement for\nadditional network configuration. Only when the route on the cloud is configured properly will the\ntaint be removed by the cloud provider.</p>"
+  },
+  {
+    "key": "node.kubernetes.io/pid-pressure",
+    "types": [
+      "taints"
+    ],
+    "desc": "<p>Example: <code>node.kubernetes.io/pid-pressure: \"NoSchedule\"</code></p><p>Used on: Node</p><p>The kubelet checks D-value of the size of <code>/proc/sys/kernel/pid_max</code> and the PIDs consumed by\nKubernetes on a node to get the number of available PIDs that referred to as the <code>pid.available</code>\nmetric. The metric is then compared to the corresponding threshold that can be set on the kubelet\nto determine if the node condition and taint should be added/removed.</p>"
+  },
+  {
+    "key": "node.kubernetes.io/out-of-service",
+    "types": [
+      "taints"
+    ],
+    "desc": "<p>Example: <code>node.kubernetes.io/out-of-service:NoExecute</code></p><p>Used on: Node</p><p>A user can manually add the taint to a Node marking it out-of-service.\nIf a Node is marked out-of-service with this taint, the Pods on the node\nwill be forcefully deleted if there are no matching tolerations on it and\nvolume detach operations for the Pods terminating on the node will happen immediately.\nThis allows the Pods on the out-of-service node to recover quickly on a different node.</p><div role=\"note\"><h4>Caution:</h4>Refer to <a href=\"https://kubernetes.io/docs/concepts/cluster-administration/node-shutdown/#non-graceful-node-shutdown\" target=\"_blank\">Non-graceful node shutdown</a>\nfor further details about when and how to use this taint.</div>"
+  },
+  {
+    "key": "node.cloudprovider.kubernetes.io/uninitialized",
+    "types": [
+      "taints"
+    ],
+    "desc": "<p>Example: <code>node.cloudprovider.kubernetes.io/uninitialized: \"NoSchedule\"</code></p><p>Used on: Node</p><p>Sets this taint on a Node to mark it as unusable, when kubelet is started with the \"external\"\ncloud provider, until a controller from the cloud-controller-manager initializes this Node, and\nthen removes the taint.</p>"
+  },
+  {
+    "key": "node.cloudprovider.kubernetes.io/shutdown",
+    "types": [
+      "taints"
+    ],
+    "desc": "<p>Example: <code>node.cloudprovider.kubernetes.io/shutdown: \"NoSchedule\"</code></p><p>Used on: Node</p><p>If a Node is in a cloud provider specified shutdown state, the Node gets tainted accordingly\nwith <code>node.cloudprovider.kubernetes.io/shutdown</code> and the taint effect of <code>NoSchedule</code>.</p>"
+  },
+  {
+    "key": "nfd.node.kubernetes.io/master.version",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>nfd.node.kubernetes.io/master.version: \"v0.6.0\"</code></p><p>Used on: Node</p><p>For node(s) where the Node Feature Discovery (NFD)\n<a href=\"https://kubernetes-sigs.github.io/node-feature-discovery/stable/usage/nfd-master.html\" target=\"_blank\">master</a>\nis scheduled, this annotation records the version of the NFD master.\nIt is used for informative use only.</p>"
+  },
+  {
+    "key": "nfd.node.kubernetes.io/worker.version",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>nfd.node.kubernetes.io/worker.version: \"v0.4.0\"</code></p><p>Used on: Nodes</p><p>This annotation records the version for a Node Feature Discovery's\n<a href=\"https://kubernetes-sigs.github.io/node-feature-discovery/stable/usage/nfd-worker.html\" target=\"_blank\">worker</a>\nif there is one running on a node. It's used for informative use only.</p>"
+  },
+  {
+    "key": "nfd.node.kubernetes.io/feature-labels",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>nfd.node.kubernetes.io/feature-labels: \"cpu-cpuid.ADX,cpu-cpuid.AESNI,cpu-hardware_multithreading,kernel-version.full\"</code></p><p>Used on: Nodes</p><p>This annotation records a comma-separated list of node feature labels managed by\n<a href=\"https://kubernetes-sigs.github.io/node-feature-discovery\" target=\"_blank\">Node Feature Discovery</a> (NFD).\nNFD uses this for an internal mechanism. You should not edit this annotation yourself.</p>"
+  },
+  {
+    "key": "nfd.node.kubernetes.io/extended-resources",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>nfd.node.kubernetes.io/extended-resources: \"accelerator.acme.example/q500,example.com/coprocessor-fx5\"</code></p><p>Used on: Nodes</p><p>This annotation records a comma-separated list of\n<a href=\"https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#extended-resources\" target=\"_blank\">extended resources</a>\nmanaged by <a href=\"https://kubernetes-sigs.github.io/node-feature-discovery\" target=\"_blank\">Node Feature Discovery</a> (NFD).\nNFD uses this for an internal mechanism. You should not edit this annotation yourself.</p>"
+  },
+  {
+    "key": "nfd.node.kubernetes.io/node-name",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>nfd.node.kubernetes.io/node-name: node-1</code></p><p>Used on: Nodes</p><p>It specifies which node the NodeFeature object is targeting.\nCreators of NodeFeature objects must set this label and\nconsumers of the objects are supposed to use the label for\nfiltering features designated for a certain node.</p><div role=\"note\"><h4>Note:</h4>These Node Feature Discovery (NFD) labels or annotations only apply to\nthe nodes where NFD is running. To learn more about NFD and\nits components go to its official <a href=\"https://kubernetes-sigs.github.io/node-feature-discovery/stable/get-started\" target=\"_blank\">documentation</a>.</div>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-access-log-emit-interval",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-access-log-emit-interval: \"5\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\nthe load balancer for a Service based on this annotation. The value determines\nhow often the load balancer writes log entries. For example, if you set the value\nto 5, the log writes occur 5 seconds apart.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-access-log-enabled",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-access-log-enabled: \"false\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\nthe load balancer for a Service based on this annotation. Access logging is enabled\nif you set the annotation to \"true\".</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-access-log-s3-bucket-name",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-access-log-s3-bucket-name: example</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\nthe load balancer for a Service based on this annotation. The load balancer\nwrites logs to an S3 bucket with the name you specify.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-access-log-s3-bucket-prefix",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-access-log-s3-bucket-prefix: \"/example\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\nthe load balancer for a Service based on this annotation. The load balancer\nwrites log objects with the prefix that you specify.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: \"Environment=demo,Project=example\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\ntags (an AWS concept) for a load balancer based on the comma-separated key/value\npairs in the value of this annotation.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-alpn-policy",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-alpn-policy: HTTP2Optional</code></p><p>Used on: Service</p><p>The <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller\" target=\"_blank\">AWS load balancer controller</a>\nuses this annotation.\nSee <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/service/annotations\" target=\"_blank\">annotations</a>\nin the AWS load balancer controller documentation.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-attributes",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-attributes: \"deletion_protection.enabled=true\"</code></p><p>Used on: Service</p><p>The <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller\" target=\"_blank\">AWS load balancer controller</a>\nuses this annotation.\nSee <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/service/annotations\" target=\"_blank\">annotations</a>\nin the AWS load balancer controller documentation.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-backend-protocol",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\nthe load balancer listener based on the value of this annotation.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-connection-draining-enabled",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-connection-draining-enabled: \"false\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\nthe load balancer based on this annotation. The load balancer's connection draining\nsetting depends on the value you set.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-connection-draining-timeout",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-connection-draining-timeout: \"60\"</code></p><p>Used on: Service</p><p>If you configure <a>connection draining</a>\nfor a Service of <code>type: LoadBalancer</code>, and you use the AWS cloud, the integration configures\nthe draining period based on this annotation. The value you set determines the draining\ntimeout in seconds.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-ip-address-type",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-ip-address-type: ipv4</code></p><p>Used on: Service</p><p>The <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller\" target=\"_blank\">AWS load balancer controller</a>\nuses this annotation.\nSee <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/service/annotations\" target=\"_blank\">annotations</a>\nin the AWS load balancer controller documentation.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: \"60\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\na load balancer based on this annotation. The load balancer has a configured idle\ntimeout period (in seconds) that applies to its connections. If no data has been\nsent or received by the time that the idle timeout period elapses, the load balancer\ncloses the connection.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: \"true\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\na load balancer based on this annotation. If you set this annotation to \"true\",\neach load balancer node distributes requests evenly across the registered targets\nin all enabled <a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html#concepts-availability-zones\" target=\"_blank\">availability zones</a>.\nIf you disable cross-zone load balancing, each load balancer node distributes requests\nevenly across the registered targets in its availability zone only.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-eip-allocations",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-eip-allocations: \"eipalloc-01bcdef23bcdef456,eipalloc-def1234abc4567890\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\na load balancer based on this annotation. The value is a comma-separated list\nof elastic IP address allocation IDs.</p><p>This annotation is only relevant for Services of <code>type: LoadBalancer</code>, where\nthe load balancer is an AWS Network Load Balancer.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-extra-security-groups",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-extra-security-groups: \"sg-12abcd3456,sg-34dcba6543\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\na load balancer based on this annotation. The annotation value is a comma-separated\nlist of extra AWS VPC security groups to configure for the load balancer.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: \"3\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\na load balancer based on this annotation. The annotation value specifies the number of\nsuccessive successful health checks required for a backend to be considered healthy\nfor traffic.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: \"30\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\na load balancer based on this annotation. The annotation value specifies the interval,\nin seconds, between health check probes made by the load balancer.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-healthcheck-path",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /healthcheck</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\na load balancer based on this annotation. The annotation value determines the\npath part of the URL that is used for HTTP health checks.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-healthcheck-port",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: \"24\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\na load balancer based on this annotation. The annotation value determines which\nport the load balancer connects to when performing health checks.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: TCP</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\na load balancer based on this annotation. The annotation value determines how the\nload balancer checks the health of backend targets.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: \"3\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\na load balancer based on this annotation. The annotation value specifies the number\nof seconds before a probe that hasn't yet succeeded is automatically treated as\nhaving failed.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: \"3\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\na load balancer based on this annotation. The annotation value specifies the number of\nsuccessive unsuccessful health checks required for a backend to be considered unhealthy\nfor traffic.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-internal",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-internal: \"true\"</code></p><p>Used on: Service</p><p>The cloud controller manager integration with AWS elastic load balancing configures\na load balancer based on this annotation. When you set this annotation to \"true\",\nthe integration configures an internal load balancer.</p><p>If you use the <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller\" target=\"_blank\">AWS load balancer controller</a>,\nsee <a><code>service.beta.kubernetes.io/aws-load-balancer-scheme</code></a>.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-manage-backend-security-group-rules",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-manage-backend-security-group-rules: \"true\"</code></p><p>Used on: Service</p><p>The <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller\" target=\"_blank\">AWS load balancer controller</a>\nuses this annotation.\nSee <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/service/annotations\" target=\"_blank\">annotations</a>\nin the AWS load balancer controller documentation.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-name",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-name: my-elb</code></p><p>Used on: Service</p><p>If you set this annotation on a Service, and you also annotate that Service with\n<code>service.beta.kubernetes.io/aws-load-balancer-type: \"external\"</code>, and you use the\n<a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller\" target=\"_blank\">AWS load balancer controller</a>\nin your cluster, then the AWS load balancer controller sets the name of that load\nbalancer to the value you set for <em>this</em> annotation.</p><p>See <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/service/annotations\" target=\"_blank\">annotations</a>\nin the AWS load balancer controller documentation.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-nlb-target-type",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: \"true\"</code></p><p>Used on: Service</p><p>The <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller\" target=\"_blank\">AWS load balancer controller</a>\nuses this annotation.\nSee <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/service/annotations\" target=\"_blank\">annotations</a>\nin the AWS load balancer controller documentation.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-private-ipv4-addresses",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-private-ipv4-addresses: \"198.51.100.0,198.51.100.64\"</code></p><p>Used on: Service</p><p>The <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller\" target=\"_blank\">AWS load balancer controller</a>\nuses this annotation.\nSee <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/service/annotations\" target=\"_blank\">annotations</a>\nin the AWS load balancer controller documentation.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-proxy-protocol",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: \"*\"</code></p><p>Used on: Service</p><p>The official Kubernetes integration with AWS elastic load balancing configures\na load balancer based on this annotation. The only permitted value is <code>\"*\"</code>,\nwhich indicates that the load balancer should wrap TCP connections to the backend\nPod with the PROXY protocol.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-scheme",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-scheme: internal</code></p><p>Used on: Service</p><p>The <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller\" target=\"_blank\">AWS load balancer controller</a>\nuses this annotation.\nSee <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/service/annotations\" target=\"_blank\">annotations</a>\nin the AWS load balancer controller documentation.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-security-groups",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-security-groups: \"sg-53fae93f,sg-8725gr62r\"</code></p><p>Used on: Service</p><p>The AWS load balancer controller uses this annotation to specify a comma separated list\nof security groups you want to attach to an AWS load balancer. Both name and ID of security\nare supported where name matches a <code>Name</code> tag, not the <code>groupName</code> attribute.</p><p>When this annotation is added to a Service, the load-balancer controller attaches the security groups\nreferenced by the annotation to the load balancer. If you omit this annotation, the AWS load balancer\ncontroller automatically creates a new security group and attaches it to the load balancer.</p><div role=\"note\"><h4>Note:</h4>Kubernetes v1.27 and later do not directly set or read this annotation. However, the AWS\nload balancer controller (part of the Kubernetes project) does still use the\n<code>service.beta.kubernetes.io/aws-load-balancer-security-groups</code> annotation.</div>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/load-balancer-source-ranges",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/load-balancer-source-ranges: \"192.0.2.0/25\"</code></p><p>Used on: Service</p><p>The <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller\" target=\"_blank\">AWS load balancer controller</a>\nuses this annotation. You should set <code>.spec.loadBalancerSourceRanges</code> for the Service instead.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-ssl-cert",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-ssl-cert: \"arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012\"</code></p><p>Used on: Service</p><p>The official integration with AWS elastic load balancing configures TLS for a Service of\n<code>type: LoadBalancer</code> based on this annotation. The value of the annotation is the\nAWS Resource Name (ARN) of the X.509 certificate that the load balancer listener should\nuse.</p><p>(The TLS protocol is based on an older technology that abbreviates to SSL.)</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy: ELBSecurityPolicy-TLS-1-2-2017-01</code></p><p>The official integration with AWS elastic load balancing configures TLS for a Service of\n<code>type: LoadBalancer</code> based on this annotation. The value of the annotation is the name\nof an AWS policy for negotiating TLS with a client peer.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-ssl-ports",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-ssl-ports: \"*\"</code></p><p>The official integration with AWS elastic load balancing configures TLS for a Service of\n<code>type: LoadBalancer</code> based on this annotation. The value of the annotation is either <code>\"*\"</code>,\nwhich means that all the load balancer's ports should use TLS, or it is a comma separated\nlist of port numbers.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-subnets",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-subnets: \"private-a,private-b\"</code></p><p>Kubernetes' official integration with AWS uses this annotation to configure a\nload balancer and determine in which AWS availability zones to deploy the managed\nload balancing service. The value is either a comma separated list of subnet names, or a\ncomma separated list of subnet IDs.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-target-group-attributes",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: \"stickiness.enabled=true,stickiness.type=source_ip\"</code></p><p>Used on: Service</p><p>The <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller\" target=\"_blank\">AWS load balancer controller</a>\nuses this annotation.\nSee <a href=\"https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/service/annotations\" target=\"_blank\">annotations</a>\nin the AWS load balancer controller documentation.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-target-node-labels",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-target-node-labels: \"kubernetes.io/os=Linux,topology.kubernetes.io/region=us-east-2\"</code></p><p>Kubernetes' official integration with AWS uses this annotation to determine which\nnodes in your cluster should be considered as valid targets for the load balancer.</p>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/aws-load-balancer-type",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/aws-load-balancer-type: external</code></p><p>Kubernetes' official integrations with AWS use this annotation to determine\nwhether the AWS cloud provider integration should manage a Service of\n<code>type: LoadBalancer</code>.</p><p>There are two permitted values:</p><dl><dt><code>nlb</code></dt><dd>the cloud controller manager configures a Network Load Balancer</dd><dt><code>external</code></dt><dd>the cloud controller manager does not configure any load balancer</dd></dl><p>If you deploy a Service of <code>type: LoadBalancer</code> on AWS, and you don't set any\n<code>service.beta.kubernetes.io/aws-load-balancer-type</code> annotation,\nthe AWS integration deploys a classic Elastic Load Balancer. This behavior,\nwith no annotation present, is the default unless you specify otherwise.</p><p>When you set this annotation to <code>external</code> on a Service of <code>type: LoadBalancer</code>,\nand your cluster has a working deployment of the AWS Load Balancer controller,\nthen the AWS Load Balancer controller attempts to deploy a load balancer based\non the Service specification.</p><div role=\"note\"><h4>Caution:</h4>Do not modify or add the <code>service.beta.kubernetes.io/aws-load-balancer-type</code> annotation\non an existing Service object. See the AWS documentation on this topic for more\ndetails.</div>"
+  },
+  {
+    "key": "service.beta.kubernetes.io/azure-load-balancer-disable-tcp-reset",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>service.beta.kubernetes.io/azure-load-balancer-disable-tcp-reset: \"false\"</code></p><p>Used on: Service</p><p>This annotation only works for Azure standard load balancer backed service.\nThis annotation is used on the Service to specify whether the load balancer\nshould disable or enable TCP reset on idle timeout. If enabled, it helps\napplications to behave more predictably, to detect the termination of a connection,\nremove expired connections and initiate new connections.\nYou can set the value to be either true or false.</p><p>See <a href=\"https://learn.microsoft.com/en-gb/azure/load-balancer/load-balancer-tcp-reset\" target=\"_blank\">Load Balancer TCP Reset</a> for more information.</p><div role=\"note\"><h4>Note:</h4>This annotation is deprecated.</div>"
+  },
+  {
+    "key": "pod-security.kubernetes.io/enforce",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>pod-security.kubernetes.io/enforce: \"baseline\"</code></p><p>Used on: Namespace</p><p>Value <strong>must</strong> be one of <code>privileged</code>, <code>baseline</code>, or <code>restricted</code> which correspond to\n<a href=\"https://kubernetes.io/docs/concepts/security/pod-security-standards\" target=\"_blank\">Pod Security Standard</a> levels.\nSpecifically, the <code>enforce</code> label <em>prohibits</em> the creation of any Pod in the labeled\nNamespace which does not meet the requirements outlined in the indicated level.</p><p>See <a href=\"https://kubernetes.io/docs/concepts/security/pod-security-admission\" target=\"_blank\">Enforcing Pod Security at the Namespace Level</a>\nfor more information.</p>"
+  },
+  {
+    "key": "pod-security.kubernetes.io/enforce-version",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>pod-security.kubernetes.io/enforce-version: \"1.35\"</code></p><p>Used on: Namespace</p><p>Value <strong>must</strong> be <code>latest</code> or a valid Kubernetes version in the format <code>v&lt;major&gt;.&lt;minor&gt;</code>.\nThis determines the version of the\n<a href=\"https://kubernetes.io/docs/concepts/security/pod-security-standards\" target=\"_blank\">Pod Security Standard</a>\npolicies to apply when validating a Pod.</p><p>See <a href=\"https://kubernetes.io/docs/concepts/security/pod-security-admission\" target=\"_blank\">Enforcing Pod Security at the Namespace Level</a>\nfor more information.</p>"
+  },
+  {
+    "key": "pod-security.kubernetes.io/audit",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>pod-security.kubernetes.io/audit: \"baseline\"</code></p><p>Used on: Namespace</p><p>Value <strong>must</strong> be one of <code>privileged</code>, <code>baseline</code>, or <code>restricted</code> which correspond to\n<a href=\"https://kubernetes.io/docs/concepts/security/pod-security-standards\" target=\"_blank\">Pod Security Standard</a> levels.\nSpecifically, the <code>audit</code> label does not prevent the creation of a Pod in the labeled\nNamespace which does not meet the requirements outlined in the indicated level,\nbut adds an this annotation to the Pod.</p><p>See <a href=\"https://kubernetes.io/docs/concepts/security/pod-security-admission\" target=\"_blank\">Enforcing Pod Security at the Namespace Level</a>\nfor more information.</p>"
+  },
+  {
+    "key": "pod-security.kubernetes.io/audit-version",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>pod-security.kubernetes.io/audit-version: \"1.35\"</code></p><p>Used on: Namespace</p><p>Value <strong>must</strong> be <code>latest</code> or a valid Kubernetes version in the format <code>v&lt;major&gt;.&lt;minor&gt;</code>.\nThis determines the version of the\n<a href=\"https://kubernetes.io/docs/concepts/security/pod-security-standards\" target=\"_blank\">Pod Security Standard</a>\npolicies to apply when validating a Pod.</p><p>See <a href=\"https://kubernetes.io/docs/concepts/security/pod-security-admission\" target=\"_blank\">Enforcing Pod Security at the Namespace Level</a>\nfor more information.</p>"
+  },
+  {
+    "key": "pod-security.kubernetes.io/warn",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>pod-security.kubernetes.io/warn: \"baseline\"</code></p><p>Used on: Namespace</p><p>Value <strong>must</strong> be one of <code>privileged</code>, <code>baseline</code>, or <code>restricted</code> which correspond to\n<a href=\"https://kubernetes.io/docs/concepts/security/pod-security-standards\" target=\"_blank\">Pod Security Standard</a> levels.\nSpecifically, the <code>warn</code> label does not prevent the creation of a Pod in the labeled\nNamespace which does not meet the requirements outlined in the indicated level,\nbut returns a warning to the user after doing so.\nNote that warnings are also displayed when creating or updating objects that contain\nPod templates, such as Deployments, Jobs, StatefulSets, etc.</p><p>See <a href=\"https://kubernetes.io/docs/concepts/security/pod-security-admission\" target=\"_blank\">Enforcing Pod Security at the Namespace Level</a>\nfor more information.</p>"
+  },
+  {
+    "key": "pod-security.kubernetes.io/warn-version",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>pod-security.kubernetes.io/warn-version: \"1.35\"</code></p><p>Used on: Namespace</p><p>Value <strong>must</strong> be <code>latest</code> or a valid Kubernetes version in the format <code>v&lt;major&gt;.&lt;minor&gt;</code>.\nThis determines the version of the <a href=\"https://kubernetes.io/docs/concepts/security/pod-security-standards\" target=\"_blank\">Pod Security Standard</a>\npolicies to apply when validating a submitted Pod.\nNote that warnings are also displayed when creating or updating objects that contain\nPod templates, such as Deployments, Jobs, StatefulSets, etc.</p><p>See <a href=\"https://kubernetes.io/docs/concepts/security/pod-security-admission\" target=\"_blank\">Enforcing Pod Security at the Namespace Level</a>\nfor more information.</p>"
+  },
+  {
+    "key": "rbac.authorization.kubernetes.io/autoupdate",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>rbac.authorization.kubernetes.io/autoupdate: \"false\"</code></p><p>Used on: ClusterRole, ClusterRoleBinding, Role, RoleBinding</p><p>When this annotation is set to <code>\"true\"</code> on default RBAC objects created by the API server,\nthey are automatically updated at server start to add missing permissions and subjects\n(extra permissions and subjects are left in place).\nTo prevent autoupdating a particular role or rolebinding, set this annotation to <code>\"false\"</code>.\nIf you create your own RBAC objects and set this annotation to <code>\"false\"</code>, <code>kubectl auth reconcile</code>\n(which allows reconciling arbitrary RBAC objects in a <a title=\"A serialized specification of one or more Kubernetes API objects.\" data-toggle=\"tooltip\" data-placement=\"top\" href=\"https://kubernetes.io/docs/reference/glossary/?all=true#term-manifest\" target=\"_blank\" aria-label=\"manifest\">manifest</a>)\nrespects this annotation and does not automatically add missing permissions and subjects.</p>"
+  },
+  {
+    "key": "kubernetes.io/psp",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubernetes.io/psp: restricted</code></p><p>Used on: Pod</p><p>This annotation was only relevant if you were using\n<a href=\"https://kubernetes.io/docs/concepts/security/pod-security-policy\" target=\"_blank\">PodSecurityPolicy</a> objects.\nKubernetes v1.35 does not support the PodSecurityPolicy API.</p><p>When the PodSecurityPolicy admission controller admitted a Pod, the admission controller\nmodified the Pod to have this annotation.\nThe value of the annotation was the name of the PodSecurityPolicy that was used for validation.</p>"
+  },
+  {
+    "key": "seccomp.security.alpha.kubernetes.io/pod",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Used on: Pod</p><p>Kubernetes before v1.25 allowed you to configure seccomp behavior using this annotation.\nSee <a href=\"https://kubernetes.io/docs/tutorials/security/seccomp\" target=\"_blank\">Restrict a Container's Syscalls with seccomp</a> to\nlearn the supported way to specify seccomp restrictions for a Pod.</p>"
+  },
+  {
+    "key": "snapshot.storage.kubernetes.io/allow-volume-mode-change",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>snapshot.storage.kubernetes.io/allow-volume-mode-change: \"true\"</code></p><p>Used on: VolumeSnapshotContent</p><p>Value can either be <code>true</code> or <code>false</code>. This determines whether a user can modify\nthe mode of the source volume when a PersistentVolumeClaim is being created from\na VolumeSnapshot.</p><p>Refer to <a href=\"https://kubernetes.io/docs/concepts/storage/volume-snapshots/#convert-volume-mode\" target=\"_blank\">Converting the volume mode of a Snapshot</a>\nand the <a href=\"https://kubernetes-csi.github.io/docs\" target=\"_blank\">Kubernetes CSI Developer Documentation</a>\nfor more information.</p>"
+  },
+  {
+    "key": "scheduler.alpha.kubernetes.io/critical-pod",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>scheduler.alpha.kubernetes.io/critical-pod: \"\"</code></p><p>Used on: Pod</p><p>This annotation lets Kubernetes control plane know about a Pod being a critical Pod\nso that the descheduler will not remove this Pod.</p><div role=\"note\"><h4>Note:</h4>Starting in v1.16, this annotation was removed in favor of\n<a href=\"https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption\" target=\"_blank\">Pod Priority</a>.</div>"
+  },
+  {
+    "key": "jobset.sigs.k8s.io/jobset-name",
+    "types": [
+      "labels",
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>jobset.sigs.k8s.io/jobset-name: \"my-jobset\"</code></p><p>Used on: Jobs, Pods</p><p>This label/annotation is used to store the name of the JobSet that a Job or Pod belongs to.\n<a href=\"https://jobset.sigs.k8s.io\" target=\"_blank\">JobSet</a> is an extension API that you can deploy into your Kubernetes cluster.</p>"
+  },
+  {
+    "key": "jobset.sigs.k8s.io/replicatedjob-replicas",
+    "types": [
+      "labels",
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>jobset.sigs.k8s.io/replicatedjob-replicas: \"5\"</code></p><p>Used on: Jobs, Pods</p><p>This label/annotation specifies the number of replicas for a ReplicatedJob.</p>"
+  },
+  {
+    "key": "jobset.sigs.k8s.io/replicatedjob-name",
+    "types": [
+      "labels",
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>jobset.sigs.k8s.io/replicatedjob-name: \"my-replicatedjob\"</code></p><p>Used on: Jobs, Pods</p><p>This label or annotation stores the name of the replicated job that this Job or Pod is part of.</p>"
+  },
+  {
+    "key": "jobset.sigs.k8s.io/job-index",
+    "types": [
+      "labels",
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>jobset.sigs.k8s.io/job-index: \"0\"</code></p><p>Used on: Jobs, Pods</p><p>This label/annotation is set by the JobSet controller on child Jobs and Pods. It contains the index of the Job replica within its parent ReplicatedJob.</p>"
+  },
+  {
+    "key": "jobset.sigs.k8s.io/job-key",
+    "types": [
+      "labels",
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>jobset.sigs.k8s.io/job-key: \"0f1e93893c4cb372080804ddb9153093cb0d20cefdd37f653e739c232d363feb\"</code></p><p>Used on: Jobs, Pods</p><p>The JobSet controller sets this label (and also an annotation with the same key) on child Jobs and\nPods of a JobSet. The value is the SHA256 hash of the namespaced Job name.</p>"
+  },
+  {
+    "key": "alpha.jobset.sigs.k8s.io/exclusive-topology",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>alpha.jobset.sigs.k8s.io/exclusive-topology: \"zone\"</code></p><p>Used on: JobSets, Jobs</p><p>You can set this label/annotation on a <a href=\"https://jobset.sigs.k8s.io\" target=\"_blank\">JobSet</a> to ensure exclusive Job\nplacement per topology group. You can also define this label or annotation on a replicated job\ntemplate. Read the documentation for JobSet to learn more.</p>"
+  },
+  {
+    "key": "alpha.jobset.sigs.k8s.io/node-selector",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>alpha.jobset.sigs.k8s.io/node-selector: \"true\"</code></p><p>Used on: Jobs, Pods</p><p>This label/annotation can be applied to a JobSet. When it's set, the JobSet controller modifies the Jobs and their corresponding Pods by adding node selectors and tolerations. This ensures exclusive job placement per topology domain, restricting the scheduling of these Pods to specific nodes based on the strategy.</p>"
+  },
+  {
+    "key": "alpha.jobset.sigs.k8s.io/namespaced-job",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>alpha.jobset.sigs.k8s.io/namespaced-job: \"default_myjobset-replicatedjob-0\"</code></p><p>Used on: Nodes</p><p>This label is either set manually or automatically (for example, a cluster autoscaler) on the nodes. When <code>alpha.jobset.sigs.k8s.io/node-selector</code> is set to <code>\"true\"</code>, the JobSet controller adds a nodeSelector to this node label (along with the toleration to the taint <code>alpha.jobset.sigs.k8s.io/no-schedule</code> discussed next).</p>"
+  },
+  {
+    "key": "alpha.jobset.sigs.k8s.io/no-schedule",
+    "types": [
+      "taints"
+    ],
+    "desc": "<p>Example: <code>alpha.jobset.sigs.k8s.io/no-schedule: \"NoSchedule\"</code></p><p>Used on: Nodes</p><p>This taint is either set manually or automatically (for example, a cluster autoscaler) on the nodes. When <code>alpha.jobset.sigs.k8s.io/node-selector</code> is set to <code>\"true\"</code>, the JobSet controller adds a toleration to this node taint (along with the node selector to the label <code>alpha.jobset.sigs.k8s.io/namespaced-job</code> discussed previously).</p>"
+  },
+  {
+    "key": "jobset.sigs.k8s.io/coordinator",
+    "types": [
+      "labels",
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>jobset.sigs.k8s.io/coordinator: \"myjobset-workers-0-0.headless-svc\"</code></p><p>Used on: Jobs, Pods</p><p>This annotation/label is used on Jobs and Pods to store a stable network endpoint where the coordinator\npod can be reached if the <a href=\"https://jobset.sigs.k8s.io\" target=\"_blank\">JobSet</a> spec defines the <code>.spec.coordinator</code> field.</p>"
+  },
+  {
+    "key": "kubeadm.alpha.kubernetes.io/cri-socket",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubeadm.alpha.kubernetes.io/cri-socket: unix:///run/containerd/container.sock</code></p><p>Used on: Node</p><div role=\"note\"><h4>Note:</h4>Starting from v1.34, this annotation is deprecated, kubeadm will no longer actively set and use it.</div>"
+  },
+  {
+    "key": "kubeadm.kubernetes.io/etcd.advertise-client-urls",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubeadm.kubernetes.io/etcd.advertise-client-urls: https://172.17.0.18:2379</code></p><p>Used on: Pod</p><p>Annotation that kubeadm places on locally managed etcd Pods to keep track of\na list of URLs where etcd clients should connect to.\nThis is used mainly for etcd cluster health check purposes.</p>"
+  },
+  {
+    "key": "kubeadm.kubernetes.io/kube-apiserver.advertise-address.endpoint",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubeadm.kubernetes.io/kube-apiserver.advertise-address.endpoint: https://172.17.0.18:6443</code></p><p>Used on: Pod</p><p>Annotation that kubeadm places on locally managed <code>kube-apiserver</code> Pods to keep track\nof the exposed advertise address/port endpoint for that API server instance.</p>"
+  },
+  {
+    "key": "kubeadm.kubernetes.io/component-config.hash",
+    "types": [
+      "annotations"
+    ],
+    "desc": "<p>Example: <code>kubeadm.kubernetes.io/component-config.hash: 2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae</code></p><p>Used on: ConfigMap</p><p>Annotation that kubeadm places on ConfigMaps that it manages for configuring components.\nIt contains a hash (SHA-256) used to determine if the user has applied settings different\nfrom the kubeadm defaults for a particular component.</p>"
+  },
+  {
+    "key": "node-role.kubernetes.io/control-plane",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Used on: Node</p><p>A marker label to indicate that the node is used to run control plane components.\nThe kubeadm tool applies this label to the control plane nodes that it manages.\nOther cluster management tools typically also set this taint.</p><p>You can label control plane nodes with this label to make it easier to schedule Pods\nonly onto these nodes, or to avoid running Pods on the control plane.\nIf this label is set, the <a href=\"https://kubernetes.io/docs/concepts/services-networking/topology-aware-routing/#implementation-control-plane\" target=\"_blank\">EndpointSlice controller</a>\nignores that node while calculating Topology Aware Hints.</p>"
+  },
+  {
+    "key": "node-role.kubernetes.io/control-plane",
+    "types": [
+      "taints"
+    ],
+    "desc": "<p>Example: <code>node-role.kubernetes.io/control-plane:NoSchedule</code></p><p>Used on: Node</p><p>Taint that kubeadm applies on control plane nodes to restrict placing Pods and\nallow only specific pods to schedule on them.</p><p>If this Taint is applied, control plane nodes allow only critical workloads to\nbe scheduled onto them. You can manually remove this taint with the following\ncommand on a specific node.</p><div><pre tabindex=\"0\" style=\"background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4\"><code data-lang=\"shell\"><span style=\"display:flex\"><span>kubectl taint nodes &lt;node-name&gt; node-role.kubernetes.io/control-plane:NoSchedule-\n</span></span></code></pre></div>"
+  },
+  {
+    "key": "node-role.kubernetes.io/master",
+    "types": [
+      "taints"
+    ],
+    "desc": "<p>Used on: Node</p><p>Example: <code>node-role.kubernetes.io/master:NoSchedule</code></p><p>Taint that kubeadm previously applied on control plane nodes to allow only critical\nworkloads to schedule on them. Replaced by the\n<a><code>node-role.kubernetes.io/control-plane</code></a>\ntaint. kubeadm no longer sets or uses this deprecated taint.</p>"
+  },
+  {
+    "key": "resource.kubernetes.io/admin-access",
+    "types": [
+      "labels"
+    ],
+    "desc": "<p>Example: <code>resource.kubernetes.io/admin-access: \"true\"</code></p><p>Used on: Namespace</p><p>Used to grant administrative access to certain resource.k8s.io API types within\na namespace. When this label is set on a namespace with the value <code>\"true\"</code>\n(case-sensitive), it allows the use of <code>adminAccess: true</code> in any namespaced\n<code>resource.k8s.io</code> API types. Currently, this permission applies to\n<code>ResourceClaim</code> and <code>ResourceClaimTemplate</code> objects.</p><p>See <a href=\"https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/#enabling-admin-access\" target=\"_blank\">Dynamic Resource Allocation Admin access</a>\nfor more information.</p><div></div>"
+  }
+]
