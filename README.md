@@ -81,7 +81,7 @@ Helm is re-implemented in TypeScript, except templating, which is ported to WebA
 
 For Helm repositories, due to cross-origin limitations, currently only a repository hosting under `/charts/` is supported.
 
-`utils/helm-repo-mirror.sh` helps to mirror a HTTP-based Helm repository.
+`hack/helm-repo-mirror.sh` helps to mirror a HTTP-based Helm repository.
 
 ```sh
 # ./utils/helm-repo-mirror.sh REPO_URL DESTINATION HOSTED_AT
