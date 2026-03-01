@@ -2,7 +2,11 @@
 import WithTOC from '@/components/WithTOC.vue';
 import { VueComponent as Content } from '@/assets/docs.md';
 
-const navigate = (id: string) => window.location.hash = `#${id}`;
+const navigate = (id: string) => {
+  // clear fragment first, to trigger :target animation
+  window.location.hash = '#';
+  requestAnimationFrame(() => window.location.replace(`#${id}`));
+};
 </script>
 
 <template>

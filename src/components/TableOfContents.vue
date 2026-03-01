@@ -59,19 +59,17 @@ const tree = computed(() => {
   return rebased;
 });
 
-const navigate = (ids: unknown) => {
-  const s = ids as Array<string>;
-  emit('navigate', s[0]!);
-};
+const navigate = ({ id }: { id: string }) => emit('navigate', id);
 </script>
 
 <template>
   <ExpandableSidePanel title="table of contents">
+    <!-- @click:activate: vuetify/src/composables/nested -->
     <VTreeview class="mx overflow-y-auto light smaller"
       :items="tree" item-value="id" density="compact"
       :activated="[pos]"
       open-all activatable mandatory
-      @update:activated="navigate" />
+      @click:activate="navigate" />
   </ExpandableSidePanel>
 </template>
 
