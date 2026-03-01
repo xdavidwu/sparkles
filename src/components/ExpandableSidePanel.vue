@@ -33,8 +33,9 @@ useResizeObserver(container, () => {
           <div v-if="title" class="mt-1 text-vertical text-caption text-uppercase disable-selection">
             {{ title }}
           </div>
+          <span class="overlay" />
         </div>
-        <div v-show="expanded" class="ps-1">
+        <div v-show="expanded">
           <slot />
         </div>
       </div>
@@ -50,6 +51,21 @@ useResizeObserver(container, () => {
 .panel.expanded {
   /* stolen from v-text-field solo-filled, focused state */
   background-color: rgb(54, 54, 54);
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  opacity: 0;
+  pointer-event: none;
+  background: currentColor;
+}
+
+.overlay:hover {
+  opacity: calc(var(--v-hover-opacity) * var(--v-theme-overlay-multiplier));
 }
 
 .text-vertical {
