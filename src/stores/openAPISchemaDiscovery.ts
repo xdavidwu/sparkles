@@ -7,8 +7,34 @@ import type { V2APIResourceDiscovery } from '@/utils/discoveryV2';
 import { openapiSchemaToJsonSchema } from '@openapi-contrib/openapi-schema-to-json-schema';
 import type { OpenAPIV3 } from 'openapi-types';
 import type { JSONSchema4 } from 'json-schema';
+import wellKnowns from '@/assets/wellKnowns.json';
 
 const indexOf = (api: AnyApiGetOpenAPISchemaRequest) => `${api.group ?? ''}/${api.version}`;
+
+const extractWellKnowns = (type: string): { [k in string]: JSONSchema4 } => Object.fromEntries(
+  wellKnowns.filter((w) => w.types.includes(type))
+    .map((w) => [w.key, { type: 'string', description: w.desc }]));
+
+// TODO taints?
+const wellKnownSchema: JSONSchema4 = {
+  type: 'object',
+  required: ['metadata'],
+  properties: {
+    metadata: {
+      type: 'object',
+      properties: {
+        annotations: {
+          type: 'object',
+          properties: extractWellKnowns('annotations'),
+        },
+        labels: {
+          type: 'object',
+          properties: extractWellKnowns('labels'),
+        },
+      },
+    },
+  },
+};
 
 export const useOpenAPISchemaDiscovery = defineStore('openapi-discovery', () => {
   const schemas: Map<string, Promise<OpenAPIV3.Document>> = new Map();
@@ -71,6 +97,7 @@ export const useOpenAPISchemaDiscovery = defineStore('openapi-discovery', () => 
             },
           },
         },
+        wellKnownSchema,
       ],
       components: {
         schemas: root.components?.schemas ?
