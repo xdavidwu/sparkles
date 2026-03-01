@@ -426,7 +426,7 @@ const title = (o: ObjectRecord) =>
 watch(targetGroupVersion, () => targetKind.value = defaultTargetKind());
 watch([targetKind, allNamespaces, selectedNamespace], load, { immediate: true });
 watch(selectedNamespace, loadPermissions);
-watch(verbose, runTableLayoutAlgorithm);
+watch(columns, runTableLayoutAlgorithm);
 watch([targetKind, verbose], () => order.value = []);
 // hack: v-data-table-virtual does not update properly when display: none
 // (0 height), force rendering range calculation when back
