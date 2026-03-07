@@ -1,5 +1,5 @@
 import type { FunctionDirective } from 'vue';
-import { renderer, softenFragmentNavigation } from '@/utils/markdown';
+import { renderer, externalizeLinks, softenFragmentNavigation } from '@/utils/markdown';
 import DOMPurify from 'dompurify';
 import { oneDarkHighlightStyle } from '@codemirror/theme-one-dark';
 import { StyleModule } from 'style-mod';
@@ -14,5 +14,6 @@ export const vMarkdown: FunctionDirective<HTMLDivElement> = (el, binding) => {
   const rendered = DOMPurify.sanitize(renderer.render(binding.value));
   el.innerHTML = rendered;
 
+  externalizeLinks(el);
   softenFragmentNavigation(el);
 };

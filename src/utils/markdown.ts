@@ -30,13 +30,15 @@ const makeRuleOverridePlugin =
       md.renderer.rules[name] = over(md.renderer.rules[name] || callRenderTokens);
     };
 
-const externalizeLinks = makeRuleOverridePlugin(
+// there is also a DOM version for applying after DOMPurify
+const externalizeLinksByPlugin = makeRuleOverridePlugin(
   'link_open',
   (original) => function (tokens, idx, options, env, self) {
     const token = tokens[idx]!;
     const href = token.attrGet('href');
     if (href?.includes('//')) {
       token.attrSet('target', '_blank');
+      token.attrSet('rel', 'noreferrer');
     }
     return original(tokens, idx, options, env, self);
   },
@@ -72,14 +74,17 @@ const makeRenderer = () => {
       }
       return '';
     },
-  }).enable(['table', 'linkify']).use(anchor).use(externalizeLinks);
+  }).enable(['table', 'linkify']).use(anchor);
 
   renderer.linkify.set({ fuzzyLink: false, fuzzyEmail: false });
 
   return renderer;
 };
 
-export const trustedRenderer = makeRenderer();
+export const trustedRenderer = makeRenderer().use(externalizeLinksByPlugin);
+
+// for untrusted content, caller should sanitize after rendering
+// links are to be externalized after sanitizer
 export const renderer = makeRenderer().use(unarmRelativeLinks);
 
 export const softNavigate = (el: HTMLElement, id: string) => {
@@ -98,4 +103,10 @@ export const softenFragmentNavigation = (el: HTMLElement) =>
       softNavigate(el, decodeURIComponent(hash).substring(1));
       e.preventDefault();
     });
+  });
+
+export const externalizeLinks = (el: HTMLElement) =>
+  el.querySelectorAll('a[href*="//"]').forEach((a) => {
+    a.setAttribute('target', '_blank');
+    a.setAttribute('rel', 'noreferrer');
   });
