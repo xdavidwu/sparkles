@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import TooltipContent from '@/components/TooltipContent.vue';
-import { createApp, computed, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { EditorState } from '@codemirror/state';
 import { EditorView, hoverTooltip, type ViewUpdate } from '@codemirror/view';
@@ -17,6 +17,7 @@ import {
   yamlCompletion, yamlSchemaHover, yamlSchemaLinter,
 } from '@xdavidwu/codemirror-json-schema/yaml';
 import type { JSONSchema4, JSONSchema7 } from 'json-schema';
+import { instantiateComponent } from '@/utils/components';
 
 // TODO completion markdown renderer (allow html)
 
@@ -140,10 +141,7 @@ const origHover = yamlSchemaHover({
   formatHover: (data) => {
     const type = `Type: ${data.typeInfo}`;
     const text = data.message ? `${data.message}\n\n${type}` : type;
-    const div = document.createElement('div');
-    const vue = createApp(TooltipContent, { text, markdown: true });
-    vue.mount(div);
-    return div;
+    return instantiateComponent(TooltipContent, { text, markdown: true });
   },
 });
 
@@ -194,7 +192,13 @@ const extensions = computed(() => {
     e.push(lezerParserLinter, lintGutter());
     if (props.schema) {
       e.push(
-        yamlLanguage.data.of({ autocomplete: yamlCompletion() }),
+        yamlLanguage.data.of({
+          autocomplete: yamlCompletion({
+            formatInfo: (text) => instantiateComponent(TooltipContent, {
+              text, markdown: true, inline: true,
+            }),
+          }),
+        }),
         linter(yamlSchemaLinter(), linterConfig),
       );
     }

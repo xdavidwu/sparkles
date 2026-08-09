@@ -3,12 +3,14 @@ import { vMarkdown } from '@/directives/vMarkdown';
 
 defineProps<{
   text?: string,
+  inline?: boolean,
   markdown?: boolean,
 }>();
 </script>
 
 <template>
-  <div class="bg-teal-darken-4 px-2 py-1 rounded elevation-1 mw-40 text-caption text-denser">
+  <div class="text-caption text-denser"
+    :class="{ 'bg-teal-darken-4 px-2 py-1 rounded elevation-1 mw-40': !inline }">
     <div v-if="markdown" v-markdown="text" class="markdown code-background" />
     <slot v-else>{{ text }}</slot>
   </div>
