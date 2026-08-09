@@ -1,0 +1,34 @@
+name: podman
+on:
+  workflow_call:
+    inputs:
+      name:
+        type: string
+jobs:
+  podman:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    env:
+      CONTAINERFILE: >-
+        ${{ case(inputs.name == '', 'Containerfile',
+          format('Containerfile.{0}', inputs.name )) }}
+      IMAGE: >-
+        ${{ case(inputs.name == '', 'sparkles',
+          format('sparkles/{0}', inputs.name )) }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: build
+        run: |
+          podman build . -t ghcr.io/xdavidwu/"$IMAGE":latest \
+            -f containers/"$CONTAINERFILE"
+      - name: login
+        if: &shouldPush |
+          ${{ github.ref_type == 'tag' || github.ref == 'refs/heads/main' }}
+        run: |
+          podman login ghcr.io \
+            -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}"
+      - name: push
+        if: *shouldPush
+        run: |
+          podman push ghcr.io/xdavidwu/"$IMAGE":latest

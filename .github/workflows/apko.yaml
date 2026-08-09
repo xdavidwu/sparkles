@@ -1,0 +1,31 @@
+name: apko
+on:
+  workflow_call:
+    inputs:
+      name:
+        type: string
+jobs:
+  apko:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: oci
+        run: |
+          podman run -v .:/work cgr.dev/chainguard/apko:latest \
+            build /work/containers/"${{ inputs.name }}".apko.yaml \
+            "${{ inputs.name }}"  /work/"${{ inputs.name }}".tar
+      - name: load
+        run: podman load -i "${{ inputs.name }}".tar
+      - name: login
+        if: &shouldPush |
+          ${{ github.ref_type == 'tag' || github.ref == 'refs/heads/main' }}
+        run: |
+          podman login ghcr.io \
+            -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}"
+      - name: push
+        if: *shouldPush
+        run: |
+          podman push "${{ inputs.name }}":latest-amd64 \
+            ghcr.io/xdavidwu/sparkles/"${{ inputs.name }}":latest

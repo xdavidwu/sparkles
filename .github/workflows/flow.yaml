@@ -1,0 +1,25 @@
+name: flow
+on: push
+jobs:
+  apko:
+    strategy:
+      matrix:
+        name:
+          - kubectl-shell
+          - sftp-server
+    uses: ./.github/workflows/apko.yaml
+    permissions:
+      packages: write
+    with:
+      name: ${{ matrix.name }}
+  podman:
+    strategy:
+      matrix:
+        name:
+          - ''
+          - busybox
+    uses: ./.github/workflows/podman.yaml
+    permissions:
+      packages: write
+    with:
+      name: ${{ matrix.name }}
