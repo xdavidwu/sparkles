@@ -1,15 +1,17 @@
 # static busybox with CONFIG_FEATURE_PREFER_APPLETS
 
-FROM public.ecr.aws/docker/library/alpine:3.21 as builder
+FROM public.ecr.aws/docker/library/alpine:3.24 as builder
 
-ARG VERSION=1.37.0
-ARG SHA512=ad8fd06f082699774f990a53d7a73b189ed404fe0a2166aff13eae4d9d8ee5c9239493befe949c98801fe7897520dbff3ed0224faa7205854ce4fa975e18467e
+ARG VERSION=1.38.0
+ARG SHA512=ba3866f0a9ceabafe8c4d43afaf031bc5554742903b3d08e59a8592351dc09c6e091bb0cd2852b3ed1e79e841de871bac4dc48d9bb1cef9309c3f8495aba0d00
 
-RUN apk add gcc musl-dev linux-headers make
+RUN apk add gcc musl-dev linux-headers make patch
 RUN wget https://busybox.net/downloads/busybox-$VERSION.tar.bz2
 RUN echo "$SHA512  busybox-$VERSION.tar.bz2" | sha512sum -c -
 RUN tar -xf busybox-$VERSION.tar.bz2
 WORKDIR busybox-$VERSION
+RUN wget https://sources.debian.org/data/main/b/busybox/1%3A1.38.0-3/debian/patches/busybox-1.36.1-no-cbq.patch
+RUN patch -p 1 -i busybox-1.36.1-no-cbq.patch
 RUN make defconfig && sed -i .config \
   -e "s/.*CONFIG_STATIC\([A-Z_]*\).*/CONFIG_STATIC\1=y/" \
   -e "s/.*CONFIG_FEATURE_PREFER_APPLETS.*/CONFIG_FEATURE_PREFER_APPLETS=y/" \
