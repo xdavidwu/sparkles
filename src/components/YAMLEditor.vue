@@ -12,9 +12,13 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import {
   stateExtensions, updateSchema, JSONHover,
   type FoundCursorData,
-} from 'codemirror-json-schema';
-import { yamlCompletion, yamlSchemaHover, yamlSchemaLinter } from 'codemirror-json-schema/yaml';
+} from '@xdavidwu/codemirror-json-schema';
+import {
+  yamlCompletion, yamlSchemaHover, yamlSchemaLinter,
+} from '@xdavidwu/codemirror-json-schema/yaml';
 import type { JSONSchema4, JSONSchema7 } from 'json-schema';
+
+// TODO completion markdown renderer (allow html)
 
 // do we want seq here?
 interface PathHistoryItem {
