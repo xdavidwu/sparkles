@@ -21,6 +21,7 @@ import { StdDateAdapter } from 'chartjs-adapter-date-std';
 import App from '@/OIDCApp.vue';
 import router from '@/router';
 
+// @ts-expect-error noUncheckedSideEffectImport`
 import 'vuetify/styles';
 
 Chart.register(
