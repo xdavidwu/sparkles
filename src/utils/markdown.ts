@@ -1,4 +1,4 @@
-import markdownit, { type PluginSimple } from 'markdown-it';
+import markdownit, { type RendererRule, type MarkdownIt } from 'markdown-it';
 import anchor from 'markdown-it-anchor';
 import { oneDarkHighlightStyle } from '@codemirror/theme-one-dark';
 // @ts-expect-error no type definition
@@ -18,15 +18,12 @@ const parsers: { [k in string]: LRParser } = {
   bash: shellParser,
 };
 
-type RuleNames = keyof markdownit['renderer']['rules'];
-type RendererRule = NonNullable<markdownit['renderer']['rules'][RuleNames]>;
-
 const callRenderTokens: RendererRule =
   (tokens, idx, options, env, self) => self.renderToken(tokens, idx, options);
 
 const makeRuleOverridePlugin =
-  (name: RuleNames, over: (original: RendererRule) => RendererRule): PluginSimple =>
-    (md) => {
+  (name: string, over: (original: RendererRule) => RendererRule) =>
+    (md: MarkdownIt) => {
       md.renderer.rules[name] = over(md.renderer.rules[name] || callRenderTokens);
     };
 
@@ -35,7 +32,7 @@ const externalizeLinksByPlugin = makeRuleOverridePlugin(
   'link_open',
   (original) => function (tokens, idx, options, env, self) {
     const token = tokens[idx]!;
-    const href = token.attrGet('href');
+    const href = token.attrGet('href') as string | null;
     if (href?.includes('//')) {
       token.attrSet('target', '_blank');
       token.attrSet('rel', 'noreferrer');
@@ -49,7 +46,7 @@ const unarmRelativeLinks = makeRuleOverridePlugin(
   'link_open',
   (original) => function (tokens, idx, options, env, self) {
     const token = tokens[idx]!;
-    const href = token.attrGet('href');
+    const href = token.attrGet('href') as string | null;
     if (href && !href.includes('//') && !href.startsWith('#')) {
       token.attrs!.splice(token.attrIndex('href'));
       token.attrSet('class', 'text-white');
