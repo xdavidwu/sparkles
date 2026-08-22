@@ -6,10 +6,16 @@ import vue from '@vitejs/plugin-vue';
 import { Mode, plugin as markdown } from 'vite-plugin-markdown';
 import { trustedRenderer } from './src/utils/markdown';
 
-// for markdown code highlighting
-if (!globalThis.document) {
+// for lezer code highlighting
+const markdownRenderer = (body: string) => {
   GlobalRegistrator.register();
-}
+
+  const res = trustedRenderer.render(body);
+
+  GlobalRegistrator.unregister();
+
+  return res;
+};
 
 const KUBECTL_PROXY = 'http://127.0.0.1:8001';
 
@@ -25,7 +31,7 @@ export default defineConfig({
     vue(),
     markdown({
       mode: [Mode.VUE],
-      markdownIt: trustedRenderer,
+      markdown: markdownRenderer,
     }),
     {
       name: 'app-version',
