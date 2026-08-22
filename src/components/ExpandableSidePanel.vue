@@ -59,7 +59,7 @@ useResizeObserver(container, () => {
   left: 0;
   right: 0;
   opacity: 0;
-  pointer-event: none;
+  pointer-events: none;
   background: currentColor;
 }
 
