@@ -1,7 +1,7 @@
 import { fileURLToPath, URL } from 'node:url';
 import { execSync } from 'node:child_process';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
-import { defineConfig } from 'vite';
+import { defineConfig, type CommonServerOptions } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { Mode, plugin as markdown } from 'vite-plugin-markdown';
 import { trustedRenderer } from './src/utils/markdown';
@@ -18,6 +18,15 @@ const markdownRenderer = (body: string) => {
 };
 
 const KUBECTL_PROXY = 'http://127.0.0.1:8001';
+const EXECMOCK = 'http://127.0.0.1:8002';
+const USE_EXECMOCK = false;
+
+const execMockProxyOptions: CommonServerOptions['proxy'] = USE_EXECMOCK ? {
+  '^/api/v1/namespaces/.*/pods/.*/exec': {
+    target: EXECMOCK,
+    ws: true,
+  },
+} : {};
 
 const getVersion = () => execSync('git describe --always --dirty').toString().trimEnd();
 
@@ -78,6 +87,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      ...execMockProxyOptions,
       '/openapi': KUBECTL_PROXY,
       '/api': {
         target: KUBECTL_PROXY,
