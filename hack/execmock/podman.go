@@ -13,6 +13,7 @@ import (
 	"go.podman.io/podman/v6/pkg/bindings/containers"
 	"go.podman.io/podman/v6/pkg/bindings/images"
 	"go.podman.io/podman/v6/pkg/specgen"
+	clientremotecommand "k8s.io/client-go/tools/remotecommand"
 )
 
 func connectPodman(ctx context.Context) (context.Context, error) {
@@ -59,8 +60,8 @@ func runContainerWithPidNsAttachedTo(ctx context.Context, id string, image strin
 	return runSpec(ctx, spec)
 }
 
-func exec(ctx context.Context, id string, cmd []string, in io.Reader, out, err io.Writer, tty bool) (string, error) {
-	session, e := containers.ExecCreate(ctx, id, &handlers.ExecCreateConfig{
+func createExec(ctx context.Context, id string, cmd []string, in io.Reader, out, err io.Writer, tty bool) (string, error) {
+	return containers.ExecCreate(ctx, id, &handlers.ExecCreateConfig{
 		ExecCreateRequest: container.ExecCreateRequest{
 			Tty:          tty,
 			AttachStdin:  in != nil,
@@ -69,10 +70,9 @@ func exec(ctx context.Context, id string, cmd []string, in io.Reader, out, err i
 			Cmd:          cmd,
 		},
 	})
-	if e != nil {
-		return "", fmt.Errorf("cannot set up exec session: %w", e)
-	}
+}
 
+func startExec(ctx context.Context, session string, in io.Reader, out, err io.Writer) error {
 	writerPtr := func(w io.Writer) *io.Writer {
 		if w == nil {
 			return nil
@@ -87,7 +87,7 @@ func exec(ctx context.Context, id string, cmd []string, in io.Reader, out, err i
 		return bufio.NewReader(r)
 	}
 
-	return session, containers.ExecStartAndAttach(ctx, session, &containers.ExecStartAndAttachOptions{
+	return containers.ExecStartAndAttach(ctx, session, &containers.ExecStartAndAttachOptions{
 		OutputStream: writerPtr(out),
 		ErrorStream:  writerPtr(err),
 		InputStream:  bufferReader(in),
@@ -95,4 +95,17 @@ func exec(ctx context.Context, id string, cmd []string, in io.Reader, out, err i
 		AttachError:  new(err != nil),
 		AttachInput:  new(in != nil),
 	})
+}
+
+func handleResizes(ctx context.Context, session string, resize <-chan clientremotecommand.TerminalSize) error {
+	for sz := range resize {
+		if err := containers.ResizeExecTTY(ctx, session, &containers.ResizeExecTTYOptions{
+			Height: new(int(sz.Height)),
+			Width:  new(int(sz.Width)),
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

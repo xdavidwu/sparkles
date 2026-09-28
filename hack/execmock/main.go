@@ -82,14 +82,21 @@ func (e *executor) ExecInContainer(
 	resize <-chan clientremotecommand.TerminalSize,
 	timeout time.Duration,
 ) error {
-	// TODO resize
-	session, execErr := exec(ctx, e.containerID, cmd, in, out, err, tty)
+	session, execErr := createExec(ctx, e.containerID, cmd, in, out, err, tty)
 	if execErr != nil {
 		slog.Error("failed to exec", "error", execErr)
+		return execErr
 	} else {
 		slog.Info("new exec session", "session", session, "cmd", cmd)
 	}
-	return execErr
+
+	go func() {
+		if resizeErr := handleResizes(ctx, session, resize); resizeErr != nil {
+			slog.Error("failed to resize", "error", resizeErr)
+		}
+	}()
+
+	return startExec(ctx, session, in, out, err)
 }
 
 func main() {
