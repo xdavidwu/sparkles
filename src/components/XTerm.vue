@@ -28,6 +28,20 @@ onMounted(async () => {
   new ResizeObserver(() => fitAddon.fit()).observe(div.value!);
   terminal.onBell(() => emit('bell'));
   terminal.onTitleChange((title) => emit('titleChanged', title));
+
+  // xtermjs/xterm.js#5563 seems to broke focusing
+  // also there is no built-in way to unfocus
+  const textHelper = div.value!.querySelector('.xterm-helper-textarea')! as HTMLInputElement;
+  // xtermjs bundled (with namespace modified) vscode vs/base/browser/touch.Gesture
+  // via script, artifacts not present in source
+  div.value!.querySelector('.xterm-screen')!.addEventListener('-xterm-gesturetap', () => {
+    if (document.activeElement === textHelper) {
+      textHelper.blur();
+    } else {
+      textHelper.focus();
+    }
+  });
+
   emit('ready', terminal);
 });
 </script>
@@ -36,9 +50,3 @@ onMounted(async () => {
   <div ref="div" class="bg-black"
     style="touch-action: pan-x pinch-zoom; overflow: clip" />
 </template>
-
-<style scoped>
-:deep(.xterm-rows span) {
-  pointer-events: none;
-}
-</style>
