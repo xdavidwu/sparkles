@@ -91,6 +91,14 @@ func (e *executor) ExecInContainer(
 	}
 
 	go func() {
+		waitCtx, cancel := context.WithTimeout(ctx, time.Second)
+		defer cancel()
+
+		if err := waitForStartExec(waitCtx, session); err != nil {
+			slog.Error("failed to wait for exec to start", "error", err)
+			return
+		}
+
 		if resizeErr := handleResizes(ctx, session, resize); resizeErr != nil {
 			slog.Error("failed to resize", "error", resizeErr)
 		}

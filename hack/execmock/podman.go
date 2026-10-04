@@ -5,7 +5,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
+	"time"
 
 	"github.com/moby/moby/api/types/container"
 	"go.podman.io/podman/v6/pkg/api/handlers"
@@ -97,6 +99,20 @@ func startExec(ctx context.Context, session string, in io.Reader, out, err io.Wr
 	})
 }
 
+func waitForStartExec(ctx context.Context, session string) error {
+	for {
+		inspect, err := containers.ExecInspect(ctx, session, nil)
+		if err != nil {
+			return err
+		}
+
+		if inspect.Running {
+			return nil
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
 func handleResizes(ctx context.Context, session string, resize <-chan clientremotecommand.TerminalSize) error {
 	for sz := range resize {
 		if err := containers.ResizeExecTTY(ctx, session, &containers.ResizeExecTTYOptions{
@@ -105,6 +121,7 @@ func handleResizes(ctx context.Context, session string, resize <-chan clientremo
 		}); err != nil {
 			return err
 		}
+		slog.Info("resize", "width", sz.Width, "height", sz.Height, "session", session)
 	}
 
 	return nil
