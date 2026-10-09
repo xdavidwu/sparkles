@@ -150,6 +150,11 @@ func main() {
 			return ctx
 		},
 	}
+
+	// XXX ExecStartAndAttach puts stdin into raw mode no matter what input stream is
+	// passed to it, cannot really inspect that input stream there
+	os.Stdin = nil
+
 	if err := srv.Serve(l); err != nil {
 		slog.Error("cannot serve http", "error", err)
 		os.Exit(1)
